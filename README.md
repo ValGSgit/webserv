@@ -17,7 +17,7 @@ This project involves creating a fully functional HTTP server that:
 ### Phase 1: Foundation & Research
 
 #### Step 1: Research Phase
-- [ ] **Study HTTP/1.0 RFC (RFC 1945)**
+- [ ] **Study HTTP/RFC 1.0 is recommended by subject but personal choice would be 3.0 (June 2022)**
   - Focus on request/response format
   - Understand status codes
   - Learn about headers and methods
