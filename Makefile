@@ -55,10 +55,4 @@ $(OBJDIR)/testmain.o: $(SRCDIR)/testmain.cpp
 	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
-test_endpoints: test_server
-	./test_endpoints.sh
-
-test_performance: test_server
-	./performance_test.sh
-
-.PHONY: all clean fclean re test test_components test_server test_endpoints test_performance
+.PHONY: all clean fclean re test test_components test_server
