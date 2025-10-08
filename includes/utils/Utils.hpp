@@ -51,7 +51,61 @@ class Utils {
         // Validation utilities
         static bool isValidHttpMethod(const std::string& method);
         static bool isValidUri(const std::string& uri);
+        static bool isValidAbsoluteUri(const std::string& uri);
+        static bool isValidUriReference(const std::string& uriRef);
         static bool isValidPort(int port);
+        
+        // URI parsing and validation - RFC 3986 compliant
+        struct UriComponents {
+            std::string scheme;
+            std::string authority;
+            std::string userinfo;
+            std::string host;
+            std::string port;
+            std::string path;
+            std::string query;
+            std::string fragment;
+            bool hasScheme;
+            bool hasAuthority;
+            bool hasUserinfo;
+            bool hasPort;
+            bool hasQuery;
+            bool hasFragment;
+            
+            UriComponents() : hasScheme(false), hasAuthority(false), hasUserinfo(false), 
+                             hasPort(false), hasQuery(false), hasFragment(false) {}
+        };
+        
+        static bool parseUri(const std::string& uri, UriComponents& components);
+        static bool parseAuthority(const std::string& authority, UriComponents& components);
+        static bool validateUriComponents(const UriComponents& components);
+        static std::string normalizeUri(const std::string& uri);
+        static std::string reconstructUri(const UriComponents& components);
+        
+        // URI component validation
+        static bool isValidScheme(const std::string& scheme);
+        static bool isValidUserinfo(const std::string& userinfo);
+        static bool isValidHost(const std::string& host);
+        static bool isValidIPv4Address(const std::string& ip);
+        static bool isValidIPv6Address(const std::string& ipv6);
+        static bool isValidIPv6Literal(const std::string& literal);
+        static bool isValidIPvFuture(const std::string& ipvf);
+        static bool isValidRegisteredName(const std::string& name);
+        static bool isValidPortString(const std::string& port);
+        static bool isValidPath(const std::string& path);
+        static bool isValidQuery(const std::string& query);
+        static bool isValidFragment(const std::string& fragment);
+        
+        // URI character validation helpers
+        static bool isUnreservedChar(char c);
+        static bool isSubDelimChar(char c);
+        static bool isPChar(char c);
+        static bool isValidPercentEncoding(const std::string& str, size_t pos);
+        static bool isHexDigit(char c);
+        
+        // URI normalization helpers
+        static std::string normalizePercentEncoding(const std::string& str);
+        static std::string removeDotSegments(const std::string& path);
 };
 
 #endif
