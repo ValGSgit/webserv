@@ -1,0 +1,45 @@
+General understanding
+https://www.alimnaqvi.com/blog/webserv
+
+BONUS:
+cookies and sessions
+https://medium.com/@hendelRamzy/how-session-and-cookies-works-640fb3f349d1
+
+Note:
+Handle also HEAD method? It's just GET without content
+
+// https://datatracker.ietf.org/doc/rfc9110/
+// 9.1.  Overview
++=========+============================================+=========+
+   | Method  | Description                                | Section |
+   | Name    |                                            |         |
+   +=========+============================================+=========+
+   | GET     | Transfer a current representation of the   | 9.3.1   |
+   |         | target resource.                           |         |
+   +---------+--------------------------------------------+---------+
+   | HEAD    | Same as GET, but do not transfer the       | 9.3.2   |
+   |         | response content.                          |         |
+   +---------+--------------------------------------------+---------+
+   | POST    | Perform resource-specific processing on    | 9.3.3   |
+   |         | the request content.                       |         |
+   +---------+--------------------------------------------+---------+
+   | PUT     | Replace all current representations of the | 9.3.4   |
+   |         | target resource with the request content.  |         |
+   +---------+--------------------------------------------+---------+
+   | DELETE  | Remove all current representations of the  | 9.3.5   |
+   |         | target resource.                           |         |
+   +---------+--------------------------------------------+---------+
+   | CONNECT | Establish a tunnel to the server           | 9.3.6   |
+   |         | identified by the target resource.         |         |
+   +---------+--------------------------------------------+---------+
+   | OPTIONS | Describe the communication options for the | 9.3.7   |
+   |         | target resource.                           |         |
+   +---------+--------------------------------------------+---------+
+   | TRACE   | Perform a message loop-back test along the | 9.3.8   |
+   |         | path to the target resource.               |         |
+   +---------+--------------------------------------------+---------+
+
+                                Table 4
+
+   All general-purpose servers MUST support the methods GET and HEAD.
+   All other methods are OPTIONAL.
