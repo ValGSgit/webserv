@@ -34,7 +34,7 @@ public:
         cleanup();
     }
     
-    bool qinitialize(int port, std::string input) {
+    bool initialize(int port, std::string input) {
         std::cout << "Initializing test server on port " << port << std::endl;
         
         // Load configuration
@@ -351,16 +351,12 @@ int main(int argc, char **argv) {
     std::cout << "=== WebServ Test Server with Epoll ===" << std::endl;
     
     int port = 8080;
-    if (argc > 1) {
-        port = Utils::toInt(argv[1]);
-    }
-    
+    (void)argc;
     // Setup signal handlers
     signal(SIGINT, signalHandler);
     signal(SIGTERM, signalHandler);
     signal(SIGPIPE, SIG_IGN);
-    std::stringstream in;
-    in << argv[1];
+
     std::stringstream other;
     other << argv[2];
     std::string adv = "config/advanced.conf";

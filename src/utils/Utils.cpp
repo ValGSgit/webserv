@@ -51,6 +51,27 @@ std::string Utils::toUpperCase(const std::string& str) {
     return result;
 }
 
+bool Utils::equalsIgnoreCase(const std::string& str1, const std::string& str2) {
+    if (str1.length() != str2.length()) {
+        return false;
+    }
+    for (size_t i = 0; i < str1.length(); ++i) {
+        char c1 = str1[i];
+        char c2 = str2[i];
+        // Convert to lowercase for comparison
+        if (c1 >= 'A' && c1 <= 'Z') {
+            c1 = c1 + ('a' - 'A');
+        }
+        if (c2 >= 'A' && c2 <= 'Z') {
+            c2 = c2 + ('a' - 'A');
+        }
+        if (c1 != c2) {
+            return false;
+        }
+    }
+    return true;
+}
+
 bool Utils::startsWith(const std::string& str, const std::string& prefix) {
     if (prefix.length() > str.length()) return false;
     return str.substr(0, prefix.length()) == prefix;
