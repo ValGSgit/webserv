@@ -79,6 +79,7 @@ void HttpRequest::parseUri(const std::string& uri) {
 HttpMethod HttpRequest::stringToMethod(const std::string& method_str) {
     if (method_str == "GET") return METHOD_GET;
     if (method_str == "POST") return METHOD_POST;
+    if (method_str == "PUT") return METHOD_PUT;
     if (method_str == "DELETE") return METHOD_DELETE;
     return METHOD_UNKNOWN;
 }
@@ -131,6 +132,7 @@ std::string HttpRequest::methodToString() const {
     switch (_method) {
         case METHOD_GET: return "GET";
         case METHOD_POST: return "POST";
+        case METHOD_PUT: return "PUT";
         case METHOD_DELETE: return "DELETE";
         default: return "UNKNOWN";
     }

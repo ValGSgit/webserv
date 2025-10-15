@@ -34,11 +34,11 @@ public:
         cleanup();
     }
     
-    bool initialize(int port) {
+    bool qinitialize(int port, std::string input) {
         std::cout << "Initializing test server on port " << port << std::endl;
         
         // Load configuration
-        if (!_config.parseConfig("config/default.conf")) {
+        if (!_config.parseConfig(input)) {
             std::cerr << "Failed to parse configuration" << std::endl;
             return false;
         }
@@ -359,11 +359,20 @@ int main(int argc, char **argv) {
     signal(SIGINT, signalHandler);
     signal(SIGTERM, signalHandler);
     signal(SIGPIPE, SIG_IGN);
-    
+    std::stringstream in;
+    in << argv[1];
+    std::stringstream other;
+    other << argv[2];
+    std::string adv = "config/advanced.conf";
+
     TestServer server;
-    if (!server.initialize(port)) {
+    if (argv[2] && !server.initialize(port, argv[2])) {
         std::cerr << "Failed to initialize server" << std::endl;
         return 1;
+    } else {
+        if (!server.initialize(port, adv))
+            return std::cerr<<"not advanced enough yet" << std::endl && -1;
+
     }
     
     std::cout << "\n=== Test Endpoints ===" << std::endl;

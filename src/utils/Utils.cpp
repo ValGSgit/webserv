@@ -496,7 +496,6 @@ bool Utils::parseAuthority(const std::string& authority, UriComponents& componen
     if (authority.empty()) return true;
     
     size_t pos = 0;
-    const size_t len = authority.length();
     
     // Check for userinfo (ends with @)
     size_t atPos = authority.find('@');
