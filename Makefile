@@ -15,6 +15,7 @@ SRCFILES = main.cpp \
 		   http/HttpRequest.cpp \
 		   http/HttpResponse.cpp \
 		   http/HttpTemplates.cpp \
+		   http/HttpHandler.cpp \
 		   utils/Utils.cpp
 
 SRCS = $(addprefix $(SRCDIR)/, $(SRCFILES))
