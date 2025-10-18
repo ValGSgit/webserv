@@ -1,6 +1,7 @@
 #include "../../includes/cgi/CgiHandler.hpp"
 #include "../../includes/http/HttpRequest.hpp"
 #include "../../includes/http/HttpResponse.hpp"
+#include "../../includes/http/HttpStatusCodes.hpp"
 #include "../../includes/utils/Utils.hpp"
 
 CgiHandler::CgiHandler() : _timeout(CGI_TIMEOUT) {}
@@ -9,7 +10,7 @@ CgiHandler::~CgiHandler() {}
 
 HttpResponse CgiHandler::executeCgi(const HttpRequest& request, const std::string& script_path) {
     if (!Utils::fileExists(script_path) || !Utils::isReadable(script_path)) {
-        return HttpResponse::errorResponse(STATUS_NOT_FOUND);
+        return HttpResponse::errorResponse(HTTP_NOT_FOUND);
     }
     
     // Find CGI executable
@@ -17,14 +18,14 @@ HttpResponse CgiHandler::executeCgi(const HttpRequest& request, const std::strin
     std::string cgi_executable = findCgiExecutable(extension);
     
     if (cgi_executable.empty()) {
-        return HttpResponse::errorResponse(STATUS_NOT_IMPLEMENTED);
+        return HttpResponse::errorResponse(HTTP_NOT_IMPLEMENTED);
     }
     
     // Create pipes for communication
     int stdin_pipe[2], stdout_pipe[2];
     if (pipe(stdin_pipe) == -1 || pipe(stdout_pipe) == -1) {
         perror("pipe");
-        return HttpResponse::errorResponse(STATUS_INTERNAL_SERVER_ERROR);
+        return HttpResponse::errorResponse(HTTP_INTERNAL_SERVER_ERROR);
     }
     
     // Fork process
@@ -33,7 +34,7 @@ HttpResponse CgiHandler::executeCgi(const HttpRequest& request, const std::strin
         perror("fork");
         close(stdin_pipe[0]); close(stdin_pipe[1]);
         close(stdout_pipe[0]); close(stdout_pipe[1]);
-        return HttpResponse::errorResponse(STATUS_INTERNAL_SERVER_ERROR);
+        return HttpResponse::errorResponse(HTTP_INTERNAL_SERVER_ERROR);
     }
     
     if (pid == 0) {
@@ -111,7 +112,7 @@ HttpResponse CgiHandler::executeCgi(const HttpRequest& request, const std::strin
     waitpid(pid, &status, 0);
     
     if (output.empty()) {
-        return HttpResponse::errorResponse(STATUS_INTERNAL_SERVER_ERROR);
+        return HttpResponse::errorResponse(HTTP_INTERNAL_SERVER_ERROR);
     }
     
     return parseCgiOutput(output);
@@ -203,7 +204,7 @@ HttpResponse CgiHandler::parseCgiOutput(const std::string& output) {
         header_end = output.find("\n\n");
         if (header_end == std::string::npos) {
             // No headers, treat everything as body
-            response.setStatus(STATUS_OK);
+            response.setStatus(HTTP_OK);
             response.setContentType("text/html");
             response.setBody(output);
             return response;
@@ -229,7 +230,7 @@ HttpResponse CgiHandler::parseCgiOutput(const std::string& output) {
             if (Utils::toLowerCase(key) == "status") {
                 int status_code = Utils::toInt(value);
                 if (status_code > 0) {
-                    response.setStatus(static_cast<HttpStatus>(status_code));
+                    response.setStatus(status_code);
                     status_set = true;
                 }
             } else {
@@ -239,7 +240,7 @@ HttpResponse CgiHandler::parseCgiOutput(const std::string& output) {
     }
     
     if (!status_set) {
-        response.setStatus(STATUS_OK);
+        response.setStatus(HTTP_OK);
     }
     
     response.setBody(body);

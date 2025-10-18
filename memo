@@ -1,0 +1,10 @@
+things to talk about:
+\r?
+date format
+webserv/1.1?
+should I rewrite all the things?
+where to put 503?
+got rid of enum STATUS, please use HTML_STATUS_CODE
+how to get which port client is using? >> change the code!!!
+www path should be dynamic according to config?
+why message is not sent until the end???

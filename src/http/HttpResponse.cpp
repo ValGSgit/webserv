@@ -1,13 +1,13 @@
 #include "../../includes/http/HttpResponse.hpp"
 #include "../../includes/utils/Utils.hpp"
 
-HttpResponse::HttpResponse() : _status(STATUS_OK), _headers_sent(false) {
+HttpResponse::HttpResponse() : _status(HTTP_OK), _headers_sent(false) {
     setDefaultHeaders();
 }
 
 HttpResponse::~HttpResponse() {}
 
-void HttpResponse::setStatus(HttpStatus status) {
+void HttpResponse::setStatus(int status) {
     _status = status;
 }
 
@@ -25,7 +25,7 @@ void HttpResponse::appendBody(const std::string& data) {
     setContentLength(_body.length());
 }
 
-HttpStatus HttpResponse::getStatus() const {
+int HttpResponse::getStatus() const {
     return _status;
 }
 
@@ -41,7 +41,7 @@ const std::string& HttpResponse::getResponseString() {
 }
 
 void HttpResponse::reset() {
-    _status = STATUS_OK;
+    _status = HTTP_OK;
     _headers.clear();
     _body.clear();
     _response_string.clear();
@@ -50,8 +50,9 @@ void HttpResponse::reset() {
 }
 
 void HttpResponse::setDefaultHeaders() {
-    _headers["Server"] = "WebServ/1.0";
-    _headers["Date"] = "Tue 30.09.2025 12:00"; //need to implement a way to get time
+    _headers["Server"] = "WebServ/1.0"; // 1.1?
+    std::time_t time = std::time(NULL); // or just implement a member function for future use?
+    _headers["Date"] = std::ctime(&time);// format like this? : "Tue 30.09.2025 12:00"
     _headers["Connection"] = "close";
 }
 
@@ -63,7 +64,7 @@ void HttpResponse::setContentLength(size_t length) {
     _headers["Content-Length"] = Utils::toString(length);
 }
 
-std::string HttpResponse::statusToString(HttpStatus status) {
+std::string HttpResponse::statusToString(int status) {
     return Utils::toString((int)status) + " " + Utils::getStatusMessage((int)status);
 }
 
@@ -78,7 +79,7 @@ void HttpResponse::buildResponseString() {
     _response_string += "\r\n" + _body;
 }
 
-HttpResponse HttpResponse::errorResponse(HttpStatus status, const std::string& message) {
+HttpResponse HttpResponse::errorResponse(int status, const std::string& message) {
     HttpResponse response;
     response.setStatus(status);
     response.setContentType("text/html");
@@ -99,7 +100,7 @@ HttpResponse HttpResponse::fileResponse(const std::string& filepath) {
     HttpResponse response;
     
     if (!Utils::fileExists(filepath) || !Utils::isReadable(filepath)) {
-        return errorResponse(STATUS_NOT_FOUND);
+        return errorResponse(HTTP_NOT_FOUND);
     }
     
     std::string content = Utils::readFile(filepath);
@@ -115,7 +116,7 @@ HttpResponse HttpResponse::directoryListingResponse(const std::string& path, con
     HttpResponse response;
     
     if (!Utils::isDirectory(path)) {
-        return errorResponse(STATUS_NOT_FOUND);
+        return errorResponse(HTTP_NOT_FOUND);
     }
     
     std::vector<std::string> files = Utils::listDirectory(path);
@@ -147,7 +148,7 @@ HttpResponse HttpResponse::directoryListingResponse(const std::string& path, con
 
 HttpResponse HttpResponse::redirectResponse(const std::string& location) {
     HttpResponse response;
-    response.setStatus(STATUS_MOVED_PERMANENTLY);
+    response.setStatus(HTTP_MOVED_PERMANENTLY);
     response.setHeader("Location", location);
     response.setBody("");
     return response;

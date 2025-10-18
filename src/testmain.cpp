@@ -99,7 +99,7 @@ public:
         std::cout << "Press Ctrl+C to stop" << std::endl;
         
         //NEW instance
-        HttpHandler handler(_server_fd, _epoll_fd);
+        HttpHandler handler(_server_fd, _epoll_fd, _config);
 
         while (g_running) {
             int nfds = epoll_wait(_epoll_fd, _events, MAX_CONNECTIONS, 1000);

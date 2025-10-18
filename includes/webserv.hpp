@@ -43,7 +43,7 @@ enum HttpMethod {
     METHOD_UNKNOWN
 };
 
-// HTTP Status Codes
+/* // HTTP Status Codes
 enum HttpStatus {
     STATUS_OK = 200,
     STATUS_CREATED = 201,
@@ -60,7 +60,7 @@ enum HttpStatus {
     STATUS_NOT_IMPLEMENTED = 501,
     STATUS_BAD_GATEWAY = 502,
     STATUS_SERVICE_UNAVAILABLE = 503
-};
+}; */
 
 // Connection States
 enum ConnectionState {
