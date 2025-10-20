@@ -1,16 +1,51 @@
 #include "../../includes/http/HttpHandler.hpp"
 
-HttpHandler::HttpHandler(){}
 HttpHandler::~HttpHandler(){}
-HttpHandler::HttpHandler(HttpHandler const &other){*this = other;}
+HttpHandler::HttpHandler(HttpHandler const &other) : _config(other._config)
+{*this = other;}
 HttpHandler &HttpHandler::operator=(HttpHandler const &other){
     if (this == &other)
         return (*this);
     return (*this);
 }
 
-HttpHandler::HttpHandler(int server_fd, int epoll_fd) : _server_fd(server_fd), _epoll_fd(epoll_fd)
+HttpHandler::HttpHandler(int server_fd, int epoll_fd, ConfigParser &config) : _server_fd(server_fd), _epoll_fd(epoll_fd), _config(config)
 {}
+
+const ServerConfig &HttpHandler::find_server(int port)
+{
+    const std::vector<ServerConfig> &servers = _config.getServers();
+    for (size_t i = 0; i < servers.size(); ++i) {
+        const ServerConfig& server = servers[i];
+        for (size_t j = 0; j < server.ports.size(); ++j) {
+            if (server.ports[j] == port)
+                return (server);
+        }
+    }
+    // if not found just return the first server, which is almost impossible?
+    return (servers[0]);
+}
+
+bool HttpHandler::method_allowed(std::string &uri, std::string method)
+{
+    const ServerConfig& server = find_server(8080); // change the port!!!
+    //std::cout << "method = " << method << std::endl;
+    try
+    {
+        const RouteConfig& route = server.routes.at(uri);//[uri];
+        for (size_t i = 0; i < route.allowed_methods.size(); ++i) {
+        if (method == route.allowed_methods[i])
+            return true;
+        }
+    }
+    catch(const std::exception& e)
+    {
+        // just allow GET if the method is not page specified
+        if (method == "GET")
+            return true;
+    }
+    return false;
+}
     
 void HttpHandler::processRequest(int client_fd) {
     HttpRequest& request = _client_requests[client_fd];
@@ -21,7 +56,12 @@ void HttpHandler::processRequest(int client_fd) {
         // Route the request
     std::string uri = request.getUri();
     
-    if (uri == "/") {
+    // ERROR 503 first?
+    if (request.getStatus()) // client request errors
+        response = HttpResponse::errorResponse(request.getStatus());
+    else if (!method_allowed(uri, request.methodToString()))
+        response = HttpResponse::errorResponse(HTTP_METHOD_NOT_ALLOWED);
+    else  if (uri == "/") {
         // Serve index.html
         response = HttpResponse::fileResponse("www/index.html");
     } else if (uri == "/test") {
@@ -55,7 +95,7 @@ void HttpHandler::processRequest(int client_fd) {
                 response = HttpResponse::fileResponse(filepath);
             }
         } else {
-            response = HttpResponse::errorResponse(STATUS_NOT_FOUND);
+            response = HttpResponse::errorResponse(HTTP_NOT_FOUND);
         }
     }
     
@@ -75,7 +115,7 @@ HttpResponse HttpHandler::handleUpload(const HttpRequest& request) {
     
     const std::string& body = request.getBody();
     if (body.empty()) {
-        return HttpResponse::errorResponse(STATUS_BAD_REQUEST, "No file data");
+        return HttpResponse::errorResponse(HTTP_BAD_REQUEST, "No file data");
     }
     
     // Simple upload handling - save to uploads directory
@@ -84,12 +124,19 @@ HttpResponse HttpHandler::handleUpload(const HttpRequest& request) {
 
     if (Utils::writeFile(filepath, body)) {
         HttpResponse response;
-        response.setStatus(STATUS_CREATED);
-        response.setContentType("application/json");
-        response.setBody("{\"message\":\"File uploaded successfully\",\"filename\":\"" + filename + "\"}");
+        response.setStatus(HTTP_CREATED);
+        response.setContentType("text/html");
+        //response.setContentType("application/json");
+        std::string body = "<!DOCTYPE html><html><head><title>Uploaded</title></head><body>";
+        body += "<h1>TEST</h1><p>";
+        body += "File uploaded successfully!";
+        body += "</p></body></html>";
+        response.setBody(body);
+        //response.setBody("{\"message\":\"File uploaded successfully\",\"filename\":\"" + filename + "\"}");
+        //std::cout << response.getBody() << std::endl;
         return response;
     } else {
-        return HttpResponse::errorResponse(STATUS_INTERNAL_SERVER_ERROR, "Failed to save file");
+        return HttpResponse::errorResponse(HTTP_INTERNAL_SERVER_ERROR, "Failed to save file");
     }
 }
     
@@ -97,7 +144,7 @@ HttpResponse HttpHandler::handleJsonApi(const HttpRequest& request) {
     std::cout << "Handling JSON API request" << std::endl;
     
     HttpResponse response;
-    response.setStatus(STATUS_OK);
+    response.setStatus(HTTP_OK);
     response.setContentType("application/json");
 
     std::string json_body = "{\n";
@@ -129,7 +176,7 @@ void HttpHandler::handleRead(int client_fd) {
     while ((bytes_read = read(client_fd, buffer, sizeof(buffer) - 1)) > 0) {
         buffer[bytes_read] = '\0';
         _client_buffers[client_fd] += buffer;
-            
+        
         // Try to parse request
         if (_client_requests[client_fd].parseRequest(_client_buffers[client_fd])) {
             processRequest(client_fd);
@@ -137,13 +184,13 @@ void HttpHandler::handleRead(int client_fd) {
         }
     }
         
-/*     if (bytes_read == 0) {
+    if (bytes_read == 0) {
         std::cout << "Client disconnected (fd: " << client_fd << ")" << std::endl;
         closeConnection(client_fd);
     } else if (errno != EAGAIN && errno != EWOULDBLOCK) {
         perror("read");
         closeConnection(client_fd);
-    } */
+    }
 }
 
 void HttpHandler::handleWrite(int client_fd) {
@@ -154,7 +201,8 @@ void HttpHandler::handleWrite(int client_fd) {
         closeConnection(client_fd);
         return;
     }
-        
+/*     std::cout << "offset = " << offset << std::endl;
+    std::cout << buffer << std::endl; */
     ssize_t bytes_sent = write(client_fd, buffer.c_str() + offset, buffer.length() - offset);
     if (bytes_sent > 0) {
         offset += bytes_sent;

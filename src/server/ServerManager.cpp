@@ -599,84 +599,86 @@ void ServerManager::handleClientWrite(ClientConnection& client) {
  * 
  * @param client Reference to ClientConnection with complete request
  */
-void ServerManager::processClientRequest(ClientConnection& client) {
-    try {
-        const HttpRequest& request = client.request;
+
+//
+// void ServerManager::processClientRequest(ClientConnection& client) {
+//     try {
+//         const HttpRequest& request = client.request;
         
-        // Find appropriate route
-        const RouteConfig* route = findRoute(*client.server_config, request.getUri());
+//         // Find appropriate route
+//         const RouteConfig* route = findRoute(*client.server_config, request.getUri());
         
-        // Check method allowed
-        if (route && !isMethodAllowed(*route, request.getMethod())) {
-            generateErrorResponse(client, HTTP_METHOD_NOT_ALLOWED);
-            return;
-        }
+//         // Check method allowed
+//         if (route && !isMethodAllowed(*route, request.getMethod())) {
+//             generateErrorResponse(client, HTTP_METHOD_NOT_ALLOWED);
+//             return;
+//         }
         
-        // Resolve file path
-        std::string filepath = resolvePath(*client.server_config, route, request.getUri());
+//         // Resolve file path
+//         std::string filepath = resolvePath(*client.server_config, route, request.getUri());
         
-        // Handle different request types
-        if (request.getMethod() == METHOD_GET) {
-            if (Utils::fileExists(filepath) && !Utils::isDirectory(filepath)) {
-                generateFileResponse(client, filepath);
-            } else if (Utils::isDirectory(filepath)) {
-                // Try to serve index file first
-                std::string index_path = "";
+//         // Handle different request types
+//         if (request.getMethod() == METHOD_GET) {
+//             if (Utils::fileExists(filepath) && !Utils::isDirectory(filepath)) {
+//                 generateFileResponse(client, filepath);
+//             } else if (Utils::isDirectory(filepath)) {
+//                 // Try to serve index file first
+//                 std::string index_path = "";
                 
-                // Check route-level index file first
-                if (route && !route->index_file.empty()) {
-                    std::string candidate = Utils::joinPath(filepath, route->index_file);
-                    if (Utils::fileExists(candidate) && !Utils::isDirectory(candidate)) {
-                        index_path = candidate;
-                    }
-                }
+//                 // Check route-level index file first
+//                 if (route && !route->index_file.empty()) {
+//                     std::string candidate = Utils::joinPath(filepath, route->index_file);
+//                     if (Utils::fileExists(candidate) && !Utils::isDirectory(candidate)) {
+//                         index_path = candidate;
+//                     }
+//                 }
                 
-                // Fall back to server-level index file
-                if (index_path.empty() && !client.server_config->index.empty()) {
-                    std::string candidate = Utils::joinPath(filepath, client.server_config->index);
-                    if (Utils::fileExists(candidate) && !Utils::isDirectory(candidate)) {
-                        index_path = candidate;
-                    }
-                }
+//                 // Fall back to server-level index file
+//                 if (index_path.empty() && !client.server_config->index.empty()) {
+//                     std::string candidate = Utils::joinPath(filepath, client.server_config->index);
+//                     if (Utils::fileExists(candidate) && !Utils::isDirectory(candidate)) {
+//                         index_path = candidate;
+//                     }
+//                 }
                 
-                if (!index_path.empty()) {
-                    // Serve the index file
-                    generateFileResponse(client, index_path);
-                } else if (route && route->directory_listing) {
-                    // Fall back to directory listing
-                    generateDirectoryListing(client, filepath, request.getUri());
-                } else {
-                    // Directory access forbidden
-                    generateErrorResponse(client, HTTP_FORBIDDEN);
-                }
-            } else {
-                generateErrorResponse(client, HTTP_NOT_FOUND);
-            }
-        } else if (request.getMethod() == METHOD_POST) {
-            // Handle POST - could be upload or CGI
-            if (route && !route->upload_path.empty()) {
-                // Handle upload
-                generateErrorResponse(client, HTTP_NOT_IMPLEMENTED, "Upload not yet implemented");
-            } else if (route && !route->cgi_extension.empty()) {
-                // Handle CGI
-                if (!handleCGI(client, filepath)) {
-                    generateErrorResponse(client, HTTP_INTERNAL_SERVER_ERROR);
-                }
-            } else {
-                generateErrorResponse(client, HTTP_METHOD_NOT_ALLOWED);
-            }
-        } else {
-            generateErrorResponse(client, HTTP_NOT_IMPLEMENTED);
-        }
+//                 if (!index_path.empty()) {
+//                     // Serve the index file
+//                     generateFileResponse(client, index_path);
+//                 } else if (route && route->directory_listing) {
+//                     // Fall back to directory listing
+//                     generateDirectoryListing(client, filepath, request.getUri());
+//                 } else {
+//                     // Directory access forbidden
+//                     generateErrorResponse(client, HTTP_FORBIDDEN);
+//                 }
+//             } else {
+//                 generateErrorResponse(client, HTTP_NOT_FOUND);
+//             }
+//         } else if (request.getMethod() == METHOD_POST) {
+//             // Handle POST - could be upload or CGI
+//             if (route && !route->upload_path.empty()) {
+//                 // Handle upload
+//                 generateErrorResponse(client, HTTP_NOT_IMPLEMENTED, "Upload not yet implemented");
+//             } else if (route && !route->cgi_extension.empty()) {
+//                 // Handle CGI
+//                 if (!handleCGI(client, filepath)) {
+//                     generateErrorResponse(client, HTTP_INTERNAL_SERVER_ERROR);
+//                 }
+//             } else {
+//                 generateErrorResponse(client, HTTP_METHOD_NOT_ALLOWED);
+//             }
+//         } else {
+//             generateErrorResponse(client, HTTP_NOT_IMPLEMENTED);
+//         }
         
-    } catch (const std::exception& e) {
-        logError("Exception processing request", e.what());
-        generateErrorResponse(client, HTTP_INTERNAL_SERVER_ERROR);
-    } catch (...) {
-        logError("Unknown exception processing request");
-        generateErrorResponse(client, HTTP_INTERNAL_SERVER_ERROR);
-    }
-}
+//     } catch (const std::exception& e) {
+//         logError("Exception processing request", e.what());
+//         generateErrorResponse(client, HTTP_INTERNAL_SERVER_ERROR);
+//     } catch (...) {
+//         logError("Unknown exception processing request");
+//         generateErrorResponse(client, HTTP_INTERNAL_SERVER_ERROR);
+//     }
+// }
 
 /**
  * @brief Generate standardized HTTP error response with smart connection handling

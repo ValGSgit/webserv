@@ -3,7 +3,7 @@
 
 HttpResponse HttpTemplates::generateTemplateResponse(int status_code, const std::string& custom_message) {
     HttpResponse response;
-    response.setStatus(static_cast<HttpStatus>(status_code));
+    response.setStatus(status_code);
     response.setContentType("text/html; charset=utf-8");
     
     std::string html = generateErrorPageHTML(status_code, custom_message);

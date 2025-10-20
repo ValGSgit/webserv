@@ -1,6 +1,12 @@
 #ifndef HTTP_STATUS_CODES_HPP
 #define HTTP_STATUS_CODES_HPP
 
+// modificable in config??
+// https://medium.com/@hexadecimalapp/431-request-header-fields-too-large-51131c64b0d1
+#define MAX_URI 2000
+#define MAX_HEADER_SIZE 16000
+#define MAX_FIELD_SIZE 4000 // that means also for cookies
+
 // 1xx Informational responses
 #define HTTP_CONTINUE 100                           // "Continue"
 #define HTTP_SWITCHING_PROTOCOLS 101                // "Switching Protocols"

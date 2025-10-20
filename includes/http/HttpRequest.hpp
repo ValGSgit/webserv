@@ -2,9 +2,11 @@
 #define HTTP_REQUEST_HPP
 
 #include "../webserv.hpp"
+#include "HttpStatusCodes.hpp"
 
 class HttpRequest {
     private:
+        int _status;
         HttpMethod _method;
         std::string _uri;
         std::string _version;
@@ -30,7 +32,6 @@ class HttpRequest {
 
         bool parseRequest(const std::string& data);
         void reset();
-        void setBody(const std::string& body);
 
         // Getters
         HttpMethod getMethod() const;
@@ -43,6 +44,7 @@ class HttpRequest {
         bool isHeadersComplete() const;
         bool isBodyComplete() const;
         size_t getContentLength() const;
+        int getStatus() const;
         bool isChunked() const;
 
         std::string getHeader(const std::string& key) const;
