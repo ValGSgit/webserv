@@ -38,6 +38,7 @@
 enum HttpMethod {
     METHOD_GET,
     METHOD_POST,
+    METHOD_PUT,
     METHOD_DELETE,
     METHOD_UNKNOWN
 };

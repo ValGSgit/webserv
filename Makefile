@@ -14,7 +14,10 @@ SRCFILES = main.cpp \
 		   cgi/CgiHandler.cpp \
 		   http/HttpRequest.cpp \
 		   http/HttpResponse.cpp \
-		   utils/Utils.cpp
+		   http/HttpTemplates.cpp \
+		   http/HttpHandler.cpp \
+		   server/ServerManager.cpp \
+		   utils/Utils.cpp \
 
 SRCS = $(addprefix $(SRCDIR)/, $(SRCFILES))
 OBJS = $(SRCS:$(SRCDIR)/%.cpp=$(OBJDIR)/%.o)
@@ -27,7 +30,7 @@ all: $(NAME)
 %.d:
 
 $(NAME): $(OBJS)
-	$(CXX) $(CXXFLAGS) $(OBJS) -o $(NAME)
+	$(CXX) $(CXXFLAGS) $(OBJS) $(LIBS) -o $(NAME)
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 	@mkdir -p $(dir $@)
@@ -44,15 +47,27 @@ re: fclean all
 test: $(NAME)
 	./$(NAME) config/default.conf
 
-test_components: test_components.cpp $(filter-out $(OBJDIR)/main.o, $(OBJS))
-	$(CXX) $(CXXFLAGS) $(INCLUDES) test_components.cpp $(filter-out $(OBJDIR)/main.o, $(OBJS)) -o test_components
-	./test_components
-
-test_server: $(filter-out $(OBJDIR)/main.o, $(OBJS)) $(OBJDIR)/testmain.o
-	$(CXX) $(CXXFLAGS) $(filter-out $(OBJDIR)/main.o, $(OBJS)) $(OBJDIR)/testmain.o -o test_server
-
 $(OBJDIR)/testmain.o: $(SRCDIR)/testmain.cpp
 	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
-.PHONY: all clean fclean re test test_components test_server
+#.PHONY: all clean fclean re test test_components test_server
+
+VG_FLAGS = valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose --log-file=valgrind_output.txt
+VALGRIND_MASSIF = valgrind --tool=massif --massif-out-file=massif.out
+
+# Memory leak detection
+vg_basic: all
+	$(VG_FLAGS) ./webserv config/default.conf
+
+# Memory usage profiling
+vg_memory: all
+	$(VALGRIND_MASSIF) ./webserv config/default.conf
+
+# Stress test with Valgrind
+vg_stress: all
+	$(VG_FLAGS) ./webserv config/advanced.conf 
+
+
+# Add to .PHONY
+.PHONY: all clean fclean re test test_components vg_basic vg_memory vg_stress

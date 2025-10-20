@@ -35,6 +35,11 @@ class HttpResponse {
         void setContentType(const std::string& content_type);
         void setContentLength(size_t length);
         
+        // Header utilities
+        bool hasConnectionHeader() const;
+        std::string getConnectionHeader() const;
+        std::string getHeader(const std::string& key) const;
+        
         // Static response builders
         static HttpResponse errorResponse(HttpStatus status, const std::string& message = "");
         static HttpResponse fileResponse(const std::string& filepath);

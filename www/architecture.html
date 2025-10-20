@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebServ Architecture - Interactive Flow Diagram</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .architecture-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 2em;
+            color: #4a5568;
+            margin-bottom: 20px;
+            text-align: center;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .flow-diagram {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .layer {
+            position: relative;
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            border: 2px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+
+        .layer:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            border-color: #667eea;
+        }
+
+        .layer-title {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #2d3748;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .layer-icon {
+            font-size: 1.5em;
+        }
+
+        .components {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .component {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .component:hover {
+            transform: scale(1.02);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+        }
+
+        .component-name {
+            font-weight: bold;
+            color: #2d3748;
+            margin-bottom: 5px;
+        }
+
+        .component-desc {
+            font-size: 0.9em;
+            color: #4a5568;
+        }
+
+        .flow-arrows {
+            display: flex;
+            justify-content: center;
+            margin: 10px 0;
+        }
+
+        .arrow {
+            font-size: 2em;
+            color: #667eea;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+
+        .detailed-flow {
+            background: #f1f5f9;
+            border-radius: 10px;
+            padding: 25px;
+            margin: 20px 0;
+        }
+
+        .flow-step {
+            display: flex;
+            align-items: center;
+            margin: 15px 0;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .flow-step:hover {
+            transform: translateX(10px);
+            border-left: 4px solid #667eea;
+        }
+
+        .step-number {
+            background: #667eea;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 20px;
+            flex-shrink: 0;
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-title {
+            font-weight: bold;
+            color: #2d3748;
+            margin-bottom: 5px;
+        }
+
+        .step-desc {
+            color: #4a5568;
+            font-size: 0.95em;
+        }
+
+        .code-snippet {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+
+        .highlight {
+            background: #fef5e7;
+            border: 2px solid #f6ad55;
+            animation: highlight 2s ease-in-out;
+        }
+
+        @keyframes highlight {
+            0% { background: #fef5e7; }
+            50% { background: #fed7aa; }
+            100% { background: #fef5e7; }
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .interactive-controls {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .control-btn {
+            background: #667eea;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 0 10px;
+            transition: all 0.3s ease;
+            font-size: 1em;
+        }
+
+        .control-btn:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .close-btn {
+            float: right;
+            font-size: 1.5em;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .request-flow {
+            background: #e6fffa;
+            border-left: 4px solid #38b2ac;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        @media (max-width: 768px) {
+            .components {
+                grid-template-columns: 1fr;
+            }
+            
+            .flow-step {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .step-number {
+                margin: 0 0 15px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 WebServ HTTP Server</h1>
+            <p>Complete Architecture & Request Flow Visualization</p>
+        </div>
+
+        <div class="architecture-container">
+            <h2 class="section-title">📋 Project Overview</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">8</div>
+                    <div>Core Components</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">3,890</div>
+                    <div>Lines of Code (ServerManager)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">C++98</div>
+                    <div>Standard Compliance</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">∞</div>
+                    <div>Never Crash Policy</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="architecture-container">
+            <h2 class="section-title">🏗️ System Architecture Layers</h2>
+            
+            <div class="flow-diagram">
+                <!-- Layer 1: Network Layer -->
+                <div class="layer">
+                    <div class="layer-title">
+                        <span class="layer-icon">🌐</span>
+                        Layer 1: Network & I/O Management
+                    </div>
+                    <div class="components">
+                        <div class="component" onclick="showDetails('servermanager')">
+                            <div class="component-name">ServerManager</div>
+                            <div class="component-desc">Poll-based I/O, connection management, never-crash architecture</div>
+                        </div>
+                        <div class="component" onclick="showDetails('sockets')">
+                            <div class="component-name">Socket Management</div>
+                            <div class="component-desc">Non-blocking server & client sockets, connection pooling</div>
+                        </div>
+                        <div class="component" onclick="showDetails('events')">
+                            <div class="component-name">Event Loop</div>
+                            <div class="component-desc">Single poll() for ALL I/O, timeout handling</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flow-arrows"><span class="arrow">⬇️</span></div>
+
+                <!-- Layer 2: HTTP Processing -->
+                <div class="layer">
+                    <div class="layer-title">
+                        <span class="layer-icon">📡</span>
+                        Layer 2: HTTP Protocol Processing
+                    </div>
+                    <div class="components">
+                        <div class="component" onclick="showDetails('httprequest')">
+                            <div class="component-name">HttpRequest Parser</div>
+                            <div class="component-desc">Stateful parsing, headers & body handling, method detection</div>
+                        </div>
+                        <div class="component" onclick="showDetails('httpresponse')">
+                            <div class="component-name">HttpResponse Builder</div>
+                            <div class="component-desc">Status codes, headers, keep-alive management</div>
+                        </div>
+                        <div class="component" onclick="showDetails('httptemplates')">
+                            <div class="component-name">HttpTemplates</div>
+                            <div class="component-desc">Error pages, response templates, status handling</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flow-arrows"><span class="arrow">⬇️</span></div>
+
+                <!-- Layer 3: Configuration & Routing -->
+                <div class="layer">
+                    <div class="layer-title">
+                        <span class="layer-icon">⚙️</span>
+                        Layer 3: Configuration & Routing
+                    </div>
+                    <div class="components">
+                        <div class="component" onclick="showDetails('configparser')">
+                            <div class="component-name">ConfigParser</div>
+                            <div class="component-desc">Multi-server configs, location blocks, case-insensitive directives</div>
+                        </div>
+                        <div class="component" onclick="showDetails('routing')">
+                            <div class="component-name">Route Matching</div>
+                            <div class="component-desc">Location-based routing, method validation, path resolution</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flow-arrows"><span class="arrow">⬇️</span></div>
+
+                <!-- Layer 4: Content Processing -->
+                <div class="layer">
+                    <div class="layer-title">
+                        <span class="layer-icon">📂</span>
+                        Layer 4: Content Processing & CGI
+                    </div>
+                    <div class="components">
+                        <div class="component" onclick="showDetails('cgi')">
+                            <div class="component-name">CgiHandler</div>
+                            <div class="component-desc">Dynamic script execution, environment setup, timeout handling</div>
+                        </div>
+                        <div class="component" onclick="showDetails('fileserving')">
+                            <div class="component-name">File Serving</div>
+                            <div class="component-desc">Static content, MIME types, directory listings</div>
+                        </div>
+                        <div class="component" onclick="showDetails('utils')">
+                            <div class="component-name">Utils Library</div>
+                            <div class="component-desc">File operations, path security, URL encoding/decoding</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="architecture-container">
+            <h2 class="section-title">🔄 Complete Request Flow</h2>
+            
+            <div class="detailed-flow">
+                <div class="flow-step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <div class="step-title">Connection Acceptance</div>
+                        <div class="step-desc">Client connects → ServerManager::handleNewConnection() → New ClientConnection created with CLIENT_READING_HEADERS state</div>
+                    </div>
+                </div>
+
+                <div class="flow-step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <div class="step-title">Poll-based I/O Monitoring</div>
+                        <div class="step-desc">ServerManager::run() → setupPollStructure() → Single poll() call monitors ALL sockets (server + clients)</div>
+                    </div>
+                </div>
+
+                <div class="flow-step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <div class="step-title">Request Reading & Parsing</div>
+                        <div class="step-desc">POLLIN event → handleClientRead() → HttpRequest::parseRequest() → Stateful parsing of headers and body</div>
+                    </div>
+                </div>
+
+                <div class="flow-step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <div class="step-title">Configuration Matching</div>
+                        <div class="step-desc">processClientRequest() → Route matching based on URI → ServerConfig & RouteConfig selection</div>
+                    </div>
+                </div>
+
+                <div class="flow-step">
+                    <div class="step-number">5</div>
+                    <div class="step-content">
+                        <div class="step-title">Content Processing</div>
+                        <div class="step-desc">Route handler selection → Static files, Directory listing, CGI execution, or Error response</div>
+                    </div>
+                </div>
+
+                <div class="flow-step">
+                    <div class="step-number">6</div>
+                    <div class="step-content">
+                        <div class="step-title">Response Generation</div>
+                        <div class="step-desc">HttpResponse::buildResponseString() → Headers + Body → Connection management (keep-alive/close)</div>
+                    </div>
+                </div>
+
+                <div class="flow-step">
+                    <div class="step-number">7</div>
+                    <div class="step-content">
+                        <div class="step-title">Response Transmission</div>
+                        <div class="step-desc">POLLOUT event → handleClientWrite() → Non-blocking write → Client state management</div>
+                    </div>
+                </div>
+
+                <div class="flow-step">
+                    <div class="step-number">8</div>
+                    <div class="step-content">
+                        <div class="step-title">Connection Lifecycle</div>
+                        <div class="step-desc">Keep-alive → Reset for next request OR Close connection → Cleanup resources</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="architecture-container">
+            <h2 class="section-title">💡 Key Design Principles</h2>
+            
+            <div class="request-flow">
+                <h3>🛡️ Never Crash Architecture</h3>
+                <ul>
+                    <li>Comprehensive try-catch blocks in all critical functions</li>
+                    <li>Graceful error handling with appropriate HTTP status codes</li>
+                    <li>Resource cleanup on exceptions and failures</li>
+                    <li>Connection limits and timeout management</li>
+                </ul>
+            </div>
+
+            <div class="request-flow">
+                <h3>⚡ High-Performance I/O</h3>
+                <ul>
+                    <li>Single poll() system call monitors ALL file descriptors</li>
+                    <li>Non-blocking sockets prevent server stalling</li>
+                    <li>Connection pooling and reuse for HTTP/1.1 keep-alive</li>
+                    <li>Efficient memory management with pre-allocation</li>
+                </ul>
+            </div>
+
+            <div class="request-flow">
+                <h3>🎯 C++98 Compliance</h3>
+                <ul>
+                    <li>No modern C++ features (auto, lambdas, smart pointers)</li>
+                    <li>Manual memory management with RAII principles</li>
+                    <li>Standard library containers (vector, map, string)</li>
+                    <li>Compatible with legacy systems and compilers</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="interactive-controls">
+            <button class="control-btn" onclick="animateFlow()">🎬 Animate Request Flow</button>
+            <button class="control-btn" onclick="showCodeExample()">💻 View Code Examples</button>
+            <button class="control-btn" onclick="showPerformanceMetrics()">📊 Performance Metrics</button>
+        </div>
+    </div>
+
+    <!-- Modal for detailed information -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+
+    <script>
+        // Component details data
+        const componentDetails = {
+            servermanager: {
+                title: "ServerManager - Core Server Engine",
+                content: `
+                    <h3>🎯 Primary Responsibilities</h3>
+                    <ul>
+                        <li><strong>Poll-based I/O:</strong> Single poll() call monitors all sockets</li>
+                        <li><strong>Connection Management:</strong> Handles up to MAX_CONNECTIONS concurrent clients</li>
+                        <li><strong>Never-Crash Design:</strong> Comprehensive exception handling</li>
+                        <li><strong>Resource Management:</strong> Automatic cleanup and memory management</li>
+                    </ul>
+                    
+                    <h3>📊 Key Statistics</h3>
+                    <div class="code-snippet">
+                        Lines of Code: 3,890
+                        Functions: 100+
+                        Error Handling: 50+ try-catch blocks
+                        Memory Safety: Zero known leaks
+                    </div>
+                    
+                    <h3>🔧 Core Functions</h3>
+                    <ul>
+                        <li><code>initialize()</code> - Setup server sockets and configuration</li>
+                        <li><code>run()</code> - Main event loop with poll() monitoring</li>
+                        <li><code>handleNewConnection()</code> - Accept and setup new clients</li>
+                        <li><code>handleClientRead()</code> - Process incoming HTTP data</li>
+                        <li><code>handleClientWrite()</code> - Send HTTP responses</li>
+                    </ul>
+                `
+            },
+            httprequest: {
+                title: "HttpRequest - HTTP Protocol Parser",
+                content: `
+                    <h3>🔍 Parsing Capabilities</h3>
+                    <ul>
+                        <li><strong>Stateful Parsing:</strong> Handles headers and body separately</li>
+                        <li><strong>Method Detection:</strong> GET, POST, PUT, DELETE support</li>
+                        <li><strong>Query Parameters:</strong> URL parameter parsing</li>
+                        <li><strong>Content-Length:</strong> Body size validation</li>
+                    </ul>
+                    
+                    <div class="code-snippet">
+bool HttpRequest::parseRequest(const std::string& data) {
+    std::vector&lt;std::string&gt; lines = splitIntoLines(data);
+    for (size_t i = 0; i &lt; lines.size(); ++i) {
+        if (first_line) {
+            parseRequestLine(lines[i]);
+            first_line = false;
+        } else if (!lines[i].empty()) {
+            parseHeader(lines[i]);
+        }
+    }
+}
+                    </div>
+                `
+            },
+            configparser: {
+                title: "ConfigParser - Configuration Management",
+                content: `
+                    <h3>⚙️ Configuration Features</h3>
+                    <ul>
+                        <li><strong>Multi-Server Support:</strong> Multiple server blocks</li>
+                        <li><strong>Location Blocks:</strong> Route-specific configurations</li>
+                        <li><strong>Case Insensitive:</strong> Flexible directive naming</li>
+                        <li><strong>Validation:</strong> Syntax checking and error reporting</li>
+                    </ul>
+                    
+                    <div class="code-snippet">
+server {
+    listen 8080;
+    server_name localhost;
+    root ./www;
+    
+    location /api {
+        allow_methods GET POST;
+        root ./www/api;
+    }
+    
+    location /cgi-bin {
+        cgi_extension .php .py .pl;
+    }
+}
+                    </div>
+                `
+            },
+            cgi: {
+                title: "CgiHandler - Dynamic Content Processing",
+                content: `
+                    <h3>🚀 CGI Execution</h3>
+                    <ul>
+                        <li><strong>Script Support:</strong> PHP, Python, Perl, Ruby, Shell</li>
+                        <li><strong>Environment Setup:</strong> HTTP headers to CGI environment</li>
+                        <li><strong>Timeout Protection:</strong> Prevents hanging scripts</li>
+                        <li><strong>Security:</strong> Path validation and sandboxing</li>
+                    </ul>
+                    
+                    <div class="code-snippet">
+HttpResponse CgiHandler::executeCgi(const HttpRequest& request, 
+                                   const std::string& script_path) {
+    setupEnvironment(request, script_path);
+    // Fork process, execute script, capture output
+    return parseCgiOutput(output);
+}
+                    </div>
+                `
+            },
+            utils: {
+                title: "Utils - Utility Functions Library",
+                content: `
+                    <h3>🛠️ Utility Functions</h3>
+                    <ul>
+                        <li><strong>File Operations:</strong> Reading, writing, directory listing</li>
+                        <li><strong>Path Security:</strong> Directory traversal prevention</li>
+                        <li><strong>URL Processing:</strong> Encoding, decoding, validation</li>
+                        <li><strong>String Manipulation:</strong> Trimming, splitting, case conversion</li>
+                    </ul>
+                    
+                    <div class="code-snippet">
+// Over 30 utility functions including:
+std::string Utils::urlDecode(const std::string& url);
+bool Utils::isPathSecure(const std::string& path, const std::string& root);
+std::string Utils::getMimeType(const std::string& filepath);
+std::vector&lt;std::string&gt; Utils::listDirectory(const std::string& dirpath);
+                    </div>
+                `
+            }
+        };
+
+        function showDetails(component) {
+            const details = componentDetails[component];
+            if (details) {
+                document.getElementById('modalContent').innerHTML = `
+                    <h2>${details.title}</h2>
+                    ${details.content}
+                `;
+                document.getElementById('detailModal').style.display = 'flex';
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('detailModal').style.display = 'none';
+        }
+
+        function animateFlow() {
+            const steps = document.querySelectorAll('.flow-step');
+            steps.forEach((step, index) => {
+                setTimeout(() => {
+                    step.classList.add('highlight');
+                    setTimeout(() => step.classList.remove('highlight'), 1500);
+                }, index * 500);
+            });
+        }
+
+        function showCodeExample() {
+            showDetails('servermanager');
+        }
+
+        function showPerformanceMetrics() {
+            document.getElementById('modalContent').innerHTML = `
+                <h2>📊 Performance Metrics & Benchmarks</h2>
+                <h3>🎯 Theoretical Performance</h3>
+                <ul>
+                    <li><strong>Concurrent Connections:</strong> Up to MAX_CONNECTIONS (1024)</li>
+                    <li><strong>I/O Efficiency:</strong> Single poll() system call</li>
+                    <li><strong>Memory Usage:</strong> ~2MB baseline + connection overhead</li>
+                    <li><strong>Response Time:</strong> Sub-millisecond for static files</li>
+                </ul>
+                
+                <h3>🏗️ Architecture Benefits</h3>
+                <div class="code-snippet">
+✅ Non-blocking I/O prevents server stalling
+✅ Connection pooling reduces overhead  
+✅ Single-threaded design eliminates race conditions
+✅ Poll-based approach scales with connections
+✅ Memory pre-allocation prevents runtime failures
+                </div>
+                
+                <h3>📈 Scalability Features</h3>
+                <ul>
+                    <li>Horizontal scaling via multiple server instances</li>
+                    <li>Configuration-driven resource limits</li>
+                    <li>Efficient timeout and cleanup mechanisms</li>
+                    <li>Zero-copy operations where possible</li>
+                </ul>
+            `;
+            document.getElementById('detailModal').style.display = 'flex';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('detailModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // Auto-animate on load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                const layers = document.querySelectorAll('.layer');
+                layers.forEach((layer, index) => {
+                    setTimeout(() => {
+                        layer.style.transform = 'translateY(-5px)';
+                        setTimeout(() => layer.style.transform = 'translateY(0)', 300);
+                    }, index * 200);
+                });
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

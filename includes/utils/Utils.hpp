@@ -10,6 +10,7 @@ class Utils {
         static std::vector<std::string> split(const std::string& str, char delimiter);
         static std::string toLowerCase(const std::string& str);
         static std::string toUpperCase(const std::string& str);
+        static bool equalsIgnoreCase(const std::string& str1, const std::string& str2);
         static bool startsWith(const std::string& str, const std::string& prefix);
         static bool endsWith(const std::string& str, const std::string& suffix);
         static std::string urlDecode(const std::string& url);

@@ -30,6 +30,7 @@ class HttpRequest {
 
         bool parseRequest(const std::string& data);
         void reset();
+        void setBody(const std::string& body);
 
         // Getters
         HttpMethod getMethod() const;

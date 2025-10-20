@@ -106,9 +106,10 @@ size_t ConfigParser::parseServerBlock(const std::vector<std::string>& lines, siz
             has_semicolon = true;
         }
         
-        // Some directives require semicolons - be strict about this
-        if (directive == "listen" || directive == "server_name" || directive == "root" || 
-            directive == "index" || directive == "autoindex" || directive == "client_max_body_size") {
+        // Some directives require semicolons - be strict about this (case insensitive)
+        if (Utils::equalsIgnoreCase(directive, "listen") || Utils::equalsIgnoreCase(directive, "server_name") || 
+            Utils::equalsIgnoreCase(directive, "root") || Utils::equalsIgnoreCase(directive, "index") || 
+            Utils::equalsIgnoreCase(directive, "autoindex") || Utils::equalsIgnoreCase(directive, "client_max_body_size")) {
             if (!has_semicolon) {
                 // Strict validation - return failure
                 return start_index;
@@ -120,28 +121,28 @@ size_t ConfigParser::parseServerBlock(const std::vector<std::string>& lines, siz
             value = value.substr(0, value.length() - 1);
         }
 
-        if (directive == "listen") {
+        if (Utils::equalsIgnoreCase(directive, "listen")) {
             int port = Utils::toInt(value);
             if (Utils::isValidPort(port)) {
                 server.ports.push_back(port);
             }
         }
-        else if (directive == "server_name") {
+        else if (Utils::equalsIgnoreCase(directive, "server_name")) {
             server.server_name = value;
         }
-        else if (directive == "root") {
+        else if (Utils::equalsIgnoreCase(directive, "root")) {
             server.root = value;
         }
-        else if (directive == "index") {
+        else if (Utils::equalsIgnoreCase(directive, "index")) {
             server.index = value;
         }
-        else if (directive == "autoindex") {
+        else if (Utils::equalsIgnoreCase(directive, "autoindex")) {
             server.autoindex = (value == "on");
         }
-        else if (directive == "client_max_body_size") {
+        else if (Utils::equalsIgnoreCase(directive, "client_max_body_size")) {
             server.max_body_size = Utils::toSizeT(value);
         }
-        else if (directive == "error_page") {
+        else if (Utils::equalsIgnoreCase(directive, "error_page")) {
             if (tokens.size() >= 3) {
                 int status = Utils::toInt(value);
                 std::string page = tokens[2];
@@ -220,7 +221,7 @@ size_t ConfigParser::parseLocationBlock(const std::vector<std::string>& lines, s
             value = value.substr(0, value.length() - 1);
         }
 
-        if (directive == "allow_methods") {
+        if (Utils::equalsIgnoreCase(directive, "allow_methods")) {
             for (size_t j = 1; j < tokens.size(); ++j) {
                 std::string method = tokens[j];
                 if (!method.empty() && method[method.length() - 1] == ';') {
@@ -231,22 +232,22 @@ size_t ConfigParser::parseLocationBlock(const std::vector<std::string>& lines, s
                 }
             }
         }
-        else if (directive == "root") {
+        else if (Utils::equalsIgnoreCase(directive, "root")) {
             route.root_directory = value;
         }
-        else if (directive == "index") {
+        else if (Utils::equalsIgnoreCase(directive, "index")) {
             route.index_file = value;
         }
-        else if (directive == "autoindex") {
+        else if (Utils::equalsIgnoreCase(directive, "autoindex")) {
             route.directory_listing = (value == "on");
         }
-        else if (directive == "upload_pass") {
+        else if (Utils::equalsIgnoreCase(directive, "upload_pass")) {
             route.upload_path = value;
         }
-        else if (directive == "cgi_extension") {
+        else if (Utils::equalsIgnoreCase(directive, "cgi_extension")) {
             route.cgi_extension = value;
         }
-        else if (directive == "return") {
+        else if (Utils::equalsIgnoreCase(directive, "return")) {
             if (tokens.size() >= 3) {
                 route.redirect_url = tokens[2];
                 if (!route.redirect_url.empty() && route.redirect_url[route.redirect_url.length() - 1] == ';') {
@@ -254,7 +255,7 @@ size_t ConfigParser::parseLocationBlock(const std::vector<std::string>& lines, s
                 }
             }
         }
-        else if (directive == "client_max_body_size") {
+        else if (Utils::equalsIgnoreCase(directive, "client_max_body_size")) {
             route.max_body_size = Utils::toSizeT(value);
         }
         i++;
