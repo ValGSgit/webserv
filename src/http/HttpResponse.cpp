@@ -51,8 +51,16 @@ void HttpResponse::reset() {
 
 void HttpResponse::setDefaultHeaders() {
     _headers["Server"] = "WebServ/1.0";
-    _headers["Date"] = "Tue 30.09.2025 12:00"; //need to implement a way to get time
-    _headers["Connection"] = "close";
+    
+    // Set current date/time
+    time_t now = time(NULL);
+    struct tm* gmt = gmtime(&now);
+    char date_buffer[100];
+    strftime(date_buffer, sizeof(date_buffer), "%a, %d %b %Y %H:%M:%S GMT", gmt);
+    _headers["Date"] = std::string(date_buffer);
+    
+    // Don't set Connection header by default - let ServerManager handle it
+    // based on HTTP version and client requests
 }
 
 void HttpResponse::setContentType(const std::string& content_type) {
@@ -65,6 +73,21 @@ void HttpResponse::setContentLength(size_t length) {
 
 std::string HttpResponse::statusToString(HttpStatus status) {
     return Utils::toString((int)status) + " " + Utils::getStatusMessage((int)status);
+}
+
+// Header utilities
+bool HttpResponse::hasConnectionHeader() const {
+    return _headers.find("Connection") != _headers.end();
+}
+
+std::string HttpResponse::getConnectionHeader() const {
+    std::map<std::string, std::string>::const_iterator it = _headers.find("Connection");
+    return (it != _headers.end()) ? it->second : "";
+}
+
+std::string HttpResponse::getHeader(const std::string& key) const {
+    std::map<std::string, std::string>::const_iterator it = _headers.find(key);
+    return (it != _headers.end()) ? it->second : "";
 }
 
 void HttpResponse::buildResponseString() {

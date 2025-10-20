@@ -110,6 +110,10 @@ void HttpRequest::reset() {
     _chunked = false;
 }
 
+void HttpRequest::setBody(const std::string& body) {
+    _body = body;
+}
+
 // Getters
 HttpMethod HttpRequest::getMethod() const { return _method; }
 const std::string& HttpRequest::getUri() const { return _uri; }
