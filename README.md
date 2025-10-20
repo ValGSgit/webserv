@@ -1,5 +1,49 @@
 # Webserv - HTTP Server Implementation
 
+Next Step: Handle Structs Handshake
+
+TODO: Val will init handler to have each server config and epoll events, so i set up connections and listening, for the handler
+      Ka Hou will take the new HttpHandler struct to handle all requests listened to. 
+      We meet on the run function
+'''
+void run() {
+        std::cout << "Starting test server main loop..." << std::endl;
+        std::cout << "Test with: curl http://localhost:8080/" << std::endl;
+        std::cout << "Press Ctrl+C to stop" << std::endl;
+        
+        //NEW instance
+        HttpHandler handler(_server_fd, _epoll_fd, _config);
+
+        while (g_running) {
+            int nfds = epoll_wait(_epoll_fd, _events, MAX_CONNECTIONS, 1000);
+            if (nfds == -1) {
+                if (errno == EINTR) continue;
+                perror("epoll_wait");
+                break;
+            }
+            
+            for (int i = 0; i < nfds; i++) {
+                int fd = _events[i].data.fd;
+                
+                if (fd == _server_fd) {
+                    // New connection NEW
+                    handler.acceptConnection();
+                } else {
+                    // Handle client NEW
+                    if (_events[i].events & EPOLLIN) {
+                        handler.handleRead(fd);
+                    }
+                    if (_events[i].events & EPOLLOUT) {
+                        handler.handleWrite(fd);
+                    }
+                    if (_events[i].events & (EPOLLHUP | EPOLLERR)) {
+                        handler.closeConnection(fd);
+                    }
+                }
+            }
+        }
+'''
+
 A complete HTTP server implementation in C++98 following the project requirements.
 
 ## 📋 Project Overview
