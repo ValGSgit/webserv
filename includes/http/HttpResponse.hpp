@@ -2,18 +2,20 @@
 #define HTTP_RESPONSE_HPP
 
 #include "../webserv.hpp"
+#include "HttpStatusCodes.hpp"
+#include <ctime>
 
 class HttpRequest;
 
 class HttpResponse {
     private:
-        HttpStatus _status;
+        int _status;
         std::map<std::string, std::string> _headers;
         std::string _body;
         std::string _response_string;
         bool _headers_sent;
 
-        std::string statusToString(HttpStatus status);
+        std::string statusToString(int status);
         std::string getCurrentTime();
         void buildResponseString();
 
@@ -21,12 +23,12 @@ class HttpResponse {
         HttpResponse();
         ~HttpResponse();
 
-        void setStatus(HttpStatus status);
+        void setStatus(int status);
         void setHeader(const std::string& key, const std::string& value);
         void setBody(const std::string& body);
         void appendBody(const std::string& data);
         
-        HttpStatus getStatus() const;
+        int getStatus() const;
         const std::string& getBody() const;
         const std::string& getResponseString();
 
@@ -35,13 +37,8 @@ class HttpResponse {
         void setContentType(const std::string& content_type);
         void setContentLength(size_t length);
         
-        // Header utilities
-        bool hasConnectionHeader() const;
-        std::string getConnectionHeader() const;
-        std::string getHeader(const std::string& key) const;
-        
         // Static response builders
-        static HttpResponse errorResponse(HttpStatus status, const std::string& message = "");
+        static HttpResponse errorResponse(int status, const std::string& message = "");
         static HttpResponse fileResponse(const std::string& filepath);
         static HttpResponse directoryListingResponse(const std::string& path, const std::string& uri);
         static HttpResponse redirectResponse(const std::string& location);

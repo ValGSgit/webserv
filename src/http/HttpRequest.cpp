@@ -2,7 +2,7 @@
 #include "../../includes/utils/Utils.hpp"
 
 HttpRequest::HttpRequest() 
-    : _method(METHOD_UNKNOWN), _version("HTTP/1.1"), _headers_complete(false), 
+    : _status(0), _method(METHOD_UNKNOWN), _version("HTTP/1.1"), _headers_complete(false), 
       _body_complete(false), _content_length(0), _chunked(false) {
 }
 
@@ -13,24 +13,33 @@ bool HttpRequest::parseRequest(const std::string& data) {
     std::vector<std::string> lines = splitIntoLines(data);
     bool first_line = true;
     size_t body_start = 0;
+    size_t header_size = 0;
     
     for (size_t i = 0; i < lines.size(); ++i) {
         const std::string& line = lines[i];
         
+        if (header_size > MAX_HEADER_SIZE || line.size() > MAX_FIELD_SIZE)
+            _status = HTTP_REQUEST_HEADER_FIELDS_TOO_LARGE;
+        //if (_status) // save some resources
+        //    return true;
+
+        // why \r? it's already skipped in splitIntoLines()
         if (line.empty() || line == "\r") {
             _headers_complete = true;
             body_start = i + 1;
             break;
         }
         
+        //parsing the first line
         if (first_line) {
             parseRequestLine(line);
             first_line = false;
         } else {
             parseHeader(line);
         }
+        header_size += line.size();
     }
-    
+
     // Read body if present
     if (_headers_complete && _content_length > 0) {
         for (size_t i = body_start; i < lines.size(); ++i) {
@@ -43,6 +52,7 @@ bool HttpRequest::parseRequest(const std::string& data) {
     return _headers_complete;
 }
 
+//parsing first line
 void HttpRequest::parseRequestLine(const std::string& line) {
     // Manual parsing without istringstream
     std::vector<std::string> tokens = Utils::split(line, ' ');
@@ -50,8 +60,15 @@ void HttpRequest::parseRequestLine(const std::string& line) {
         _method = stringToMethod(tokens[0]);
         _uri = tokens[1];
         _version = tokens[2];
-        parseUri(_uri);
+        if (_uri.size() > MAX_URI) // need to include domain name?
+            _status = HTTP_URI_TOO_LONG;
+        else if (_method == METHOD_UNKNOWN)
+            _status = HTTP_NOT_IMPLEMENTED;
+        else
+            parseUri(_uri);
     }
+    else
+        _status = HTTP_BAD_REQUEST;
 }
 
 void HttpRequest::parseHeader(const std::string& line) {
@@ -110,10 +127,6 @@ void HttpRequest::reset() {
     _chunked = false;
 }
 
-void HttpRequest::setBody(const std::string& body) {
-    _body = body;
-}
-
 // Getters
 HttpMethod HttpRequest::getMethod() const { return _method; }
 const std::string& HttpRequest::getUri() const { return _uri; }
@@ -125,6 +138,7 @@ const std::map<std::string, std::string>& HttpRequest::getParams() const { retur
 bool HttpRequest::isHeadersComplete() const { return _headers_complete; }
 bool HttpRequest::isBodyComplete() const { return _body_complete; }
 size_t HttpRequest::getContentLength() const { return _content_length; }
+int HttpRequest::getStatus() const{ return _status; }
 bool HttpRequest::isChunked() const { return _chunked; }
 
 std::string HttpRequest::getHeader(const std::string& key) const {
@@ -159,6 +173,8 @@ std::vector<std::string> HttpRequest::splitIntoLines(const std::string& content)
     std::vector<std::string> lines;
     std::string line;
     
+    //The HTTP and MIME specs specify that header lines must end with \r\n
+    //https://stackoverflow.com/questions/6324167/do-browsers-send-r-n-or-n-or-does-it-depend-on-the-browser
     for (size_t i = 0; i < content.length(); ++i) {
         if (content[i] == '\n') {
             lines.push_back(line);
