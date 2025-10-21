@@ -53,4 +53,54 @@ enum ConnectionState {
     STATE_ERROR
 };
 
+// Forward declarations
+struct RouteConfig {
+    std::vector<std::string> allowed_methods;
+    std::string root_directory;
+    std::string index_file;
+    bool directory_listing;
+    std::string upload_path;
+    std::string cgi_extension;
+    std::string redirect_url;
+    size_t max_body_size;
+
+    RouteConfig() : directory_listing(false), max_body_size(1048576) {}
+};
+
+struct ServerConfig {
+    std::vector<int> ports;
+    std::string server_name;
+    std::map<std::string, RouteConfig> routes;
+    size_t max_body_size;
+    std::map<int, std::string> error_pages;
+    std::string root;
+    std::string index;
+    bool autoindex;
+
+    ServerConfig() : max_body_size(1048576), root("./www"), index("index.html"), autoindex(false) {}
+};
+
+// Server Socket Structure
+struct ServerSocket {
+    int fd;
+    int port;
+    const ServerConfig* config;
+    
+    ServerSocket() : fd(-1), port(0), config(NULL) {}
+};
+
+// Client Connection Structure
+struct ClientConnection {
+    int fd;
+    int server_port;  // Which server port accepted this connection
+    ConnectionState state;
+    time_t last_activity;
+    std::string buffer;
+    size_t bytes_sent;
+    bool keep_alive;
+    
+    ClientConnection() : fd(-1), server_port(0), state(STATE_READING_HEADERS), 
+                        last_activity(0), bytes_sent(0), keep_alive(false) {}
+};
+
 #endif

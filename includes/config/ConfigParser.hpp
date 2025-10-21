@@ -3,32 +3,6 @@
 
 #include "../webserv.hpp"
 
-struct RouteConfig {
-    std::vector<std::string> allowed_methods;
-    std::string root_directory;
-    std::string index_file;
-    bool directory_listing;
-    std::string upload_path;
-    std::string cgi_extension;
-    std::string redirect_url;
-    size_t max_body_size;
-
-    RouteConfig() : directory_listing(false), max_body_size(1048576) {}
-};
-
-struct ServerConfig {
-    std::vector<int> ports;
-    std::string server_name;
-    std::map<std::string, RouteConfig> routes;
-    size_t max_body_size;
-    std::map<int, std::string> error_pages;
-    std::string root;
-    std::string index;
-    bool autoindex;
-
-    ServerConfig() : max_body_size(1048576), root("./www"), index("index.html"), autoindex(false) {}
-};
-
 class ConfigParser {
     private:
         std::vector<ServerConfig> _servers;

@@ -9,33 +9,38 @@
 #include "../utils/Utils.hpp"
 #include "../config/ConfigParser.hpp"
 
+// Forward declaration
+class ServerManager;
+
 class HttpHandler {
-    private:
-        HttpHandler(HttpHandler const &other);
-        HttpHandler &operator=(HttpHandler const &other);
+private:
+    HttpHandler(HttpHandler const &other);
+    HttpHandler &operator=(HttpHandler const &other);
 
-        int _server_fd;
-        int _epoll_fd;
-        ConfigParser &_config; // use ref?
-        std::map<int, std::string> _client_buffers;
-        std::map<int, HttpRequest> _client_requests;
-        std::map<int, HttpResponse> _client_responses;
-        std::map<int, std::string> _response_buffers;
-        std::map<int, size_t> _response_offsets;
+    ServerManager* _server_manager;
+    int _epoll_fd;
+    
+    // Client request/response tracking
+    std::map<int, std::string> _client_buffers;
+    std::map<int, HttpRequest> _client_requests;
+    std::map<int, HttpResponse> _client_responses;
+    std::map<int, std::string> _response_buffers;
+    std::map<int, size_t> _response_offsets;
 
-        void processRequest(int client_fd);
-        HttpResponse handleUpload(const HttpRequest& request);
-        HttpResponse handleJsonApi(const HttpRequest& request);
-        const ServerConfig &find_server(int port);
-        bool method_allowed(std::string &uri, std::string method);
-    public:
-        HttpHandler(int server_fd, int epoll_fd, ConfigParser &config); // use ref?
-        ~HttpHandler();
-        void handleRead(int fd);
-        void handleWrite(int fd);
-        void acceptConnection();
-        void closeConnection(int client_fd);
-
+    void processRequest(int client_fd, int server_port);
+    HttpResponse handleUpload(const HttpRequest& request, const ServerConfig& config);
+    HttpResponse handleJsonApi(const HttpRequest& request);
+    const ServerConfig* findServerForClient(int client_fd);
+    bool methodAllowed(const std::string& uri, const std::string& method, const ServerConfig& config);
+    
+public:
+    HttpHandler(ServerManager* manager, int epoll_fd);
+    ~HttpHandler();
+    
+    void handleRead(int fd);
+    void handleWrite(int fd);
+    void acceptConnection(int server_fd, int server_port);
+    void closeConnection(int client_fd);
 };
 
 #endif
