@@ -39,6 +39,7 @@ class HttpResponse {
         
         // Static response builders
         static HttpResponse errorResponse(int status, const std::string& message = "");
+        static HttpResponse messageResponse(int status, const std::string& title = "", const std::string& message = "");
         static HttpResponse fileResponse(const std::string& filepath);
         static HttpResponse directoryListingResponse(const std::string& path, const std::string& uri);
         static HttpResponse redirectResponse(const std::string& location);

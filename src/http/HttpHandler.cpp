@@ -26,6 +26,11 @@ const ServerConfig* HttpHandler::findServerForClient(int client_fd) {
 
 bool HttpHandler::methodAllowed(const std::string& uri, const std::string& method, const ServerConfig& config) {
     try {
+        std::string::const_iterator last_char = uri.end();
+        if (uri != "")
+            last_char--;
+        //std::cout << "uri = " << *last_char << std::endl;
+        //if (*last_char != '/')
         const RouteConfig& route = config.routes.at(uri);
         for (size_t i = 0; i < route.allowed_methods.size(); ++i) {
             if (method == route.allowed_methods[i])
@@ -60,20 +65,21 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
     }
     // Check if method is allowed
     else if (!methodAllowed(uri, request.methodToString(), *config)) {
-        response = HttpResponse::errorResponse(HTTP_METHOD_NOT_ALLOWED);
-    }
+        response = HttpResponse::errorResponse(HTTP_METHOD_NOT_ALLOWED);}
+    // upload
+    else if (request.getMethod() == METHOD_POST) {
+        response = handleUpload(request, *config, client_fd);}
+    // delete
+    else if (request.getMethod() == METHOD_DELETE) {
+        response = handleDelete(request, *config, client_fd);}
     // Route handling
     else if (uri == "/") {
         std::string index_path = config->root + "/" + config->index;
         response = HttpResponse::fileResponse(index_path);
-    } else if (uri == "/test") {
-        response = HttpResponse::fileResponse(config->root + "/test.html");
     } else if (uri.find("/cgi-bin/") == 0) {
         CgiHandler cgi;
         std::string script_path = config->root + uri;
         response = cgi.executeCgi(request, script_path);
-    } else if (uri == "/upload" && request.getMethod() == METHOD_POST) {
-        response = handleUpload(request, *config, client_fd);
     } else if (uri == "/api/test") {
         response = handleJsonApi(request);
     } else if (uri == "/redirect") {
@@ -106,24 +112,72 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
     ev.data.fd = client_fd;
     epoll_ctl(_epoll_fd, EPOLL_CTL_MOD, client_fd, &ev);
 }
-    
+
+// return the index of boundary in the buffer if found
+// what if the boundary lays between buffer?
+static int check_boundary(char *buffer, const char *boundary, size_t len)
+{
+    size_t	i;
+	size_t	j;
+    size_t len_boundary = 0;
+
+    while (boundary[len_boundary])
+        len_boundary++;
+    if (!*boundary)
+        return (0);
+    i = 0;
+	while (i < len)
+	{
+		j = 0;
+		if (buffer[i] == boundary[j])
+		{
+			while (buffer[i + j] == boundary[j] && boundary[j] != '\0')
+			{
+				j++;
+				if (j == len_boundary && i + j <= len)
+					return (i);
+			}
+		}
+		i++;
+	}
+	return (0);
+}
+
+HttpResponse HttpHandler::handleDelete(const HttpRequest& request, const ServerConfig& config, int client_fd)
+{
+    (void)config;
+    (void)client_fd;
+    std::cout << "uri = " << request.getUri() << std::endl;
+    //std::remove(request.getUri().c_str());
+    return HttpResponse::errorResponse(HTTP_METHOD_NOT_ALLOWED);
+}
+
 HttpResponse HttpHandler::handleUpload(const HttpRequest& request, const ServerConfig& config, int client_fd) {
     std::cout << "Handling file upload" << std::endl;
-    
-    //what about jpeg for example?
+
     const std::string& body = request.getBody();
-    if (body.empty()) {
-        return HttpResponse::errorResponse(HTTP_BAD_REQUEST, "No file data");
-    }
-    // Find upload path from config
+    // default upload path
     std::string upload_dir = config.root + "/uploads/";
+    // Find upload path from config
+    try
+    {
+        const RouteConfig &route = config.routes.at("/upload");
+        //std::cout << "route.upload_path = " << route.upload_path << std::endl;
+        if (route.upload_path != "")
+            upload_dir = route.upload_path + "/";
+    }
+    catch(const std::exception& e)
+    {
+        //std::cerr << "route not found!" << '\n';
+    }
     
     // Simple upload handling - save to uploads directory
     std::string filename = "uploaded_file_" + Utils::toString(static_cast<int>(time(NULL)));
     std::string filepath = upload_dir + filename;
     
-    std::size_t needle;
-    needle = body.find("\r\n");
+    // skip headers
+    std::size_t needle = body.find("\r\n");
+    // find boundary
     std::string boundary = "\r\n" + body.substr(0, needle);;
     std::string temp =_raw_buffer;
     needle = temp.find(boundary);
@@ -131,33 +185,42 @@ HttpResponse HttpHandler::handleUpload(const HttpRequest& request, const ServerC
     _raw_buffer = &_raw_buffer[needle];
     temp =_raw_buffer;
     needle = temp.find("\r\n\r\n");
+    // save file info
+    _file_info = temp.substr(0, needle);
+    //std::cout << _file_info;
+    // needle is the staring index of the file
     needle += 4;
     _raw_bytes_read -= needle;
-    //std::cout << "raw_bytes_read = " << _raw_bytes_read << std::endl;
     // save also file info?
-    ssize_t total_bytes_read = 0;
+    size_t total_bytes_read = 0;
     if (Utils::writeFile(filepath, &_raw_buffer[needle], _raw_bytes_read)) {
-        char buffer[1];
-        ssize_t bytes_read;
+        total_bytes_read += _raw_bytes_read;
+        char buffer[BUFFER_SIZE];
+        int bytes_read = 0;
         // if there are things left in fd, continue to read the body and write to file
-
-        //boundary????
-
-        while ((bytes_read = read(client_fd, buffer, 1)) > 0) {
-            if (!Utils::writeFile(filepath, buffer, 1))
+        while ((bytes_read = read(client_fd, buffer, BUFFER_SIZE)) > 0) {
+            //std::cout << "bytes_read = " << bytes_read << std::endl;
+            if (check_boundary(buffer, boundary.c_str(), bytes_read))
+                bytes_read = check_boundary(buffer, boundary.c_str(), bytes_read);
+            if (!Utils::writeFile(filepath, buffer, bytes_read))
                 return HttpResponse::errorResponse(HTTP_INTERNAL_SERVER_ERROR, "Failed to save file");
             total_bytes_read += bytes_read;
+            
+            if (total_bytes_read > config.max_body_size)
+            {
+                // delete the file!
+                std::remove(filepath.c_str());
+                return HttpResponse::errorResponse(HTTP_PAYLOAD_TOO_LARGE, "File is too big");
+            }
+        }
+        if (total_bytes_read == 0)
+        {
+            std::remove(filepath.c_str());
+            return HttpResponse::errorResponse(HTTP_BAD_REQUEST, "No file data");
         }
         //std::cout << "total_bytes_read = " << total_bytes_read << std::endl;
-        HttpResponse response;
-        response.setStatus(HTTP_CREATED);
-        response.setContentType("text/html");
-        std::string body = "<!DOCTYPE html><html><head><title>Uploaded</title></head><body>";
-        body += "<h1>Upload Successful</h1><p>";
-        body += "File uploaded successfully!";
-        body += "</p></body></html>";
-        response.setBody(body);
-        return response;
+
+        return HttpResponse::messageResponse(HTTP_CREATED, "Upload Successful", "File uploaded successfully!");//response;
     } else {
         return HttpResponse::errorResponse(HTTP_INTERNAL_SERVER_ERROR, "Failed to save file");
     }

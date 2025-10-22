@@ -8,6 +8,7 @@
 #include <sys/epoll.h>
 #include "../utils/Utils.hpp"
 #include "../config/ConfigParser.hpp"
+#include <cstdio>
 
 // Forward declaration
 class ServerManager;
@@ -21,6 +22,7 @@ private:
     int _epoll_fd;
     char *_raw_buffer;
     size_t _raw_bytes_read;
+    std::string _file_info;
     
     // Client request/response tracking
     std::map<int, std::string> _client_buffers;
@@ -31,6 +33,7 @@ private:
 
     void processRequest(int client_fd, int server_port);
     HttpResponse handleUpload(const HttpRequest& request, const ServerConfig& config, int client_fd);
+    HttpResponse handleDelete(const HttpRequest& request, const ServerConfig& config, int client_fd);
     HttpResponse handleJsonApi(const HttpRequest& request);
     const ServerConfig* findServerForClient(int client_fd);
     bool methodAllowed(const std::string& uri, const std::string& method, const ServerConfig& config);

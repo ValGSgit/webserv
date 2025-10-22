@@ -81,6 +81,22 @@ void HttpResponse::buildResponseString() {
     _response_string += "\r\n" + _body;
 }
 
+HttpResponse HttpResponse::messageResponse(int status, const std::string& title, const std::string& message) {
+    HttpResponse response;
+    response.setStatus(status);
+    response.setContentType("text/html");
+    
+    std::string body = "<!DOCTYPE html><html><head><title>" + title + "</title></head><body>";
+    body += "<h1>" + title + "</h1>";
+    if (!message.empty()) {
+        body += "<p>" + message + "</p>";
+    }
+    body += "</body></html>";
+    
+    response.setBody(body);
+    return response;
+}
+
 HttpResponse HttpResponse::errorResponse(int status, const std::string& message) {
     HttpResponse response;
     response.setStatus(status);

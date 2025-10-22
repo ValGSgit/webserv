@@ -15,6 +15,7 @@ bool HttpRequest::parseRequest(const std::string& data) {
     //size_t body_start = 0;
     size_t header_size = 0;
     
+    //std::cout << data;
     for (size_t i = 0; i < lines.size(); ++i) {
         const std::string& line = lines[i];
         
