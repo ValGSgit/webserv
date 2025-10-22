@@ -26,15 +26,25 @@ const ServerConfig* HttpHandler::findServerForClient(int client_fd) {
 
 bool HttpHandler::methodAllowed(const std::string& uri, const std::string& method, const ServerConfig& config) {
     try {
-        std::string::const_iterator last_char = uri.end();
-        if (uri != "")
-            last_char--;
-        //std::cout << "uri = " << *last_char << std::endl;
-        //if (*last_char != '/')
-        const RouteConfig& route = config.routes.at(uri);
-        for (size_t i = 0; i < route.allowed_methods.size(); ++i) {
-            if (method == route.allowed_methods[i])
-                return true;
+        std::string temp = uri.substr(0, uri.find_last_of('/'));
+        //really like this?
+        if (method == "DELETE")
+        {
+            if (temp == "")
+                temp += "/";
+            const RouteConfig& route = config.routes.at(temp);
+            for (size_t i = 0; i < route.allowed_methods.size(); ++i) {
+                if (method == route.allowed_methods[i])
+                    return true;
+            }
+        }
+        else
+        {
+            const RouteConfig& route = config.routes.at(uri);
+            for (size_t i = 0; i < route.allowed_methods.size(); ++i) {
+                if (method == route.allowed_methods[i])
+                    return true;
+            }
         }
     } catch(const std::exception& e) {
         // Route not found - allow GET by default
@@ -147,9 +157,14 @@ HttpResponse HttpHandler::handleDelete(const HttpRequest& request, const ServerC
 {
     (void)config;
     (void)client_fd;
-    std::cout << "uri = " << request.getUri() << std::endl;
-    //std::remove(request.getUri().c_str());
-    return HttpResponse::errorResponse(HTTP_METHOD_NOT_ALLOWED);
+    std::string file_path = config.root + request.getUri();
+    int fd = open(file_path.c_str(), O_WRONLY, 0644);
+    if (fd == -1)
+        return HttpResponse::errorResponse(HTTP_BAD_REQUEST, "File not found!"); // why is 204 not working???
+    close(fd);
+    std::remove(file_path.c_str());
+    // or 202 HTTP_ACCEPTED?
+    return HttpResponse::messageResponse(HTTP_OK, "File deleted!");
 }
 
 HttpResponse HttpHandler::handleUpload(const HttpRequest& request, const ServerConfig& config, int client_fd) {
