@@ -54,7 +54,6 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
     std::cout << "Processing " << request.methodToString() << " " << request.getUri() << std::endl;
     
     std::string uri = request.getUri();
-    
     // Check for client request errors
     if (request.getStatus()) {
         response = HttpResponse::errorResponse(request.getStatus());
@@ -74,7 +73,7 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
         std::string script_path = config->root + uri;
         response = cgi.executeCgi(request, script_path);
     } else if (uri == "/upload" && request.getMethod() == METHOD_POST) {
-        response = handleUpload(request, *config);
+        response = handleUpload(request, *config, client_fd);
     } else if (uri == "/api/test") {
         response = handleJsonApi(request);
     } else if (uri == "/redirect") {
@@ -108,22 +107,48 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
     epoll_ctl(_epoll_fd, EPOLL_CTL_MOD, client_fd, &ev);
 }
     
-HttpResponse HttpHandler::handleUpload(const HttpRequest& request, const ServerConfig& config) {
+HttpResponse HttpHandler::handleUpload(const HttpRequest& request, const ServerConfig& config, int client_fd) {
     std::cout << "Handling file upload" << std::endl;
     
+    //what about jpeg for example?
     const std::string& body = request.getBody();
     if (body.empty()) {
         return HttpResponse::errorResponse(HTTP_BAD_REQUEST, "No file data");
     }
-    
     // Find upload path from config
     std::string upload_dir = config.root + "/uploads/";
     
     // Simple upload handling - save to uploads directory
     std::string filename = "uploaded_file_" + Utils::toString(static_cast<int>(time(NULL)));
     std::string filepath = upload_dir + filename;
+    
+    std::size_t needle;
+    needle = body.find("\r\n");
+    std::string boundary = "\r\n" + body.substr(0, needle);;
+    std::string temp =_raw_buffer;
+    needle = temp.find(boundary);
+    _raw_bytes_read -= needle;
+    _raw_buffer = &_raw_buffer[needle];
+    temp =_raw_buffer;
+    needle = temp.find("\r\n\r\n");
+    needle += 4;
+    _raw_bytes_read -= needle;
+    //std::cout << "raw_bytes_read = " << _raw_bytes_read << std::endl;
+    // save also file info?
+    ssize_t total_bytes_read = 0;
+    if (Utils::writeFile(filepath, &_raw_buffer[needle], _raw_bytes_read)) {
+        char buffer[1];
+        ssize_t bytes_read;
+        // if there are things left in fd, continue to read the body and write to file
 
-    if (Utils::writeFile(filepath, body)) {
+        //boundary????
+
+        while ((bytes_read = read(client_fd, buffer, 1)) > 0) {
+            if (!Utils::writeFile(filepath, buffer, 1))
+                return HttpResponse::errorResponse(HTTP_INTERNAL_SERVER_ERROR, "Failed to save file");
+            total_bytes_read += bytes_read;
+        }
+        //std::cout << "total_bytes_read = " << total_bytes_read << std::endl;
         HttpResponse response;
         response.setStatus(HTTP_CREATED);
         response.setContentType("text/html");
@@ -174,7 +199,8 @@ void HttpHandler::handleRead(int client_fd) {
     while ((bytes_read = read(client_fd, buffer, sizeof(buffer) - 1)) > 0) {
         buffer[bytes_read] = '\0';
         _client_buffers[client_fd] += buffer;
-        
+        _raw_buffer = buffer;
+        _raw_bytes_read = bytes_read;
         // Try to parse request
         if (_client_requests[client_fd].parseRequest(_client_buffers[client_fd])) {
             ClientConnection* client = _server_manager->getClient(client_fd);
@@ -204,8 +230,6 @@ void HttpHandler::handleWrite(int client_fd) {
         closeConnection(client_fd);
         return;
     }
-/*     std::cout << "offset = " << offset << std::endl;
-    std::cout << buffer << std::endl; */
     ssize_t bytes_sent = write(client_fd, buffer.c_str() + offset, buffer.length() - offset);
     if (bytes_sent > 0) {
         offset += bytes_sent;

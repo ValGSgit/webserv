@@ -168,14 +168,15 @@ std::string Utils::readFile(const std::string& filepath) {
     return content;
 }
 
-bool Utils::writeFile(const std::string& filepath, const std::string& content) {
-    int fd = open(filepath.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+bool Utils::writeFile(const std::string& filepath, void *buffer, int bytes) {//const std::string& content) {
+    // From Ka Hou: I need append mode instead of O_TRUNC
+    int fd = open(filepath.c_str(), O_WRONLY | O_APPEND | O_CREAT, 0644);
     if (fd == -1) return false;
     
-    ssize_t bytes_written = write(fd, content.c_str(), content.length());
+    ssize_t bytes_written = write(fd, buffer, bytes);//content.c_str(), content.length());
     close(fd);
-    
-    return bytes_written == static_cast<ssize_t>(content.length());
+    //std::cout << "bytes_written = " << bytes_written << std::endl;
+    return bytes_written == bytes;//static_cast<ssize_t>(content.length());
 }
 
 std::string Utils::getFileExtension(const std::string& filepath) {

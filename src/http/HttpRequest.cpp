@@ -12,7 +12,7 @@ bool HttpRequest::parseRequest(const std::string& data) {
     // Manual parsing without stringstream/getline
     std::vector<std::string> lines = splitIntoLines(data);
     bool first_line = true;
-    size_t body_start = 0;
+    //size_t body_start = 0;
     size_t header_size = 0;
     
     for (size_t i = 0; i < lines.size(); ++i) {
@@ -26,7 +26,7 @@ bool HttpRequest::parseRequest(const std::string& data) {
         // why \r? it's already skipped in splitIntoLines()
         if (line.empty() || line == "\r") {
             _headers_complete = true;
-            body_start = i + 1;
+            //body_start = i + 1;
             break;
         }
         
@@ -42,13 +42,15 @@ bool HttpRequest::parseRequest(const std::string& data) {
 
     // Read body if present
     if (_headers_complete && _content_length > 0) {
-        for (size_t i = body_start; i < lines.size(); ++i) {
+        std::size_t needle = data.find("\r\n\r\n");
+        if (needle != std::string::npos)
+            _body += data.substr(needle + 4);
+/*         for (size_t i = body_start; i < lines.size(); ++i) {
             if (i > body_start) _body += "\n";
             _body += lines[i];
-        }
+        } */
         _body_complete = (_body.length() >= _content_length);
     }
-    
     return _headers_complete;
 }
 
