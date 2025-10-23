@@ -251,13 +251,15 @@ void CgiHandler::setTimeout(int seconds) {
     _timeout = seconds;
 }
 
-bool CgiHandler::isCgiRequest(const std::string& uri) {
-    // Check if URI starts with /cgi-bin/ or has a known CGI extension
-    if (uri.find("/cgi-bin/") == 0) {
-        return true;
+bool isCgiRequest(const std::string& uri, const RouteConfig& route) {
+    // Check if URI matches any CGI extension
+    for (size_t i = 0; i < route.cgi_extensions.size(); ++i) {
+        const std::string& ext = route.cgi_extensions[i];
+        if (uri.length() >= ext.length()) {
+            if (uri.substr(uri.length() - ext.length()) == ext) {
+                return true;
+            }
+        }
     }
-    
-    std::string extension = Utils::getFileExtension(uri);
-    return (extension == ".php" || extension == ".py" || extension == ".pl" || 
-            extension == ".rb" || extension == ".cgi");
+    return false;
 }

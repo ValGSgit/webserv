@@ -47,12 +47,11 @@ re: fclean all
 test: $(NAME)
 	./$(NAME) config/default.conf
 
-# Test config parser
 test_config: test_config_parser
 	./test_config_parser config/default.conf
 
-test_config_parser: test_config_parser.cpp $(filter-out $(OBJDIR)/main.o, $(OBJS))
-	$(CXX) $(CXXFLAGS) $(INCLUDES) test_config_parser.cpp $(filter-out $(OBJDIR)/main.o, $(OBJS)) -o test_config_parser
+test_config_parser: tests/scripts/test_config_parser.cpp $(filter-out $(OBJDIR)/main.o, $(OBJS))
+	$(CXX) $(CXXFLAGS) $(INCLUDES) tests/scripts/test_config_parser.cpp $(filter-out $(OBJDIR)/main.o, $(OBJS)) -o test_config_parser
 
 $(OBJDIR)/testmain.o: $(SRCDIR)/testmain.cpp
 	@mkdir -p $(dir $@)

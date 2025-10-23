@@ -37,15 +37,20 @@ bool ConfigParser::parseConfig(const std::string& config_file) {
                 i = new_index - 1; // -1 because loop will increment
             } else {
                 // Server block parsing failed completely
+                std::cerr << "Error: Failed to parse server block starting at line " << i + 1 << std::endl;
                 return false;
             }
             
-            // Only add server if it has minimum requirements
-            if (!server.ports.empty()) {
+            // Only add server if it has valid port (0 means parsing failed or invalid)
+            if (server.port > 0) {
                 _servers.push_back(server);
+            } else {
+                std::cerr << "Error: Server block has invalid or missing port" << std::endl;
+                return false;
             }
         } else if (line.find("server") == 0) {
             // Server directive without proper opening brace
+            std::cerr << "Error: 'server' directive without opening brace at line " << i + 1 << std::endl;
             return false;
         }
     }
@@ -122,9 +127,20 @@ size_t ConfigParser::parseServerBlock(const std::vector<std::string>& lines, siz
         }
 
         if (Utils::equalsIgnoreCase(directive, "listen")) {
+            // Static webserver: only ONE port allowed per server block
+            if (server.port != 0) {
+                std::cerr << "Error: Multiple 'listen' directives in server block (line around " << i << ")" << std::endl;
+                std::cerr << "       Static webservers support only ONE port per server block" << std::endl;
+                return start_index; // Signal parsing failure
+            }
+            
             int port = Utils::toInt(value);
             if (Utils::isValidPort(port)) {
-                server.ports.push_back(port);
+                server.port = port;
+            } else {
+                std::cerr << "Error: Invalid port number '" << value << "' (line around " << i << ")" << std::endl;
+                std::cerr << "       Port must be between 1 and 65535" << std::endl;
+                return start_index; // Signal parsing failure
             }
         }
         else if (Utils::equalsIgnoreCase(directive, "server_name")) {
@@ -157,12 +173,14 @@ size_t ConfigParser::parseServerBlock(const std::vector<std::string>& lines, siz
     
     // Check if braces are balanced
     if (brace_count != 0) {
+        std::cerr << "Error: Unbalanced braces in server block" << std::endl;
         return start_index; // Return original index to indicate incomplete server block
     }
 
     // Set default port if none specified
-    if (server.ports.empty()) {
-        server.ports.push_back(8080);
+    if (server.port == 0) {
+        server.port = 8080;
+        std::cout << "Warning: No 'listen' directive found, defaulting to port 8080" << std::endl;
     }
     
     // Set default server name if none specified
@@ -227,7 +245,11 @@ size_t ConfigParser::parseLocationBlock(const std::vector<std::string>& lines, s
                 if (!method.empty() && method[method.length() - 1] == ';') {
                     method = method.substr(0, method.length() - 1);
                 }
-                if (isValidMethod(method)) {
+                // Normalize method to uppercase
+                for (size_t k = 0; k < method.length(); ++k) {
+                    method[k] = std::toupper((unsigned char)method[k]);
+                }
+                if (!method.empty() && isValidMethod(method)) {
                     route.allowed_methods.push_back(method);
                 }
             }
@@ -245,7 +267,18 @@ size_t ConfigParser::parseLocationBlock(const std::vector<std::string>& lines, s
             route.upload_path = value;
         }
         else if (Utils::equalsIgnoreCase(directive, "cgi_extension")) {
-            route.cgi_extension = value;
+            // Parse ALL extensions from the line
+            for (size_t j = 1; j < tokens.size(); ++j) {
+                std::string ext = tokens[j];
+                // Remove semicolon if present
+                if (!ext.empty() && ext[ext.length() - 1] == ';') {
+                    ext = ext.substr(0, ext.length() - 1);
+                }
+                // Validate extension starts with '.'
+                if (!ext.empty() && ext[0] == '.') {
+                    route.cgi_extensions.push_back(ext);
+                }
+            }
         }
         else if (Utils::equalsIgnoreCase(directive, "return")) {
             if (tokens.size() >= 3) {
@@ -269,8 +302,21 @@ size_t ConfigParser::parseLocationBlock(const std::vector<std::string>& lines, s
     // Set default methods if none specified
     if (route.allowed_methods.empty()) {
         route.allowed_methods.push_back("GET");
+        std::cerr << "Warning: No methods specified for location, defaulting to GET" << std::endl;
     }
     
+    if (!route.cgi_extensions.empty()) {
+        bool has_post = false;
+        for (size_t x = 0; x < route.allowed_methods.size(); ++x) {
+            if (route.allowed_methods[x] == "POST") {
+                has_post = true;
+                break;
+            }
+        }
+        if (!has_post) {
+            std::cerr << "Warning: CGI route without POST method" << std::endl;
+        }
+    }
     return i;
 }
 
@@ -371,7 +417,13 @@ std::vector<std::string> ConfigParser::splitIntoLines(const std::string& content
 }
 
 bool ConfigParser::isValidMethod(const std::string& method) {
-    return (method == "GET" || method == "POST" || method == "DELETE");
+    std::string upper = method;
+    for (size_t i = 0; i < upper.length(); ++i) {
+        upper[i] = std::toupper(upper[i]);
+    }
+    
+    return (upper == "GET" || upper == "POST" || upper == "DELETE" || 
+            upper == "PUT" || upper == "HEAD");
 }
 
 void ConfigParser::printConfig() const {
@@ -379,12 +431,7 @@ void ConfigParser::printConfig() const {
         const ServerConfig& server = _servers[i];
         std::cout << "Server " << i + 1 << ":" << std::endl;
         std::cout << "  Server name: " << server.server_name << std::endl;
-        std::cout << "  Ports: ";
-        for (size_t j = 0; j < server.ports.size(); ++j) {
-            std::cout << server.ports[j];
-            if (j < server.ports.size() - 1) std::cout << ", ";
-        }
-        std::cout << std::endl;
+        std::cout << "  Port: " << server.port << std::endl;
         std::cout << "  Root: " << server.root << std::endl;
         std::cout << "  Index: " << server.index << std::endl;
         std::cout << "  Max body size: " << server.max_body_size << std::endl;

@@ -1,0 +1,18 @@
+# Siege URL List for WebServ Testing
+# Each line represents a URL that siege will test
+
+# Static pages
+http://localhost:8080/
+http://localhost:8080/index.html
+http://localhost:8080/test.html
+
+# CGI scripts (if available)
+http://localhost:8080/cgi-bin/test.py
+http://localhost:8080/cgi-bin/test.sh
+
+# POST requests (siege format: URL POST key=value)
+http://localhost:8080/cgi-bin/test.py POST name=John&age=30
+http://localhost:8080/cgi-bin/test.py POST data=testdata
+
+# Various file sizes (add more if you have them)
+http://localhost:8080/uploads/test.txt

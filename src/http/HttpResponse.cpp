@@ -52,7 +52,9 @@ void HttpResponse::reset() {
 void HttpResponse::setDefaultHeaders() {
     _headers["Server"] = "WebServ/1.0"; // 1.1?
     std::time_t time = std::time(NULL); // or just implement a member function for future use?
-    _headers["Date"] = std::ctime(&time);// format like this? : "Tue 30.09.2025 12:00"
+    char buffer[30];
+    std::strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S", std::localtime(&time)); // GMT + 2 for Vienna time?
+    _headers["Date"] = buffer;
     _headers["Connection"] = "close";
 }
 
@@ -79,6 +81,22 @@ void HttpResponse::buildResponseString() {
     _response_string += "\r\n" + _body;
 }
 
+HttpResponse HttpResponse::messageResponse(int status, const std::string& title, const std::string& message) {
+    HttpResponse response;
+    response.setStatus(status);
+    response.setContentType("text/html");
+    
+    std::string body = "<!DOCTYPE html><html><head><title>" + title + "</title></head><body>";
+    body += "<h1>" + title + "</h1>";
+    if (!message.empty()) {
+        body += "<p>" + message + "</p>";
+    }
+    body += "</body></html>";
+    
+    response.setBody(body);
+    return response;
+}
+
 HttpResponse HttpResponse::errorResponse(int status, const std::string& message) {
     HttpResponse response;
     response.setStatus(status);
@@ -102,7 +120,6 @@ HttpResponse HttpResponse::fileResponse(const std::string& filepath) {
     if (!Utils::fileExists(filepath) || !Utils::isReadable(filepath)) {
         return errorResponse(HTTP_NOT_FOUND);
     }
-    
     std::string content = Utils::readFile(filepath);
     std::string mime_type = Utils::getMimeType(filepath);
     

@@ -73,75 +73,67 @@ bool ServerManager::initializeServerSockets() {
 }
 
 bool ServerManager::createServerSocket(const ServerConfig& config) {
-    bool success = false;
+    int port = config.port;
     
-    for (size_t i = 0; i < config.ports.size(); ++i) {
-        int port = config.ports[i];
-        
-        // Check for duplicate ports
-        bool duplicate = false;
-        for (size_t j = 0; j < _server_sockets.size(); ++j) {
-            if (_server_sockets[j].port == port) {
-                logError("Port already in use", Utils::toString(port));
-                duplicate = true;
-                break;
-            }
+    // Check for duplicate ports
+    for (size_t j = 0; j < _server_sockets.size(); ++j) {
+        if (_server_sockets[j].port == port) {
+            logError("Port already in use by another server block", Utils::toString(port));
+            return false;
         }
-        if (duplicate) continue;
-        
-        // Create socket
-        int server_fd = socket(AF_INET, SOCK_STREAM, 0);
-        if (server_fd == -1) {
-            perror("socket");
-            continue;
-        }
-        
-        // Set socket options
-        int opt = 1;
-        if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) {
-            perror("setsockopt");
-            close(server_fd);
-            continue;
-        }
-        
-        // Make non-blocking
-        Utils::setNonBlocking(server_fd);
-        
-        // Bind
-        struct sockaddr_in addr;
-        memset(&addr, 0, sizeof(addr));
-        addr.sin_family = AF_INET;
-        addr.sin_addr.s_addr = INADDR_ANY;
-        addr.sin_port = htons(port);
-        
-        if (bind(server_fd, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
-            perror("bind");
-            close(server_fd);
-            continue;
-        }
-        
-        // Listen
-        if (listen(server_fd, SOMAXCONN) == -1) {
-            perror("listen");
-            close(server_fd);
-            continue;
-        }
-        
-        // Add to epoll
-        addToEpoll(server_fd, EPOLLIN);
-        
-        // Store server socket
-        ServerSocket ss;
-        ss.fd = server_fd;
-        ss.port = port;
-        ss.config = &config;
-        _server_sockets.push_back(ss);
-        
-        std::cout << "✓ Server socket created on port " << port << std::endl;
-        success = true;
     }
     
-    return success;
+    // Create socket
+    int server_fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (server_fd == -1) {
+        perror("socket");
+        return false;
+    }
+    
+    // Set socket options
+    int opt = 1;
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) {
+        perror("setsockopt");
+        close(server_fd);
+        return false;
+    }
+    
+    // Make non-blocking
+    Utils::setNonBlocking(server_fd);
+    
+    // Bind
+    struct sockaddr_in addr;
+    memset(&addr, 0, sizeof(addr));
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = INADDR_ANY;
+    addr.sin_port = htons(port);
+    
+    if (bind(server_fd, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
+        perror("bind");
+        close(server_fd);
+        return false;
+    }
+    
+    // Listen
+    if (listen(server_fd, SOMAXCONN) == -1) {
+        perror("listen");
+        close(server_fd);
+        return false;
+    }
+    
+    // Add to epoll
+    addToEpoll(server_fd, EPOLLIN);
+    
+    // Store server socket
+    ServerSocket ss;
+    ss.fd = server_fd;
+    ss.port = port;
+    ss.config = &config;
+    _server_sockets.push_back(ss);
+    
+    std::cout << "✓ Server socket created on port " << port << std::endl;
+    
+    return true;
 }
 
 void ServerManager::addToEpoll(int fd, uint32_t events) {
@@ -267,10 +259,8 @@ const ServerSocket* ServerManager::findServerSocket(int fd) const {
 
 const ServerConfig* ServerManager::findServerConfig(int port) const {
     for (size_t i = 0; i < _server_configs.size(); ++i) {
-        for (size_t j = 0; j < _server_configs[i].ports.size(); ++j) {
-            if (_server_configs[i].ports[j] == port) {
-                return &_server_configs[i];
-            }
+        if (_server_configs[i].port == port) {
+            return &_server_configs[i];
         }
     }
     return NULL;

@@ -23,7 +23,7 @@ class Utils {
         static bool isWritable(const std::string& filepath);
         static size_t getFileSize(const std::string& filepath);
         static std::string readFile(const std::string& filepath);
-        static bool writeFile(const std::string& filepath, const std::string& content);
+        static bool writeFile(const std::string& filepath, void *buffer, int bytes);//, const std::string& content);
         static std::string getFileExtension(const std::string& filepath);
         static std::vector<std::string> listDirectory(const std::string& dirpath);
 

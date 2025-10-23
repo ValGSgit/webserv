@@ -1,5 +1,5 @@
-#include "includes/webserv.hpp"
-#include "includes/config/ConfigParser.hpp"
+#include "../includes/webserv.hpp"
+#include "../includes/config/ConfigParser.hpp"
 #include <iostream>
 #include <iomanip>
 
@@ -30,14 +30,12 @@ void printServerConfig(const ServerConfig& server, int index) {
     // Server Name
     std::cout << BOLD << "  Server Name: " << RESET << GREEN << server.server_name << RESET << std::endl;
     
-    // Ports
-    printSubSection("Listening Ports");
-    if (server.ports.empty()) {
-        std::cout << RED << "    ⚠ No ports configured!" << RESET << std::endl;
+    // Port (single port now)
+    printSubSection("Listening Port");
+    if (server.port == 0) {
+        std::cout << RED << "    ⚠ No port configured!" << RESET << std::endl;
     } else {
-        for (size_t i = 0; i < server.ports.size(); ++i) {
-            std::cout << "    Port " << i + 1 << ": " << BLUE << server.ports[i] << RESET << std::endl;
-        }
+        std::cout << "    Port: " << BLUE << server.port << RESET << std::endl;
     }
     
     // Root and Index
@@ -104,8 +102,13 @@ void printServerConfig(const ServerConfig& server, int index) {
             }
             
             // CGI Extension
-            if (!route.cgi_extension.empty()) {
-                std::cout << "      CGI Extension:   " << MAGENTA << route.cgi_extension << RESET << std::endl;
+            if (!route.cgi_extensions.empty()) {
+                std::cout << "      CGI Extension" << (route.cgi_extensions.size() > 1 ? "s:   " : ":   ");
+                for (size_t i = 0; i < route.cgi_extensions.size(); ++i) {
+                    std::cout << MAGENTA << route.cgi_extensions[i] << RESET;
+                    if (i + 1 < route.cgi_extensions.size()) std::cout << ", ";
+                }
+                std::cout << std::endl;
             }
             
             // Redirect
@@ -132,19 +135,17 @@ void printServerSocketStructures(const std::vector<ServerConfig>& configs) {
         
         std::cout << "\n  Config #" << i << " (" << config.server_name << "):" << std::endl;
         
-        for (size_t j = 0; j < config.ports.size(); ++j) {
-            ServerSocket ss;
-            ss.fd = -1;  // Not actually creating sockets in this test
-            ss.port = config.ports[j];
-            ss.config = &config;
-            
-            server_sockets.push_back(ss);
-            
-            std::cout << "    ServerSocket[" << server_sockets.size() - 1 << "]:" << std::endl;
-            std::cout << "      +-- fd:     " << BLUE << ss.fd << RESET << " (simulated)" << std::endl;
-            std::cout << "      +-- port:   " << GREEN << ss.port << RESET << std::endl;
-            std::cout << "      +-- config: " << MAGENTA << "-> " << ss.config->server_name << RESET << std::endl;
-        }
+        ServerSocket ss;
+        ss.fd = -1;  // Not actually creating sockets in this test
+        ss.port = config.port;
+        ss.config = &config;
+        
+        server_sockets.push_back(ss);
+        
+        std::cout << "    ServerSocket[" << server_sockets.size() - 1 << "]:" << std::endl;
+        std::cout << "      +-- fd:     " << BLUE << ss.fd << RESET << " (simulated)" << std::endl;
+        std::cout << "      +-- port:   " << GREEN << ss.port << RESET << std::endl;
+        std::cout << "      +-- config: " << MAGENTA << "-> " << ss.config->server_name << RESET << std::endl;
     }
     
     std::cout << "\n" << BOLD << GREEN << "  ✓ Total ServerSocket structures: " << server_sockets.size() << RESET << std::endl;
@@ -207,7 +208,7 @@ void printDataIntegrityCheck(const std::vector<ServerConfig>& configs) {
     int total_error_pages = 0;
     
     for (size_t i = 0; i < configs.size(); ++i) {
-        total_ports += configs[i].ports.size();
+        total_ports += 1; // Each server has exactly one port now
         total_routes += configs[i].routes.size();
         total_error_pages += configs[i].error_pages.size();
     }
@@ -222,7 +223,7 @@ void printDataIntegrityCheck(const std::vector<ServerConfig>& configs) {
     printSubSection("Memory Address Verification");
     for (size_t i = 0; i < configs.size(); ++i) {
         std::cout << "    ServerConfig[" << i << "] @ " << &configs[i] << std::endl;
-        std::cout << "      +-- ports vector   @ " << &configs[i].ports << std::endl;
+        std::cout << "      +-- port (single)  @ " << &configs[i].port << std::endl;
         std::cout << "      +-- routes map     @ " << &configs[i].routes << std::endl;
         std::cout << "      +-- error_pages map @ " << &configs[i].error_pages << std::endl;
     }
@@ -243,12 +244,12 @@ void printDataIntegrityCheck(const std::vector<ServerConfig>& configs) {
             std::cout << "      " << GREEN << "✓ server_name: " << cfg.server_name << RESET << std::endl;
         }
         
-        // Check if at least one port exists
-        if (cfg.ports.empty()) {
-            std::cout << "      " << RED << "✗ No ports configured!" << RESET << std::endl;
+        // Check if port is valid
+        if (cfg.port == 0) {
+            std::cout << "      " << RED << "✗ No port configured!" << RESET << std::endl;
             integrity_ok = false;
         } else {
-            std::cout << "      " << GREEN << "✓ ports: " << cfg.ports.size() << " configured" << RESET << std::endl;
+            std::cout << "      " << GREEN << "✓ port: " << cfg.port << RESET << std::endl;
         }
         
         // Check root directory
