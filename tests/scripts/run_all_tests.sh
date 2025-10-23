@@ -11,7 +11,7 @@ NC='\033[0m' # No Color
 # Configuration
 HOST="localhost"
 PORT=8080
-CONFIG="./config/default.conf"
+CONFIG="../webserv.conf"
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -106,18 +106,18 @@ echo -e "${YELLOW}Starting test execution...${NC}"
 echo ""
 
 # 1. Main functionality tests
-run_test_suite "Main Functionality Tests" "test_webserv.py"
+run_test_suite "Main Functionality Tests" "tests/scripts/test_webserv.py"
 echo ""
 
 # 2. CGI tests
-run_test_suite "CGI Tests" "test_cgi.py"
+run_test_suite "CGI Tests" "tests/scripts/test_cgi.py"
 echo ""
 
 # 3. Stress tests (optional - can be skipped)
 read -p "Run stress tests? This may take several minutes (y/n): " -n 1 -r
 echo ""
 if [[ $REPLY =~ ^[Yy]$ ]]; then
-    run_test_suite "Stress Tests" "stress_test.py"
+    run_test_suite "Stress Tests" "tests/scripts/stress_test.py"
     echo ""
 else
     echo -e "${YELLOW}Skipping stress tests${NC}"
