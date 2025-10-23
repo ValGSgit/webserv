@@ -60,7 +60,7 @@ struct RouteConfig {
     std::string index_file;
     bool directory_listing;
     std::string upload_path;
-    std::string cgi_extension;
+    std::vector<std::string> cgi_extensions;
     std::string redirect_url;
     size_t max_body_size;
 
@@ -68,7 +68,7 @@ struct RouteConfig {
 };
 
 struct ServerConfig {
-    std::vector<int> ports;
+    int port;
     std::string server_name;
     std::map<std::string, RouteConfig> routes;
     size_t max_body_size;
@@ -77,7 +77,7 @@ struct ServerConfig {
     std::string index;
     bool autoindex;
 
-    ServerConfig() : max_body_size(1048576), root("./www"), index("index.html"), autoindex(false) {}
+    ServerConfig() : port(0), max_body_size(1048576), root("./www"), index("index.html"), autoindex(false) {}
 };
 
 // Server Socket Structure

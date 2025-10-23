@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redirect Demo - WebServ</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 900px; margin: 0 auto; }
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            margin-bottom: 20px;
+        }
+        h1 { color: #1f2937; margin-bottom: 20px; }
+        .back-link {
+            display: inline-block;
+            color: white;
+            text-decoration: none;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        .redirect-list {
+            list-style: none;
+            margin: 20px 0;
+        }
+        .redirect-item {
+            background: #f3f4f6;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border-left: 4px solid #2563eb;
+        }
+        .redirect-item strong {
+            color: #1f2937;
+            font-size: 1.1em;
+        }
+        .redirect-item p {
+            color: #666;
+            margin-top: 5px;
+        }
+        .test-btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .test-btn:hover {
+            background: #1e40af;
+        }
+        code {
+            background: #1f2937;
+            color: #10b981;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Back to Home</a>
+        
+        <div class="card">
+            <h1>🔀 HTTP Redirections Demo</h1>
+            <p>Test HTTP 301/302 redirects configured in the server</p>
+            
+            <ul class="redirect-list">
+                <li class="redirect-item">
+                    <strong>🏠 /redirect → /</strong>
+                    <p>Redirects to homepage (301 Permanent)</p>
+                    <button class="test-btn" onclick="testRedirect('/redirect')">Test Redirect</button>
+                </li>
+                
+                <li class="redirect-item">
+                    <strong>📄 /old-page → /index.html</strong>
+                    <p>Legacy URL redirect (301 Permanent)</p>
+                    <button class="test-btn" onclick="testRedirect('/old-page')">Test Redirect</button>
+                </li>
+                
+                <li class="redirect-item">
+                    <strong>🐙 /github → GitHub Repository</strong>
+                    <p>External redirect to project repository (301 Permanent)</p>
+                    <button class="test-btn" onclick="window.open('/github', '_blank')">Visit GitHub</button>
+                </li>
+            </ul>
+        </div>
+        
+        <div class="card">
+            <h2 style="color: #1f2937; margin-bottom: 15px;">📖 About HTTP Redirects</h2>
+            <p style="margin-bottom: 10px;"><strong>301 Moved Permanently:</strong> The URL has permanently moved to a new location.</p>
+            <p style="margin-bottom: 10px;"><strong>302 Found:</strong> Temporary redirect to another URL.</p>
+            <p style="margin-bottom: 10px;"><strong>Location Header:</strong> Specifies the new URL for the resource.</p>
+            
+            <h3 style="color: #374151; margin-top: 20px; margin-bottom: 10px;">Configuration Example:</h3>
+            <pre style="background: #1f2937; color: #10b981; padding: 15px; border-radius: 8px; overflow-x: auto;">
+location /redirect {
+    return 301 /;
+}
+
+location /github {
+    return 301 https://github.com/ValGSgit/webserv;
+}</pre>
+        </div>
+    </div>
+    
+    <script>
+        function testRedirect(url) {
+            window.location.href = url;
+        }
+    </script>
+</body>
+</html>

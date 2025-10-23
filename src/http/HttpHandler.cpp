@@ -24,34 +24,75 @@ const ServerConfig* HttpHandler::findServerForClient(int client_fd) {
     return _server_manager->findServerConfig(client->server_port);
 }
 
+// bool HttpHandler::methodAllowed(const std::string& uri, const std::string& method, const ServerConfig& config) {
+//     try {
+//         std::string temp = uri.substr(0, uri.find_last_of('/'));
+//         //really like this?
+//         if (method == "DELETE")
+//         {
+//             if (temp == "")
+//                 temp += "/";
+//             const RouteConfig& route = config.routes.at(temp);
+//             for (size_t i = 0; i < route.allowed_methods.size(); ++i) {
+//                 if (method == route.allowed_methods[i])
+//                     return true;
+//             }
+//         }
+//         else
+//         {
+//             const RouteConfig& route = config.routes.at(uri);
+//             for (size_t i = 0; i < route.allowed_methods.size(); ++i) {
+//                 if (method == route.allowed_methods[i])
+//                     return true;
+//             }
+//         }
+//     } catch(const std::exception& e) {
+//         // Route not found - allow GET by default
+//         if (method == "GET")
+//             return true;
+//     }
+//     return false;
+// }
+
 bool HttpHandler::methodAllowed(const std::string& uri, const std::string& method, const ServerConfig& config) {
-    try {
-        std::string temp = uri.substr(0, uri.find_last_of('/'));
-        //really like this?
-        if (method == "DELETE")
-        {
-            if (temp == "")
-                temp += "/";
-            const RouteConfig& route = config.routes.at(temp);
+    // Try to find the most specific matching route
+    std::string route_path = uri;
+    
+    // Keep going up the directory tree until we find a matching route
+    while (true) {
+        try {
+            const RouteConfig& route = config.routes.at(route_path); //at not allowed
+            
+            // Found a matching route! Check if method is allowed
             for (size_t i = 0; i < route.allowed_methods.size(); ++i) {
-                if (method == route.allowed_methods[i])
-                    return true;
+                if (method == route.allowed_methods[i]) {
+                    return true;  // Method is allowed
+                }
+            }
+            
+            // Route found but method not allowed
+            return false;
+            
+        } catch (const std::exception& e) {
+            // Route not found, try parent directory
+            if (route_path == "/") {
+                // Reached root, no route found
+                // Allow GET by default for backwards compatibility
+                return (method == "GET");
+            }
+            
+            // Remove last path segment and try again
+            size_t last_slash = route_path.find_last_of('/');
+            if (last_slash == 0) {
+                route_path = "/";  // Parent is root
+            } else if (last_slash != std::string::npos) {
+                route_path = route_path.substr(0, last_slash);
+            } else {
+                // No slash found (shouldn't happen with valid URIs)
+                return (method == "GET");
             }
         }
-        else
-        {
-            const RouteConfig& route = config.routes.at(uri);
-            for (size_t i = 0; i < route.allowed_methods.size(); ++i) {
-                if (method == route.allowed_methods[i])
-                    return true;
-            }
-        }
-    } catch(const std::exception& e) {
-        // Route not found - allow GET by default
-        if (method == "GET")
-            return true;
     }
-    return false;
 }
     
 void HttpHandler::processRequest(int client_fd, int server_port) {
@@ -176,7 +217,7 @@ HttpResponse HttpHandler::handleUpload(const HttpRequest& request, const ServerC
     // Find upload path from config
     try
     {
-        const RouteConfig &route = config.routes.at("/upload");
+        const RouteConfig &route = config.routes.at("/upload"); //at not allowed
         //std::cout << "route.upload_path = " << route.upload_path << std::endl;
         if (route.upload_path != "")
             upload_dir = route.upload_path + "/";
