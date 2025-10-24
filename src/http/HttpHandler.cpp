@@ -216,7 +216,7 @@ HttpResponse HttpHandler::handleDelete(const HttpRequest& request, const ServerC
     std::string file_path = config.root + request.getUri();
     int fd = open(file_path.c_str(), O_WRONLY, 0644);
     if (fd == -1)
-        return HttpResponse::errorResponse(HTTP_BAD_REQUEST, "File not found!"); // why is 204 not working???
+        return HttpResponse::errorResponse(HTTP_NOT_FOUND, "File not found!"); // why is 204 not working???
     close(fd);
     std::remove(file_path.c_str());
     // or 202 HTTP_ACCEPTED?
