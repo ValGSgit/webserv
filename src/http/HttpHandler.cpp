@@ -223,6 +223,8 @@ HttpResponse HttpHandler::handleDelete(const HttpRequest& request, const ServerC
     return HttpResponse::messageResponse(HTTP_OK, "File deleted!");
 }
 
+
+
 HttpResponse HttpHandler::handleUpload(const HttpRequest& request, const ServerConfig& config, int client_fd) {
     std::cout << "Handling file upload" << std::endl;
 
@@ -233,7 +235,6 @@ HttpResponse HttpHandler::handleUpload(const HttpRequest& request, const ServerC
     try
     {
         const RouteConfig &route = config.routes.at("/upload"); //at not allowed
-        //std::cout << "route.upload_path = " << route.upload_path << std::endl;
         if (route.upload_path != "")
             upload_dir = route.upload_path + "/";
     }
@@ -241,39 +242,81 @@ HttpResponse HttpHandler::handleUpload(const HttpRequest& request, const ServerC
     {
         //std::cerr << "route not found!" << '\n';
     }
-    
+    // use temp string to find things
+    std::string temp = _raw_buffer;
     // Simple upload handling - save to uploads directory
-    std::string filename = "uploaded_file_" + Utils::toString(static_cast<int>(time(NULL)));
+    std::size_t needle = temp.find("filename=");
+    std::string filename;
+    if (needle != std::string::npos)
+        filename = temp.substr(needle + 10, temp.find_first_of("\"", needle + 10) - needle - 10);
+    else
+        filename = "uploaded_file_" + Utils::toString(static_cast<int>(time(NULL)));
     std::string filepath = upload_dir + filename;
-    
-    // skip headers
-    std::size_t needle = body.find("\r\n");
+    // if file already exist, add suffix
+    if (Utils::fileExists(filepath))
+        filepath += "_copy";
     // find boundary
-    std::string boundary = "\r\n" + body.substr(0, needle);;
-    std::string temp =_raw_buffer;
-    needle = temp.find(boundary);
-    _raw_bytes_read -= needle;
-    _raw_buffer = &_raw_buffer[needle];
-    temp =_raw_buffer;
+    needle = temp.find("boundary=");
+    std::string boundary;
+    std::string boundary_end;
+    if (needle != std::string::npos)
+    {
+        boundary = "\r\n--" + temp.substr(needle + 9, temp.find_first_of("\r\n", needle + 9) - needle - 9);
+        boundary_end = boundary + "--";
+        needle = temp.find(boundary);
+        _raw_bytes_read -= needle;
+        _raw_buffer = &_raw_buffer[needle];
+        temp =_raw_buffer;
+    }
     needle = temp.find("\r\n\r\n");
-    // save file info
-    _file_info = temp.substr(0, needle);
-    //std::cout << _file_info;
     // needle is the starting index of the file
     needle += 4;
     _raw_bytes_read -= needle;
-    // save also file info?
+    // save also file info
+    if (boundary != "")
+        _file_info = temp.substr(0, needle);
     size_t total_bytes_read = 0;
+    // if the end boundary is already in the raw_buffer
+    if (boundary != "" && check_boundary(&_raw_buffer[needle], boundary_end.c_str(), _raw_bytes_read))
+            _raw_bytes_read = check_boundary(&_raw_buffer[needle], boundary_end.c_str(), _raw_bytes_read);
+    // chrome send the body later, dont write the raw_buffer
+    if (body == "")
+        _raw_bytes_read = 0;
     if (Utils::writeFile(filepath, &_raw_buffer[needle], _raw_bytes_read)) {
         total_bytes_read += _raw_bytes_read;
         char buffer[BUFFER_SIZE];
         int bytes_read = 0;
         // if there are things left in fd, continue to read the body and write to file
         while ((bytes_read = read(client_fd, buffer, BUFFER_SIZE)) > 0) {
-            //std::cout << "bytes_read = " << bytes_read << std::endl;
-            if (check_boundary(buffer, boundary.c_str(), bytes_read))
-                bytes_read = check_boundary(buffer, boundary.c_str(), bytes_read);
-            if (!Utils::writeFile(filepath, buffer, bytes_read))
+            char *buffer_ptr = buffer;
+            needle = 0;
+            //get rid of the begin boundary for chrome
+            if (boundary != "" && check_boundary(buffer, boundary.c_str(), bytes_read))
+            {
+                if (_raw_bytes_read == 0)
+                {
+                    temp = buffer;
+                    //remove empty file and update file name
+                    std::remove(filepath.c_str());
+                    needle = temp.find("filename=");
+                    if (needle != std::string::npos)
+                        filename = temp.substr(needle + 10, temp.find_first_of("\"", needle + 10) - needle - 10);
+                    else
+                        filename = "uploaded_file_" + Utils::toString(static_cast<int>(time(NULL)));
+                    filepath = upload_dir + filename;
+                    // if file already exist, add suffix
+                    if (Utils::fileExists(filepath))
+                        filepath += "_copy";
+                }
+                temp = buffer;
+                needle = temp.find("\r\n\r\n");
+                needle += 4;
+                buffer_ptr = &buffer[needle];
+            }
+            //get rid of the end boundary
+            if (boundary != "" && check_boundary(buffer, boundary_end.c_str(), bytes_read))
+                bytes_read = check_boundary(buffer, boundary_end.c_str(), bytes_read) - needle;
+            if (!Utils::writeFile(filepath, buffer_ptr, bytes_read))
                 return HttpResponse::errorResponse(HTTP_INTERNAL_SERVER_ERROR, "Failed to save file");
             total_bytes_read += bytes_read;
             
@@ -289,7 +332,6 @@ HttpResponse HttpHandler::handleUpload(const HttpRequest& request, const ServerC
             std::remove(filepath.c_str());
             return HttpResponse::errorResponse(HTTP_BAD_REQUEST, "No file data");
         }
-        //std::cout << "total_bytes_read = " << total_bytes_read << std::endl;
 
         return HttpResponse::messageResponse(HTTP_CREATED, "Upload Successful", "File uploaded successfully!");//response;
     } else {
