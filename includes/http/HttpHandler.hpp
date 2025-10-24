@@ -37,6 +37,7 @@ private:
     HttpResponse handleJsonApi(const HttpRequest& request);
     const ServerConfig* findServerForClient(int client_fd);
     bool methodAllowed(const std::string& uri, const std::string& method, const ServerConfig& config);
+    const RouteConfig* findMatchingRoute(const std::string& uri, const ServerConfig& config);
     
 public:
     HttpHandler(ServerManager* manager, int epoll_fd);

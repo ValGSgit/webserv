@@ -101,15 +101,58 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 15px;
+            transition: all 0.3s;
+        }
+        
+        .file-item:hover {
+            background: #e5e7eb;
+            transform: translateX(5px);
+        }
+        
+        .file-preview {
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            object-fit: cover;
+            border: 2px solid #e5e7eb;
+        }
+        
+        .file-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            background: #2563eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2em;
+            color: white;
+        }
+        
+        .file-info {
+            flex: 1;
         }
         
         .file-name {
             font-weight: 600;
+            margin-bottom: 5px;
+            word-break: break-all;
         }
         
         .file-size {
             color: #666;
             font-size: 0.9em;
+        }
+        
+        .file-type {
+            display: inline-block;
+            background: #10b981;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            margin-top: 5px;
         }
         
         .remove-btn {
@@ -177,6 +220,32 @@
             margin-bottom: 20px;
             display: none;
         }
+        
+        .upload-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-box {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #2563eb;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
@@ -188,6 +257,21 @@
             <p style="color: #666; margin-bottom: 20px;">
                 Upload files to the server (Max 100MB per file)
             </p>
+            
+            <div class="upload-stats">
+                <div class="stat-box">
+                    <div class="stat-number" id="fileCount">0</div>
+                    <div class="stat-label">Files Selected</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="totalSize">0 KB</div>
+                    <div class="stat-label">Total Size</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="uploadedCount">0</div>
+                    <div class="stat-label">Uploaded</div>
+                </div>
+            </div>
             
             <div id="successMessage" class="success-message"></div>
             <div id="errorMessage" class="error-message"></div>
@@ -279,24 +363,80 @@
         
         function displayFileList() {
             fileList.innerHTML = '';
+            let totalSize = 0;
+            
             selectedFiles.forEach((file, index) => {
+                totalSize += file.size;
                 const fileItem = document.createElement('div');
                 fileItem.className = 'file-item';
+                
+                // Check if file is an image
+                const isImage = file.type.startsWith('image/');
+                let previewHTML = '';
+                
+                if (isImage) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const img = fileItem.querySelector('.file-preview');
+                        if (img) img.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                    previewHTML = '<img class="file-preview" src="" alt="Preview">';
+                } else {
+                    const icon = getFileIcon(file.type);
+                    previewHTML = `<div class="file-icon">${icon}</div>`;
+                }
+                
                 fileItem.innerHTML = `
-                    <div>
+                    ${previewHTML}
+                    <div class="file-info">
                         <div class="file-name">📄 ${file.name}</div>
                         <div class="file-size">${formatFileSize(file.size)}</div>
+                        <span class="file-type">${getFileType(file.type)}</span>
                     </div>
                     <button class="remove-btn" onclick="removeFile(${index})">Remove</button>
                 `;
                 fileList.appendChild(fileItem);
             });
+            
+            document.getElementById('fileCount').textContent = selectedFiles.length;
+            document.getElementById('totalSize').textContent = formatFileSize(totalSize);
+        }
+        
+        function getFileIcon(mimeType) {
+            if (mimeType.startsWith('image/')) return '🖼️';
+            if (mimeType.startsWith('video/')) return '🎥';
+            if (mimeType.startsWith('audio/')) return '🎵';
+            if (mimeType.includes('pdf')) return '📕';
+            if (mimeType.includes('zip') || mimeType.includes('rar')) return '📦';
+            if (mimeType.includes('text')) return '📝';
+            return '📄';
+        }
+        
+        function getFileType(mimeType) {
+            if (!mimeType) return 'Unknown';
+            const types = {
+                'image/': 'Image',
+                'video/': 'Video',
+                'audio/': 'Audio',
+                'application/pdf': 'PDF',
+                'application/zip': 'Archive',
+                'text/': 'Text'
+            };
+            for (let [key, value] of Object.entries(types)) {
+                if (mimeType.includes(key)) return value;
+            }
+            return mimeType.split('/')[0];
         }
         
         function removeFile(index) {
             selectedFiles.splice(index, 1);
             displayFileList();
             uploadBtn.disabled = selectedFiles.length === 0;
+            if (selectedFiles.length === 0) {
+                document.getElementById('fileCount').textContent = '0';
+                document.getElementById('totalSize').textContent = '0 KB';
+            }
         }
         
         function formatFileSize(bytes) {
@@ -336,9 +476,15 @@
                 
                 successMessage.textContent = `✓ Successfully uploaded ${selectedFiles.length} file(s)!`;
                 successMessage.style.display = 'block';
+                
+                const uploadedSoFar = parseInt(document.getElementById('uploadedCount').textContent) || 0;
+                document.getElementById('uploadedCount').textContent = uploadedSoFar + selectedFiles.length;
+                
                 selectedFiles = [];
                 fileList.innerHTML = '';
                 fileInput.value = '';
+                document.getElementById('fileCount').textContent = '0';
+                document.getElementById('totalSize').textContent = '0 KB';
                 
                 setTimeout(() => {
                     progressBar.style.display = 'none';

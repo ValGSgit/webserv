@@ -281,8 +281,32 @@ size_t ConfigParser::parseLocationBlock(const std::vector<std::string>& lines, s
             }
         }
         else if (Utils::equalsIgnoreCase(directive, "return")) {
+            // Format: return <status_code> <uri>;
+            // Example: return 301 /new-location;
             if (tokens.size() >= 3) {
-                route.redirect_url = tokens[2];
+                // Parse status code
+                std::string status_str = tokens[1];
+                int status_code = Utils::toInt(status_str);
+                
+                // Validate it's a redirect status code (3xx)
+                if (status_code >= 300 && status_code < 400) {
+                    route.redirect_code = status_code;
+                    
+                    // Parse redirect URL (could be relative or absolute)
+                    route.redirect_url = tokens[2];
+                    
+                    // Remove trailing semicolon if present
+                    if (!route.redirect_url.empty() && route.redirect_url[route.redirect_url.length() - 1] == ';') {
+                        route.redirect_url = route.redirect_url.substr(0, route.redirect_url.length() - 1);
+                    }
+                } else {
+                    std::cerr << "Warning: Invalid redirect status code " << status_code 
+                              << " (must be 3xx). Ignoring return directive." << std::endl;
+                }
+            } else if (tokens.size() == 2) {
+                // Old format compatibility: return <uri>; (default to 301)
+                route.redirect_code = 301;
+                route.redirect_url = tokens[1];
                 if (!route.redirect_url.empty() && route.redirect_url[route.redirect_url.length() - 1] == ';') {
                     route.redirect_url = route.redirect_url.substr(0, route.redirect_url.length() - 1);
                 }

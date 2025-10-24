@@ -24,36 +24,6 @@ const ServerConfig* HttpHandler::findServerForClient(int client_fd) {
     return _server_manager->findServerConfig(client->server_port);
 }
 
-// bool HttpHandler::methodAllowed(const std::string& uri, const std::string& method, const ServerConfig& config) {
-//     try {
-//         std::string temp = uri.substr(0, uri.find_last_of('/'));
-//         //really like this?
-//         if (method == "DELETE")
-//         {
-//             if (temp == "")
-//                 temp += "/";
-//             const RouteConfig& route = config.routes.at(temp);
-//             for (size_t i = 0; i < route.allowed_methods.size(); ++i) {
-//                 if (method == route.allowed_methods[i])
-//                     return true;
-//             }
-//         }
-//         else
-//         {
-//             const RouteConfig& route = config.routes.at(uri);
-//             for (size_t i = 0; i < route.allowed_methods.size(); ++i) {
-//                 if (method == route.allowed_methods[i])
-//                     return true;
-//             }
-//         }
-//     } catch(const std::exception& e) {
-//         // Route not found - allow GET by default
-//         if (method == "GET")
-//             return true;
-//     }
-//     return false;
-// }
-
 bool HttpHandler::methodAllowed(const std::string& uri, const std::string& method, const ServerConfig& config) {
     // Try to find the most specific matching route
     std::string route_path = uri;
@@ -94,6 +64,34 @@ bool HttpHandler::methodAllowed(const std::string& uri, const std::string& metho
         }
     }
 }
+
+// Find the most specific matching route for a URI
+const RouteConfig* HttpHandler::findMatchingRoute(const std::string& uri, const ServerConfig& config) {
+    std::string route_path = uri;
+    
+    // Keep going up the directory tree until we find a matching route
+    while (true) {
+        std::map<std::string, RouteConfig>::const_iterator it = config.routes.find(route_path);
+        if (it != config.routes.end()) {
+            return &(it->second);  // Found matching route
+        }
+        
+        // Route not found, try parent directory
+        if (route_path == "/") {
+            return NULL;  // No matching route found
+        }
+        
+        // Remove last path segment and try again
+        size_t last_slash = route_path.find_last_of('/');
+        if (last_slash == 0) {
+            route_path = "/";  // Parent is root
+        } else if (last_slash != std::string::npos) {
+            route_path = route_path.substr(0, last_slash);
+        } else {
+            return NULL;  // No slash found
+        }
+    }
+}
     
 void HttpHandler::processRequest(int client_fd, int server_port) {
     HttpRequest& request = _client_requests[client_fd];
@@ -110,46 +108,63 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
     std::cout << "Processing " << request.methodToString() << " " << request.getUri() << std::endl;
     
     std::string uri = request.getUri();
+    
     // Check for client request errors
     if (request.getStatus()) {
         response = HttpResponse::errorResponse(request.getStatus());
     }
-    // Check if method is allowed
-    else if (!methodAllowed(uri, request.methodToString(), *config)) {
-        response = HttpResponse::errorResponse(HTTP_METHOD_NOT_ALLOWED);}
-    // upload
-    else if (request.getMethod() == METHOD_POST) {
-        response = handleUpload(request, *config, client_fd);}
-    // delete
-    else if (request.getMethod() == METHOD_DELETE) {
-        response = handleDelete(request, *config, client_fd);}
-    // Route handling
-    else if (uri == "/") {
-        std::string index_path = config->root + "/" + config->index;
-        response = HttpResponse::fileResponse(index_path);
-    } else if (uri.find("/cgi-bin/") == 0) {
-        CgiHandler cgi;
-        std::string script_path = config->root + uri;
-        response = cgi.executeCgi(request, script_path);
-    } else if (uri == "/api/test") {
-        response = handleJsonApi(request);
-    } else if (uri == "/redirect") {
-        response = HttpResponse::redirectResponse("http://localhost:" + 
-                                                  Utils::toString(server_port) + "/");
-    } else if (uri.find("/static/") == 0) {
-        std::string filepath = config->root + uri;
-        response = HttpResponse::fileResponse(filepath);
-    } else {
-        // Try to serve as file or directory
-        std::string filepath = config->root + uri;
-        if (Utils::fileExists(filepath)) {
-            if (Utils::isDirectory(filepath)) {
-                response = HttpResponse::directoryListingResponse(filepath, uri);
-            } else {
-                response = HttpResponse::fileResponse(filepath);
+    // Check for configured redirects in routes FIRST
+    else {
+        const RouteConfig* route = findMatchingRoute(uri, *config);
+        if (route && !route->redirect_url.empty() && route->redirect_code > 0) {
+            // This route has a redirect configured
+            std::string redirect_location = route->redirect_url;
+            
+            // If redirect URL is relative and doesn't start with http/https, make it absolute
+            if (redirect_location.find("http://") != 0 && redirect_location.find("https://") != 0) {
+                // For relative URLs, you might want to construct full URL
+                // For now, we'll just use the redirect_url as-is (works for relative redirects)
             }
+            
+            response = HttpResponse::redirectResponse(redirect_location, route->redirect_code);
+        }
+        // Check if method is allowed
+        else if (!methodAllowed(uri, request.methodToString(), *config)) {
+            response = HttpResponse::errorResponse(HTTP_METHOD_NOT_ALLOWED);
+        }
+        // upload
+        else if (request.getMethod() == METHOD_POST) {
+            response = handleUpload(request, *config, client_fd);
+        }
+        // delete
+        else if (request.getMethod() == METHOD_DELETE) {
+            response = handleDelete(request, *config, client_fd);
+        }
+        // Route handling
+        else if (uri == "/") {
+            std::string index_path = config->root + "/" + config->index;
+            response = HttpResponse::fileResponse(index_path);
+        } else if (uri.find("/cgi-bin/") == 0) {
+            CgiHandler cgi;
+            std::string script_path = config->root + uri;
+            response = cgi.executeCgi(request, script_path);
+        } else if (uri == "/api/test") {
+            response = handleJsonApi(request);
+        } else if (uri.find("/static/") == 0) {
+            std::string filepath = config->root + uri;
+            response = HttpResponse::fileResponse(filepath);
         } else {
-            response = HttpResponse::errorResponse(HTTP_NOT_FOUND);
+            // Try to serve as file or directory
+            std::string filepath = config->root + uri;
+            if (Utils::fileExists(filepath)) {
+                if (Utils::isDirectory(filepath)) {
+                    response = HttpResponse::directoryListingResponse(filepath, uri);
+                } else {
+                    response = HttpResponse::fileResponse(filepath);
+                }
+            } else {
+                response = HttpResponse::errorResponse(HTTP_NOT_FOUND);
+            }
         }
     }
     
@@ -244,7 +259,7 @@ HttpResponse HttpHandler::handleUpload(const HttpRequest& request, const ServerC
     // save file info
     _file_info = temp.substr(0, needle);
     //std::cout << _file_info;
-    // needle is the staring index of the file
+    // needle is the starting index of the file
     needle += 4;
     _raw_bytes_read -= needle;
     // save also file info?

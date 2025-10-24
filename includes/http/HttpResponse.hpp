@@ -42,7 +42,7 @@ class HttpResponse {
         static HttpResponse messageResponse(int status, const std::string& title = "", const std::string& message = "");
         static HttpResponse fileResponse(const std::string& filepath);
         static HttpResponse directoryListingResponse(const std::string& path, const std::string& uri);
-        static HttpResponse redirectResponse(const std::string& location);
+        static HttpResponse redirectResponse(const std::string& location, int status_code = HTTP_MOVED_PERMANENTLY);
 };
 
 #endif

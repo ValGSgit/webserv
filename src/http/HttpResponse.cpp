@@ -163,9 +163,9 @@ HttpResponse HttpResponse::directoryListingResponse(const std::string& path, con
     return response;
 }
 
-HttpResponse HttpResponse::redirectResponse(const std::string& location) {
+HttpResponse HttpResponse::redirectResponse(const std::string& location, int status_code) {
     HttpResponse response;
-    response.setStatus(HTTP_MOVED_PERMANENTLY);
+    response.setStatus(status_code);
     response.setHeader("Location", location);
     response.setBody("");
     return response;

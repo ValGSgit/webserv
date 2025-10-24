@@ -28,6 +28,23 @@ HttpResponse CgiHandler::executeCgi(const HttpRequest& request, const std::strin
         return HttpResponse::errorResponse(HTTP_INTERNAL_SERVER_ERROR);
     }
     
+    // Setup environment BEFORE forking
+    setupEnvironment(request, script_path);
+    
+    // Convert environment map to array for execve
+    std::vector<std::string> env_strings;
+    std::vector<char*> env_array;
+    
+    for (std::map<std::string, std::string>::const_iterator it = _env.begin();
+         it != _env.end(); ++it) {
+        env_strings.push_back(it->first + "=" + it->second);
+    }
+    
+    for (size_t i = 0; i < env_strings.size(); ++i) {
+        env_array.push_back(const_cast<char*>(env_strings[i].c_str()));
+    }
+    env_array.push_back(NULL);
+    
     // Fork process
     pid_t pid = fork();
     if (pid == -1) {
@@ -49,21 +66,17 @@ HttpResponse CgiHandler::executeCgi(const HttpRequest& request, const std::strin
         close(stdin_pipe[0]);
         close(stdout_pipe[1]);
         
-        // Setup environment
-        setupEnvironment(request, script_path);
-        
-        // Execute CGI script
+        // Execute CGI script with environment
         const char* args[] = {cgi_executable.c_str(), script_path.c_str(), NULL};
-        execve(cgi_executable.c_str(), const_cast<char* const*>(args), NULL);
+        execve(cgi_executable.c_str(), const_cast<char* const*>(args), &env_array[0]);
         
         // If we get here, exec failed
         perror("execve");
         exit(1);
     }
-    
-    // Parent process
-    close(stdin_pipe[0]);   // Close read end of stdin pipe
-    close(stdout_pipe[1]);  // Close write end of stdout pipe
+
+    close(stdin_pipe[0]); 
+    close(stdout_pipe[1]);
     
     // Write request body to CGI stdin
     const std::string& body = request.getBody();
@@ -136,6 +149,7 @@ void CgiHandler::setupEnvironment(const HttpRequest& request, const std::string&
     _env["PATH_INFO"] = "";
     _env["PATH_TRANSLATED"] = "";
     _env["DOCUMENT_ROOT"] = "./www";
+    _env["REDIRECT_STATUS"] = "200";  // Required for PHP CGI
     
     // Content related
     std::string content_type = request.getHeader("Content-Type");
@@ -163,22 +177,13 @@ void CgiHandler::setupEnvironment(const HttpRequest& request, const std::string&
         }
         _env[env_name] = it->second;
     }
-    
-    // NOTE: setenv is not in allowed functions list
-    // Environment variables would need to be passed differently to CGI
-    // For now, we'll comment this out and would need to implement
-    // a different approach for CGI environment variable passing
-    
-    // Set environment variables (DISABLED - setenv not allowed)
-    // for (std::map<std::string, std::string>::const_iterator it = _env.begin();
-    //      it != _env.end(); ++it) {
-    //     setenv(it->first.c_str(), it->second.c_str(), 1);
-    // }
 }
 
 std::string CgiHandler::findCgiExecutable(const std::string& extension) {
     if (extension == ".php") {
+        if (Utils::fileExists("/usr/bin/php-cgi")) return "/usr/bin/php-cgi";
         if (Utils::fileExists("/usr/bin/php")) return "/usr/bin/php";
+        if (Utils::fileExists("/usr/local/bin/php-cgi")) return "/usr/local/bin/php-cgi";
         if (Utils::fileExists("/usr/local/bin/php")) return "/usr/local/bin/php";
     } else if (extension == ".py") {
         if (Utils::fileExists("/usr/bin/python3")) return "/usr/bin/python3";
@@ -190,6 +195,9 @@ std::string CgiHandler::findCgiExecutable(const std::string& extension) {
     } else if (extension == ".rb") {
         if (Utils::fileExists("/usr/bin/ruby")) return "/usr/bin/ruby";
         if (Utils::fileExists("/usr/local/bin/ruby")) return "/usr/local/bin/ruby";
+    } else if (extension == ".sh") {
+        if (Utils::fileExists("/bin/bash")) return "/bin/bash";
+        if (Utils::fileExists("/usr/bin/bash")) return "/usr/bin/bash";
     }
     
     return "";
