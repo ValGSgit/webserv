@@ -104,13 +104,16 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
         _response_offsets[client_fd] = 0;
         return;
     }
-        
+
     std::cout << "Processing " << request.methodToString() << " " << request.getUri() << std::endl;
     
     std::string uri = request.getUri();
     
+    // check max body size
+    if (request.getContentLength() > config->max_body_size)
+        response = HttpResponse::errorResponse(HTTP_PAYLOAD_TOO_LARGE);
     // Check for client request errors
-    if (request.getStatus()) {
+    else if (request.getStatus()) {
         response = HttpResponse::errorResponse(request.getStatus());
     }
     // Check for configured redirects in routes FIRST
@@ -234,14 +237,11 @@ HttpResponse HttpHandler::handleUpload(const HttpRequest& request, const ServerC
     // Find upload path from config
     try
     {
-        const RouteConfig &route = config.routes.at("/upload"); //at not allowed
+        const RouteConfig &route = config.routes.at("/upload");
         if (route.upload_path != "")
             upload_dir = route.upload_path + "/";
     }
-    catch(const std::exception& e)
-    {
-        //std::cerr << "route not found!" << '\n';
-    }
+    catch(const std::exception& e){}
     // use temp string to find things
     std::string temp = _raw_buffer;
     // Simple upload handling - save to uploads directory
@@ -254,11 +254,12 @@ HttpResponse HttpHandler::handleUpload(const HttpRequest& request, const ServerC
     std::string filepath = upload_dir + filename;
     // if file already exist, add suffix
     if (Utils::fileExists(filepath))
-        filepath += "_copy";
+        filepath = filepath + "_copy_" + Utils::toString(static_cast<int>(time(NULL)));
     // find boundary
     needle = temp.find("boundary=");
     std::string boundary;
     std::string boundary_end;
+    // if boundary is found
     if (needle != std::string::npos)
     {
         boundary = "\r\n--" + temp.substr(needle + 9, temp.find_first_of("\r\n", needle + 9) - needle - 9);
@@ -288,44 +289,20 @@ HttpResponse HttpHandler::handleUpload(const HttpRequest& request, const ServerC
         int bytes_read = 0;
         // if there are things left in fd, continue to read the body and write to file
         while ((bytes_read = read(client_fd, buffer, BUFFER_SIZE)) > 0) {
-            char *buffer_ptr = buffer;
-            needle = 0;
-            //get rid of the begin boundary for chrome
-            if (boundary != "" && check_boundary(buffer, boundary.c_str(), bytes_read))
-            {
-                if (_raw_bytes_read == 0)
-                {
-                    temp = buffer;
-                    //remove empty file and update file name
-                    std::remove(filepath.c_str());
-                    needle = temp.find("filename=");
-                    if (needle != std::string::npos)
-                        filename = temp.substr(needle + 10, temp.find_first_of("\"", needle + 10) - needle - 10);
-                    else
-                        filename = "uploaded_file_" + Utils::toString(static_cast<int>(time(NULL)));
-                    filepath = upload_dir + filename;
-                    // if file already exist, add suffix
-                    if (Utils::fileExists(filepath))
-                        filepath += "_copy";
-                }
-                temp = buffer;
-                needle = temp.find("\r\n\r\n");
-                needle += 4;
-                buffer_ptr = &buffer[needle];
-            }
             //get rid of the end boundary
             if (boundary != "" && check_boundary(buffer, boundary_end.c_str(), bytes_read))
-                bytes_read = check_boundary(buffer, boundary_end.c_str(), bytes_read) - needle;
-            if (!Utils::writeFile(filepath, buffer_ptr, bytes_read))
+                bytes_read = check_boundary(buffer, boundary_end.c_str(), bytes_read);
+            if (!Utils::writeFile(filepath, buffer, bytes_read))
                 return HttpResponse::errorResponse(HTTP_INTERNAL_SERVER_ERROR, "Failed to save file");
             total_bytes_read += bytes_read;
             
-            if (total_bytes_read > config.max_body_size)
+            // open it to handle individual file size limit
+/*             if (total_bytes_read > MAX_FILE_SIZE) // 10MB default
             {
                 // delete the file!
                 std::remove(filepath.c_str());
                 return HttpResponse::errorResponse(HTTP_PAYLOAD_TOO_LARGE, "File is too big");
-            }
+            } */
         }
         if (total_bytes_read == 0)
         {
@@ -338,7 +315,7 @@ HttpResponse HttpHandler::handleUpload(const HttpRequest& request, const ServerC
         return HttpResponse::errorResponse(HTTP_INTERNAL_SERVER_ERROR, "Failed to save file");
     }
 }
-    
+
 HttpResponse HttpHandler::handleJsonApi(const HttpRequest& request) {
     std::cout << "Handling JSON API request" << std::endl;
     
