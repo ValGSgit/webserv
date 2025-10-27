@@ -43,7 +43,6 @@ const std::string& HttpResponse::getResponseString() {
 void HttpResponse::reset() {
     _status = HTTP_OK;
     _headers.clear();
-    _set_cookie_headers.clear();
     _body.clear();
     _response_string.clear();
     _headers_sent = false;
@@ -75,63 +74,18 @@ void HttpResponse::setContentLength(size_t length) {
     _headers["Content-Length"] = Utils::toString(length);
 }
 
-/**
- * Sets a cookie in the HTTP response
- * Creates a Set-Cookie header with the specified parameters
- *
- * @param name Cookie name
- * @param value Cookie value
- * @param max_age Expiration time in seconds (-1 for session cookie)
- * @param path Cookie path (default: "/")
- * @param http_only If true, cookie is not accessible via JavaScript
- * @param secure If true, cookie only sent over HTTPS
- */
-void HttpResponse::setCookie(const std::string& name, const std::string& value,
-                              int max_age, const std::string& path,
-                              bool http_only, bool secure) {
-    std::string cookie = name + "=" + value;
-    cookie += "; Path=" + path;
-
-    if (max_age >= 0) {
-        cookie += "; Max-Age=" + Utils::toString(max_age);
-    }
-    if (http_only) {
-        cookie += "; HttpOnly";
-    }
-    if (secure) {
-        cookie += "; Secure";
-    }
-
-    _set_cookie_headers.push_back(cookie);
-}
-
-/**
- * Clears a cookie by setting it with Max-Age=0
- * This tells the browser to delete the cookie
- *
- * @param name Cookie name to clear
- */
-void HttpResponse::clearCookie(const std::string& name) {
-    setCookie(name, "", 0);
-}
-
 std::string HttpResponse::statusToString(int status) {
     return Utils::toString((int)status) + " " + Utils::getStatusMessage((int)status);
 }
 
 void HttpResponse::buildResponseString() {
     _response_string = "HTTP/1.1 " + statusToString(_status) + "\r\n";
-
+    
     for (std::map<std::string, std::string>::const_iterator it = _headers.begin();
          it != _headers.end(); ++it) {
         _response_string += it->first + ": " + it->second + "\r\n";
     }
-
-    // Add all Set-Cookie headers (multiple are allowed)
-    for (size_t i = 0; i < _set_cookie_headers.size(); ++i) {
-        _response_string += "Set-Cookie: " + _set_cookie_headers[i] + "\r\n";
-    }
-
+    
     _response_string += "\r\n" + _body;
 }
 

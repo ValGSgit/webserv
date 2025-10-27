@@ -213,11 +213,10 @@ void ServerManager::run() {
         time_t now = time(NULL);
         if (now - _last_cleanup >= CLEANUP_INTERVAL) {
             cleanupTimeouts();
-            _session_manager.cleanExpiredSessions();
             _last_cleanup = now;
         }
     }
-
+    
     std::cout << "\n🛑 Server shutting down..." << std::endl;
 }
 

@@ -4,7 +4,6 @@
 #include "../webserv.hpp"
 #include "../config/ConfigParser.hpp"
 #include "../http/HttpHandler.hpp"
-#include "../utils/SessionManager.hpp"
 #include <sys/epoll.h>
 
 // Forward declaration
@@ -22,14 +21,11 @@ private:
     
     // Client tracking
     std::map<int, ClientConnection> _clients;
-
-    // Session management
-    SessionManager _session_manager;
-
+    
     // State
     volatile bool _running;
     time_t _last_cleanup;
-
+    
     // HTTP handler
     HttpHandler* _http_handler;
     
@@ -64,8 +60,7 @@ public:
     int getEpollFd() const { return _epoll_fd; }
     const std::vector<ServerSocket>& getServerSockets() const { return _server_sockets; }
     const ServerConfig* findServerConfig(int port) const;
-    SessionManager* getSessionManager() { return &_session_manager; }
-
+    
     // Client management (called by HttpHandler)
     void closeClient(int client_fd);
     ClientConnection* getClient(int client_fd);
