@@ -15,7 +15,6 @@ bool HttpRequest::parseRequest(const std::string& data) {
     //size_t body_start = 0;
     size_t header_size = 0;
     
-    //std::cout << data;
     for (size_t i = 0; i < lines.size(); ++i) {
         const std::string& line = lines[i];
         
@@ -84,8 +83,9 @@ void HttpRequest::parseRequestLine(const std::string& line) {
         else
             parseUri(_uri);
     }
-    else
-        _status = HTTP_BAD_REQUEST;
+    // to avoid throwing error too early if the header is only partly sent, eg. (printf "GE" ; sleep 30 ; printf "T / HTTP/1.0\r\n\r\n") | nc localhost 8080
+/*     else
+        _status = HTTP_BAD_REQUEST; */
 }
 
 void HttpRequest::parseHeader(const std::string& line) {

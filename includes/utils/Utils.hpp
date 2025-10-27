@@ -2,6 +2,7 @@
 #define UTILS_HPP
 
 #include "../webserv.hpp"
+#include "SessionManager.hpp"
 
 class Utils {
     public:
