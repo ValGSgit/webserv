@@ -85,39 +85,73 @@ HttpResponse CgiHandler::executeCgi(const HttpRequest& request, const std::strin
     }
     close(stdin_pipe[1]);
     
-    // Read CGI output
+    // Read CGI output using epoll for timeout handling
     std::string output;
     char buffer[BUFFER_SIZE];
     ssize_t bytes_read;
     
-    // Set timeout for reading
-    fd_set readfds;
-    struct timeval timeout;
-    timeout.tv_sec = _timeout;
-    timeout.tv_usec = 0;
+    // Create epoll instance for CGI pipe
+    int epoll_fd = epoll_create1(0);
+    if (epoll_fd == -1) {
+        perror("epoll_create1");
+        close(stdout_pipe[0]);
+        kill(pid, SIGTERM);
+        waitpid(pid, NULL, 0);
+        return HttpResponse::errorResponse(HTTP_INTERNAL_SERVER_ERROR);
+    }
     
+    // Add stdout pipe to epoll
+    struct epoll_event ev;
+    memset(&ev, 0, sizeof(ev));
+    ev.events = EPOLLIN;
+    ev.data.fd = stdout_pipe[0];
+    
+    if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, stdout_pipe[0], &ev) == -1) {
+        perror("epoll_ctl");
+        close(epoll_fd);
+        close(stdout_pipe[0]);
+        kill(pid, SIGTERM);
+        waitpid(pid, NULL, 0);
+        return HttpResponse::errorResponse(HTTP_INTERNAL_SERVER_ERROR);
+    }
+    
+    // Read with timeout using epoll_wait
+    time_t start_time = time(NULL);
     while (true) {
-        FD_ZERO(&readfds);
-        FD_SET(stdout_pipe[0], &readfds);
+        // Calculate remaining timeout
+        time_t elapsed = time(NULL) - start_time;
+        int timeout_ms = (_timeout - elapsed) * 1000;
         
-        int select_result = select(stdout_pipe[0] + 1, &readfds, NULL, NULL, &timeout);
-        
-        if (select_result == -1) {
-            perror("select");
-            break;
-        } else if (select_result == 0) {
-            // Timeout
+        if (timeout_ms <= 0) {
+            // Timeout exceeded
+            std::cerr << "CGI timeout: script took longer than " << _timeout << " seconds" << std::endl;
             kill(pid, SIGTERM);
             break;
         }
         
+        struct epoll_event events[1];
+        int nfds = epoll_wait(epoll_fd, events, 1, timeout_ms);
+        
+        if (nfds == -1) {
+            if (errno == EINTR) continue;  // Interrupted by signal, retry
+            perror("epoll_wait");
+            break;
+        } else if (nfds == 0) {
+            // Timeout
+            std::cerr << "CGI timeout: no data received within " << _timeout << " seconds" << std::endl;
+            kill(pid, SIGTERM);
+            break;
+        }
+        
+        // Data available to read
         bytes_read = read(stdout_pipe[0], buffer, sizeof(buffer) - 1);
-        if (bytes_read <= 0) break;
+        if (bytes_read <= 0) break;  // EOF or error
         
         buffer[bytes_read] = '\0';
         output += std::string(buffer, bytes_read);
     }
     
+    close(epoll_fd);
     close(stdout_pipe[0]);
     
     // Wait for child process
@@ -135,16 +169,16 @@ void CgiHandler::setupEnvironment(const HttpRequest& request, const std::string&
     // Clear environment
     _env.clear();
     
-    // CGI environment variables
+    // CGI environment variables - SECURITY FIX: Sanitize all user inputs
     _env["REQUEST_METHOD"] = request.methodToString();
-    _env["REQUEST_URI"] = request.getUri();
-    _env["QUERY_STRING"] = request.getQueryString();
+    _env["REQUEST_URI"] = Utils::sanitizeForShell(request.getUri());
+    _env["QUERY_STRING"] = Utils::sanitizeForShell(request.getQueryString());
     _env["SERVER_NAME"] = "localhost";
     _env["SERVER_PORT"] = "8080";
     _env["SERVER_PROTOCOL"] = "HTTP/1.1";
     _env["SERVER_SOFTWARE"] = "WebServ/1.0";
     _env["GATEWAY_INTERFACE"] = "CGI/1.1";
-    _env["SCRIPT_NAME"] = request.getUri();
+    _env["SCRIPT_NAME"] = Utils::sanitizeForShell(request.getUri());
     _env["SCRIPT_FILENAME"] = script_path;
     _env["PATH_INFO"] = "";
     _env["PATH_TRANSLATED"] = "";
@@ -156,15 +190,16 @@ void CgiHandler::setupEnvironment(const HttpRequest& request, const std::string&
     std::string content_length = request.getHeader("Content-Length");
     
     if (!content_type.empty()) {
-        _env["CONTENT_TYPE"] = content_type;
+        _env["CONTENT_TYPE"] = Utils::sanitizeForShell(content_type);
     }
     if (!content_length.empty()) {
-        _env["CONTENT_LENGTH"] = content_length;
+        _env["CONTENT_LENGTH"] = Utils::sanitizeForShell(content_length);
     } else {
         _env["CONTENT_LENGTH"] = Utils::toString(request.getBody().length());
     }
     
     // HTTP headers (convert to HTTP_HEADER_NAME format)
+    // SECURITY FIX: Sanitize all header values to prevent injection
     const std::map<std::string, std::string>& headers = request.getHeaders();
     for (std::map<std::string, std::string>::const_iterator it = headers.begin();
          it != headers.end(); ++it) {
@@ -175,7 +210,7 @@ void CgiHandler::setupEnvironment(const HttpRequest& request, const std::string&
                 env_name[i] = '_';
             }
         }
-        _env[env_name] = it->second;
+        _env[env_name] = Utils::sanitizeForShell(it->second);
     }
 }
 

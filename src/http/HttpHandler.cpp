@@ -251,6 +251,20 @@ HttpResponse HttpHandler::handleUpload(const HttpRequest& request, const ServerC
         filename = temp.substr(needle + 10, temp.find_first_of("\"", needle + 10) - needle - 10);
     else
         filename = "uploaded_file_" + Utils::toString(static_cast<int>(time(NULL)));
+    
+    // SECURITY FIX: Sanitize filename to prevent path traversal
+    filename = Utils::sanitizeFilename(filename);
+    
+    // SECURITY FIX: Check if filename has safe path (no .., /, etc.)
+    if (!Utils::isSafePath(filename)) {
+        return HttpResponse::errorResponse(HTTP_FORBIDDEN, "Invalid filename");
+    }
+    
+    // SECURITY FIX: Validate file extension
+    if (!Utils::isAllowedUploadExtension(filename)) {
+        return HttpResponse::errorResponse(HTTP_FORBIDDEN, "File type not allowed");
+    }
+    
     std::string filepath = upload_dir + filename;
     // if file already exist, add suffix
     if (Utils::fileExists(filepath))

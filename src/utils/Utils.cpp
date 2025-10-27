@@ -1084,3 +1084,131 @@ std::string Utils::reconstructUri(const UriComponents& components) {
 bool Utils::isValidPort(int port) {
     return port > 0 && port <= 65535;
 }
+
+// Security utility functions
+std::string Utils::sanitizeFilename(const std::string& filename) {
+    std::string result;
+    
+    // Remove path components - only keep the actual filename
+    size_t last_slash = filename.find_last_of("/\\");
+    std::string clean_name;
+    if (last_slash != std::string::npos) {
+        clean_name = filename.substr(last_slash + 1);
+    } else {
+        clean_name = filename;
+    }
+    
+    // Remove dangerous characters and sequences
+    for (size_t i = 0; i < clean_name.length(); ++i) {
+        char c = clean_name[i];
+        
+        // Skip null bytes
+        if (c == '\0') continue;
+        
+        // Skip path traversal attempts
+        if (c == '.' && i + 1 < clean_name.length() && clean_name[i + 1] == '.') {
+            ++i; // Skip both dots
+            continue;
+        }
+        
+        // Allow alphanumeric, dots, dashes, underscores
+        if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || 
+            (c >= '0' && c <= '9') || c == '.' || c == '-' || c == '_') {
+            result += c;
+        } else {
+            result += '_'; // Replace unsafe chars with underscore
+        }
+    }
+    
+    // Don't allow empty filename or just dots
+    if (result.empty() || result == "." || result == "..") {
+        result = "upload_file";
+    }
+    
+    return result;
+}
+
+bool Utils::isSafePath(const std::string& path) {
+    // Check for null bytes
+    if (path.find('\0') != std::string::npos) {
+        return false;
+    }
+    
+    // Check for path traversal attempts
+    if (path.find("..") != std::string::npos) {
+        return false;
+    }
+    
+    // Check for absolute paths (starting with /)
+    if (!path.empty() && path[0] == '/') {
+        return false;
+    }
+    
+    // Check for backslashes (Windows-style paths)
+    if (path.find('\\') != std::string::npos) {
+        return false;
+    }
+    
+    return true;
+}
+
+std::string Utils::sanitizeForShell(const std::string& input) {
+    std::string result;
+    
+    // List of dangerous shell metacharacters
+    const std::string dangerous = "&|;<>$`\n*?[]{}()!#'\"\\";
+    
+    for (size_t i = 0; i < input.length(); ++i) {
+        char c = input[i];
+        
+        // Skip null bytes
+        if (c == '\0') continue;
+        
+        // Skip control characters except space and tab
+        if (c < 32 && c != ' ' && c != '\t') continue;
+        
+        // Skip dangerous shell metacharacters
+        if (dangerous.find(c) != std::string::npos) {
+            continue;
+        }
+        
+        result += c;
+    }
+    
+    return result;
+}
+
+bool Utils::isValidHttpVersion(const std::string& version) {
+    return (version == "HTTP/1.0" || version == "HTTP/1.1");
+}
+
+bool Utils::containsLF(const std::string& input) {
+    return (input.find('\r') != std::string::npos || 
+            input.find('\n') != std::string::npos);
+}
+
+bool Utils::isAllowedUploadExtension(const std::string& filename) {
+    // Whitelist of safe file extensions
+    static const char* allowed[] = {
+        ".txt", ".pdf", ".jpg", ".jpeg", ".png", ".gif", ".bmp",
+        ".doc", ".docx", ".xls", ".xlsx", ".zip", ".tar", ".gz",
+        ".mp3", ".mp4", ".avi", ".mov", ".wav", ".css", ".json",
+        NULL
+    };
+    
+    std::string ext = getFileExtension(filename);
+    ext = toLowerCase(ext);
+    
+    // Empty extension is not allowed
+    if (ext.empty()) {
+        return false;
+    }
+    
+    for (int i = 0; allowed[i] != NULL; ++i) {
+        if (ext == allowed[i]) {
+            return true;
+        }
+    }
+    
+    return false;
+}

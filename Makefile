@@ -22,10 +22,34 @@ SRCFILES = main.cpp \
 SRCS = $(addprefix $(SRCDIR)/, $(SRCFILES))
 OBJS = $(SRCS:$(SRCDIR)/%.cpp=$(OBJDIR)/%.o)
 
+VALGRIND_FLAGS = --leak-check=full \
+                 --show-leak-kinds=all \
+                 --track-origins=yes \
+                 --track-fds=yes \
+                 --trace-children=yes \
+                 --show-reachable=yes \
+                 --error-limit=no \
+                 --keep-debuginfo=yes \
+                 --read-var-info=yes \
+                 --verbose
+
+# Extra flags for extreme checking
+VALGRIND_EXTREME_FLAGS = $(VALGRIND_FLAGS) \
+                         --expensive-definedness-checks=yes \
+                         --read-inline-info=yes \
+                         --malloc-fill=0x42 \
+                         --free-fill=0x69
+
 # Include flags
 INCLUDES = -I$(INCDIR)
 
 all: $(NAME)
+
+vg: $(NAME)
+	valgrind $(VALGRIND_FLAGS) ./$(NAME) webserv.conf > valgrind_log.txt
+
+vg_extreme: $(NAME)
+	valgrind $(VALGRIND_EXTREME_FLAGS) ./$(NAME) webserv.conf > valgrind_extreme_log.txt
 
 %.d:
 
@@ -57,4 +81,6 @@ $(OBJDIR)/testmain.o: $(SRCDIR)/testmain.cpp
 	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
+#
 .PHONY: all clean fclean re test test_config test_config_parser
+

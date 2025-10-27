@@ -50,12 +50,20 @@ void HttpResponse::reset() {
 }
 
 void HttpResponse::setDefaultHeaders() {
-    _headers["Server"] = "WebServ/1.0"; // 1.1?
-    std::time_t time = std::time(NULL); // or just implement a member function for future use?
+    // SECURITY FIX: Remove version information from Server header
+    _headers["Server"] = "WebServ";
+    
+    std::time_t time = std::time(NULL);
     char buffer[30];
-    std::strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S", std::localtime(&time)); // GMT + 2 for Vienna time?
+    std::strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S", std::localtime(&time));
     _headers["Date"] = buffer;
     _headers["Connection"] = "close";
+    
+    // SECURITY FIX: Added security headers for browser protection
+    _headers["X-Content-Type-Options"] = "nosniff";
+    _headers["X-Frame-Options"] = "DENY";
+    _headers["X-XSS-Protection"] = "1; mode=block";
+    _headers["Referrer-Policy"] = "no-referrer";
 }
 
 void HttpResponse::setContentType(const std::string& content_type) {

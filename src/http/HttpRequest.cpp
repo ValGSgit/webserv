@@ -63,6 +63,13 @@ void HttpRequest::parseRequestLine(const std::string& line) {
         _method = stringToMethod(tokens[0]);
         _uri = tokens[1];
         _version = tokens[2];
+        
+        // SECURITY FIX: Validate HTTP version
+        if (!Utils::isValidHttpVersion(_version)) {
+            _status = HTTP_BAD_REQUEST;
+            return;
+        }
+        
         if (_uri.size() > MAX_URI) // need to include domain name?
             _status = HTTP_URI_TOO_LONG;
         else if (_method == METHOD_UNKNOWN)
@@ -79,9 +86,27 @@ void HttpRequest::parseHeader(const std::string& line) {
     if (colon_pos != std::string::npos) {
         std::string key = Utils::trim(line.substr(0, colon_pos));
         std::string value = Utils::trim(line.substr(colon_pos + 1));
-        _headers[Utils::toLowerCase(key)] = value;
         
-        if (Utils::toLowerCase(key) == "content-length") {
+        // SECURITY FIX: Check for injection in header values
+        if (Utils::containsLF(value) || Utils::containsLF(key)) {
+            _status = HTTP_BAD_REQUEST;
+            return;
+        }
+        
+        std::string key_lower = Utils::toLowerCase(key);
+        
+        // SECURITY FIX: Detect duplicate Content-Length headers
+        if (key_lower == "content-length" || key_lower == "transfer-encoding" || key_lower == "host") {
+            if (_headers.find(key_lower) != _headers.end()) {
+                // Duplicate critical header
+                _status = HTTP_BAD_REQUEST;
+                return;
+            }
+        }
+        
+        _headers[key_lower] = value;
+        
+        if (key_lower == "content-length") {
             _content_length = Utils::toSizeT(value);
         }
     }
