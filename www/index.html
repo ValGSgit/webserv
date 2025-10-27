@@ -88,10 +88,211 @@
             transition: all 0.3s;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         }
-        
+
         .theme-toggle:hover {
             transform: scale(1.1) rotate(180deg);
             background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Login Button */
+        .login-btn {
+            position: fixed;
+            top: 20px;
+            right: 100px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            color: white;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .login-btn.logged-in {
+            background: rgba(16, 185, 129, 0.3);
+        }
+
+        /* Login Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            position: relative;
+            animation: slideUp 0.3s;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: transparent;
+            border: none;
+            font-size: 2em;
+            cursor: pointer;
+            color: #666;
+            transition: color 0.3s;
+        }
+
+        .modal-close:hover {
+            color: #ef4444;
+        }
+
+        .modal h2 {
+            color: #1f2937;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .user-info {
+            background: #f3f4f6;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .user-info-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            color: #374151;
+        }
+
+        .user-info-label {
+            font-weight: 600;
+        }
+
+        .modal-btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+
+        .modal-btn.primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .modal-btn.primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .modal-btn.secondary {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        .modal-btn.secondary:hover {
+            background: #d1d5db;
+        }
+
+        .modal-btn.danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .modal-btn.danger:hover {
+            background: #dc2626;
+        }
+
+        #usernameInput:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .status-message {
+            padding: 12px;
+            border-radius: 8px;
+            margin: 15px 0;
+            text-align: center;
+            font-weight: 500;
+            display: none;
+        }
+
+        .status-message.show {
+            display: block;
+        }
+
+        .status-message.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+
+        .status-message.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+
+        .session-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+            margin-right: 8px;
+            animation: pulse-dot 2s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
         
         
@@ -531,9 +732,77 @@
 <body>
     <div id="particles"></div>
     <button class="theme-toggle" onclick="toggleTheme()" title="Toggle Dark Mode">🌙</button>
+    <button class="login-btn" id="loginBtn" onclick="toggleLoginModal()" title="Login">🔐 Login</button>
     <button class="scroll-top" onclick="scrollToTop()" title="Scroll to top">↑</button>
-    
-    <div class="container"
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeLoginModal()">&times;</button>
+
+            <!-- Login View -->
+            <div id="loginView">
+                <h2>🔐 Login to WebServ</h2>
+                <p style="text-align: center; color: #666; margin-bottom: 20px;">
+                    Enter your username to create a session
+                </p>
+                <div id="loginStatus" class="status-message"></div>
+                <div style="margin: 20px 0;">
+                    <label for="usernameInput" style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">
+                        Username:
+                    </label>
+                    <input 
+                        type="text" 
+                        id="usernameInput" 
+                        placeholder="Enter your username" 
+                        style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1em; transition: border-color 0.3s;"
+                        maxlength="30"
+                        required
+                        onkeypress="if(event.key === 'Enter') performLogin()"
+                    />
+                    <small style="display: block; margin-top: 5px; color: #666;">Choose any username you like</small>
+                </div>
+                <button class="modal-btn primary" onclick="performLogin()">
+                    🔑 Create Session
+                </button>
+                <button class="modal-btn secondary" onclick="closeLoginModal()">
+                    Cancel
+                </button>
+            </div>
+
+            <!-- User Profile View -->
+            <div id="profileView" style="display: none;">
+                <h2>👤 User Profile</h2>
+                <div class="user-info">
+                    <div class="user-info-item">
+                        <span class="user-info-label">Username:</span>
+                        <span id="profileUsername">-</span>
+                    </div>
+                    <div class="user-info-item">
+                        <span class="user-info-label">Role:</span>
+                        <span id="profileRole">-</span>
+                    </div>
+                    <div class="user-info-item">
+                        <span class="user-info-label">Session ID:</span>
+                        <span id="profileSessionId" style="font-size: 0.85em; word-break: break-all;">-</span>
+                    </div>
+                    <div class="user-info-item">
+                        <span class="user-info-label">Status:</span>
+                        <span><span class="session-indicator"></span>Active</span>
+                    </div>
+                </div>
+                <div id="profileStatus" class="status-message"></div>
+                <button class="modal-btn primary" onclick="refreshProfile()">
+                    🔄 Refresh Profile
+                </button>
+                <button class="modal-btn danger" onclick="performLogout()">
+                    🚪 Logout
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
         <!-- Header -->
         <header>
             <h1>🚀 WebServ</h1>
@@ -597,6 +866,20 @@
                 <p>Monitor server performance and connection stats</p>
                 <a href="/status.html">View Status →</a>
             </div>
+
+            <div class="feature-card">
+                <div class="icon">🍪</div>
+                <h3>Cookie Management</h3>
+                <p>Learn and test HTTP cookies with interactive demos</p>
+                <a href="/cookies-demo.html">Explore Cookies →</a>
+            </div>
+
+            <div class="feature-card">
+                <div class="icon">🔐</div>
+                <h3>Session Demo</h3>
+                <p>Test session management with custom usernames and persistent login state across pages</p>
+                <a href="/session-demo.html">Try Sessions →</a>
+            </div>
         </div>        <!-- Server Stats -->
         <div class="stats">
             <h2>Server Capabilities</h2>
@@ -658,6 +941,12 @@
                 </a>
                 <a href="/games.html" class="link-item">
                     🎮 Browser Games <span class="arrow">→</span>
+                </a>
+                <a href="/cookies-demo.html" class="link-item">
+                    🍪 Cookie Manager <span class="arrow">→</span>
+                </a>
+                <a href="/session-demo.html" class="link-item">
+                    🔐 Session Demo <span class="arrow">→</span>
                 </a>
             </div>
         </div>
@@ -743,7 +1032,7 @@
         // Easter egg: Konami code
         let konamiCode = [];
         const konamiPattern = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
-        
+
         document.addEventListener('keydown', (e) => {
             konamiCode.push(e.key);
             if (konamiCode.length > konamiPattern.length) {
@@ -753,6 +1042,208 @@
                 window.location.href = '/games.html';
             }
         });
+
+        // ===== LOGIN FUNCTIONALITY =====
+        let currentSession = null;
+
+        // Show status message
+        function showStatus(elementId, message, type) {
+            const statusEl = document.getElementById(elementId);
+            statusEl.textContent = message;
+            statusEl.className = 'status-message show ' + type;
+            setTimeout(() => {
+                statusEl.classList.remove('show');
+            }, 4000);
+        }
+
+        // Toggle login modal
+        function toggleLoginModal() {
+            const modal = document.getElementById('loginModal');
+            if (modal.classList.contains('active')) {
+                closeLoginModal();
+            } else {
+                modal.classList.add('active');
+                if (currentSession) {
+                    showProfileView();
+                } else {
+                    showLoginView();
+                    // Auto-focus on username input
+                    setTimeout(() => {
+                        document.getElementById('usernameInput').focus();
+                    }, 100);
+                }
+            }
+        }
+
+        // Close login modal
+        function closeLoginModal() {
+            document.getElementById('loginModal').classList.remove('active');
+        }
+
+        // Show login view
+        function showLoginView() {
+            document.getElementById('loginView').style.display = 'block';
+            document.getElementById('profileView').style.display = 'none';
+        }
+
+        // Show profile view
+        function showProfileView() {
+            document.getElementById('loginView').style.display = 'none';
+            document.getElementById('profileView').style.display = 'block';
+        }
+
+        // Update login button
+        function updateLoginButton(loggedIn) {
+            const loginBtn = document.getElementById('loginBtn');
+            if (loggedIn) {
+                loginBtn.innerHTML = '<span class="session-indicator"></span>Profile';
+                loginBtn.classList.add('logged-in');
+            } else {
+                loginBtn.innerHTML = '🔐 Login';
+                loginBtn.classList.remove('logged-in');
+            }
+        }
+
+        // Perform login
+        async function performLogin() {
+            const usernameInput = document.getElementById('usernameInput');
+            const username = usernameInput.value.trim();
+
+            if (!username) {
+                showStatus('loginStatus', '✗ Please enter a username', 'error');
+                usernameInput.focus();
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/session/login', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username: username })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    currentSession = {
+                        session_id: data.session_id,
+                        username: data.username || username,
+                        role: data.role || 'user'
+                    };
+
+                    // Update UI
+                    document.getElementById('profileSessionId').textContent = currentSession.session_id;
+                    document.getElementById('profileUsername').textContent = currentSession.username;
+                    document.getElementById('profileRole').textContent = currentSession.role;
+
+                    showStatus('loginStatus', '✓ Login successful! Session created.', 'success');
+                    updateLoginButton(true);
+
+                    // Clear input for next time
+                    usernameInput.value = '';
+
+                    setTimeout(() => {
+                        showProfileView();
+                    }, 1000);
+                } else {
+                    showStatus('loginStatus', '✗ Login failed: ' + (data.message || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showStatus('loginStatus', '✗ Error: Could not connect to server', 'error');
+            }
+        }
+
+        // Refresh profile
+        async function refreshProfile() {
+            try {
+                const response = await fetch('/api/session/profile', {
+                    credentials: 'include'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('profileUsername').textContent = data.username || currentSession.username;
+                    document.getElementById('profileRole').textContent = data.role || currentSession.role;
+                    showStatus('profileStatus', '✓ Profile refreshed', 'success');
+                } else {
+                    showStatus('profileStatus', '✗ Session expired or invalid', 'error');
+                    currentSession = null;
+                    updateLoginButton(false);
+                    setTimeout(() => {
+                        showLoginView();
+                    }, 2000);
+                }
+            } catch (error) {
+                console.error('Refresh error:', error);
+                showStatus('profileStatus', '✗ Error: Could not refresh profile', 'error');
+            }
+        }
+
+        // Perform logout
+        async function performLogout() {
+            try {
+                const response = await fetch('/api/session/logout', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    currentSession = null;
+                    updateLoginButton(false);
+                    showStatus('profileStatus', '✓ Logged out successfully', 'success');
+
+                    setTimeout(() => {
+                        closeLoginModal();
+                        showLoginView();
+                    }, 1500);
+                } else {
+                    showStatus('profileStatus', '✗ Logout failed', 'error');
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+                showStatus('profileStatus', '✗ Error: Could not logout', 'error');
+            }
+        }
+
+        // Check existing session on page load
+        async function checkExistingSession() {
+            try {
+                const response = await fetch('/api/session/profile', {
+                    credentials: 'include'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    currentSession = {
+                        session_id: data.session_id || 'existing',
+                        username: data.username || 'demo_user',
+                        role: data.role || 'user'
+                    };
+
+                    document.getElementById('profileSessionId').textContent = currentSession.session_id;
+                    document.getElementById('profileUsername').textContent = currentSession.username;
+                    document.getElementById('profileRole').textContent = currentSession.role;
+                    updateLoginButton(true);
+                }
+            } catch (error) {
+                // No existing session, that's fine
+                console.log('No existing session found');
+            }
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('loginModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeLoginModal();
+            }
+        });
+
+        // Check for existing session on page load
+        checkExistingSession();
     </script>
 </body>
 </html>

@@ -41,6 +41,11 @@ bool HttpRequest::parseRequest(const std::string& data) {
         header_size += line.size();
     }
 
+    // Parse cookies after headers are complete
+    if (_headers_complete) {
+        parseCookies();
+    }
+
     // Read body if present
     if (_headers_complete && _content_length > 0) {
         std::size_t needle = data.find("\r\n\r\n");
@@ -141,6 +146,29 @@ void HttpRequest::parseQueryString(const std::string& query) {
     }
 }
 
+/**
+ * Parses the Cookie header and stores cookies in the _cookies map
+ * Cookie format: "name1=value1; name2=value2; name3=value3"
+ */
+void HttpRequest::parseCookies() {
+    std::string cookie_header = getHeader("Cookie");
+    if (cookie_header.empty()) {
+        return;
+    }
+
+    // Split by semicolon to get individual cookies
+    std::vector<std::string> pairs = Utils::split(cookie_header, ';');
+    for (size_t i = 0; i < pairs.size(); ++i) {
+        std::string pair = Utils::trim(pairs[i]);
+        size_t eq_pos = pair.find('=');
+        if (eq_pos != std::string::npos) {
+            std::string name = Utils::trim(pair.substr(0, eq_pos));
+            std::string value = Utils::trim(pair.substr(eq_pos + 1));
+            _cookies[name] = value;
+        }
+    }
+}
+
 void HttpRequest::reset() {
     _method = METHOD_UNKNOWN;
     _uri.clear();
@@ -149,6 +177,7 @@ void HttpRequest::reset() {
     _body.clear();
     _query_string.clear();
     _params.clear();
+    _cookies.clear();
     _headers_complete = false;
     _body_complete = false;
     _content_length = 0;
@@ -195,6 +224,26 @@ void HttpRequest::print() const {
         std::cout << "  " << it->first << ": " << it->second << std::endl;
     }
     std::cout << "Body length: " << _body.length() << std::endl;
+}
+
+/**
+ * Gets a specific cookie value by name
+ *
+ * @param name The cookie name to look up
+ * @return The cookie value or empty string if not found
+ */
+std::string HttpRequest::getCookie(const std::string& name) const {
+    std::map<std::string, std::string>::const_iterator it = _cookies.find(name);
+    return (it != _cookies.end()) ? it->second : "";
+}
+
+/**
+ * Gets all cookies from the request
+ *
+ * @return Reference to the cookies map
+ */
+const std::map<std::string, std::string>& HttpRequest::getCookies() const {
+    return _cookies;
 }
 
 std::vector<std::string> HttpRequest::splitIntoLines(const std::string& content) {

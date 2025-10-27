@@ -17,7 +17,8 @@ SRCFILES = main.cpp \
 		   http/HttpTemplates.cpp \
 		   http/HttpHandler.cpp \
 		   server/ServerManager.cpp \
-		   utils/Utils.cpp
+		   utils/Utils.cpp \
+		   utils/SessionManager.cpp
 
 SRCS = $(addprefix $(SRCDIR)/, $(SRCFILES))
 OBJS = $(SRCS:$(SRCDIR)/%.cpp=$(OBJDIR)/%.o)
