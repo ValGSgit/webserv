@@ -14,7 +14,9 @@ class HttpRequest {
         std::string _body;
         std::string _query_string;
         std::map<std::string, std::string> _params;
+#ifdef BONUS
         std::map<std::string, std::string> _cookies;
+#endif
         bool _headers_complete;
         bool _body_complete;
         size_t _content_length;
@@ -26,7 +28,9 @@ class HttpRequest {
         void parseUri(const std::string& uri);
         HttpMethod stringToMethod(const std::string& method_str);
         void parseQueryString(const std::string& query);
+#ifdef BONUS
         void parseCookies();
+#endif
 
     public:
         HttpRequest();
@@ -53,8 +57,10 @@ class HttpRequest {
         std::string methodToString() const;
         void print() const;
 
+#ifdef BONUS
         std::string getCookie(const std::string& name) const;
         const std::map<std::string, std::string>& getCookies() const;
+#endif
 };
 
 #endif

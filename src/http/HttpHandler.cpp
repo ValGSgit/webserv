@@ -135,6 +135,7 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
         else if (!methodAllowed(uri, request.methodToString(), *config)) {
             response = HttpResponse::errorResponse(HTTP_METHOD_NOT_ALLOWED);
         }
+#ifdef BONUS
         // Session API endpoints (MUST be checked BEFORE generic POST handler!)
         else if (uri == "/api/session/login" && request.getMethod() == METHOD_POST) {
             SessionManager* sm = _server_manager->getSessionManager();
@@ -236,6 +237,7 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
             response.setContentType("application/json");
             response.setBody("{\"active_sessions\": " + Utils::toString(active_sessions) + "}");
         }
+#endif
         // API test endpoint
         else if (uri == "/api/test") {
             response = handleJsonApi(request);

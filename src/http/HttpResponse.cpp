@@ -43,7 +43,9 @@ const std::string& HttpResponse::getResponseString() {
 void HttpResponse::reset() {
     _status = HTTP_OK;
     _headers.clear();
+#ifdef BONUS
     _set_cookie_headers.clear();
+#endif
     _body.clear();
     _response_string.clear();
     _headers_sent = false;
@@ -75,6 +77,7 @@ void HttpResponse::setContentLength(size_t length) {
     _headers["Content-Length"] = Utils::toString(length);
 }
 
+#ifdef BONUS
 /**
  * Sets a cookie in the HTTP response
  * Creates a Set-Cookie header with the specified parameters
@@ -114,8 +117,9 @@ void HttpResponse::setCookie(const std::string& name, const std::string& value,
 void HttpResponse::clearCookie(const std::string& name) {
     setCookie(name, "", 0);
 }
+#endif
 
-std::string HttpResponse::statusToString(int status) {
+std::string HttpResponse::statusToString(int status) const {
     return Utils::toString((int)status) + " " + Utils::getStatusMessage((int)status);
 }
 
@@ -127,10 +131,12 @@ void HttpResponse::buildResponseString() {
         _response_string += it->first + ": " + it->second + "\r\n";
     }
 
+#ifdef BONUS
     // Add all Set-Cookie headers (multiple are allowed)
     for (size_t i = 0; i < _set_cookie_headers.size(); ++i) {
         _response_string += "Set-Cookie: " + _set_cookie_headers[i] + "\r\n";
     }
+#endif
 
     _response_string += "\r\n" + _body;
 }
@@ -223,4 +229,50 @@ HttpResponse HttpResponse::redirectResponse(const std::string& location, int sta
     response.setHeader("Location", location);
     response.setBody("");
     return response;
+}
+
+void HttpResponse::print() const {
+    std::cout << "╔══════════════════════════════════════════════════════╗" << std::endl;
+    std::cout << "║            HTTP RESPONSE                             ║" << std::endl;
+    std::cout << "╚══════════════════════════════════════════════════════╝" << std::endl;
+    
+    std::cout << "Status: " << _status << " - " << statusToString(_status) << std::endl;
+    std::cout << "Headers Sent: " << (_headers_sent ? "yes" : "no") << std::endl;
+    
+    std::cout << "\nHeaders (" << _headers.size() << "):" << std::endl;
+    if (_headers.empty()) {
+        std::cout << "  (no headers)" << std::endl;
+    } else {
+        for (std::map<std::string, std::string>::const_iterator it = _headers.begin(); 
+             it != _headers.end(); ++it) {
+            std::cout << "  " << it->first << ": " << it->second << std::endl;
+        }
+    }
+    
+#ifdef BONUS
+    if (!_set_cookie_headers.empty()) {
+        std::cout << "\nSet-Cookie Headers (" << _set_cookie_headers.size() << "):" << std::endl;
+        for (size_t i = 0; i < _set_cookie_headers.size(); ++i) {
+            std::cout << "  " << _set_cookie_headers[i] << std::endl;
+        }
+    }
+#endif
+    
+    std::cout << "\nBody Size: " << _body.size() << " bytes" << std::endl;
+    if (!_body.empty() && _body.size() <= 500) {
+        std::cout << "Body Preview:" << std::endl;
+        std::cout << "---" << std::endl;
+        std::cout << _body.substr(0, 500);
+        std::cout << std::endl << "---" << std::endl;
+    } else if (!_body.empty()) {
+        std::cout << "Body Preview (first 500 chars):" << std::endl;
+        std::cout << "---" << std::endl;
+        std::cout << _body.substr(0, 500) << "...";
+        std::cout << std::endl << "---" << std::endl;
+    }
+    
+    if (!_response_string.empty()) {
+        std::cout << "\nFull Response Size: " << _response_string.size() << " bytes" << std::endl;
+    }
+    std::cout << std::endl;
 }

@@ -115,6 +115,17 @@ class Utils {
         // URI normalization helpers
         static std::string normalizePercentEncoding(const std::string& str);
         static std::string removeDotSegments(const std::string& path);
+        
+        // Debug utilities - Display structure data
+        static void printRouteConfig(const RouteConfig& route, const std::string& route_path = "");
+        static void printServerConfig(const ServerConfig& config);
+        static void printServerSocket(const ServerSocket& socket);
+        static void printClientConnection(const ClientConnection& client);
+#ifdef BONUS
+        static void printSessionData(const SessionData& session);
+#endif
+        static std::string connectionStateToString(ConnectionState state);
+        static std::string httpMethodToString(HttpMethod method);
 };
 
 #endif
