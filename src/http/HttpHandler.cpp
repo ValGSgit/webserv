@@ -137,9 +137,7 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
         }
         // Session API endpoints (MUST be checked BEFORE generic POST handler!)
         else if (uri == "/api/session/login" && request.getMethod() == METHOD_POST) {
-            // Create a new session
             SessionManager* sm = _server_manager->getSessionManager();
-            std::string session_id = sm->createSession();
 
             // Parse username from request body
             std::string username = "demo_user"; // default
@@ -160,18 +158,34 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
                 }
             }
 
-            // Store data in the session
-            SessionData* session = sm->getSession(session_id);
-            if (session) {
-                session->data["username"] = username;
-                session->data["authenticated"] = "true";
-                session->data["role"] = "user";
-            }
+            // CHECK: Does this username already have an active session? (OPTION 3)
+            std::string existing_session_id = sm->getSessionByUsername(username);
+            
+            if (!existing_session_id.empty()) {
+                // User is already logged in - REJECT the new login
+                response.setStatus(409); // HTTP 409 Conflict
+                response.setContentType("application/json");
+                response.setBody("{\"success\": false, \"message\": \"User '" + username + "' is already logged in. Please logout first.\"}");
+            } else {
+                // No active session - proceed with login
+                std::string session_id = sm->createSession();
 
-            response.setStatus(HTTP_OK);
-            response.setContentType("application/json");
-            response.setCookie("SESSIONID", session_id, 3600);  // 1 hour expiry
-            response.setBody("{\"success\": true, \"message\": \"Login successful\", \"session_id\": \"" + session_id + "\", \"username\": \"" + username + "\"}");
+                // Store data in the session
+                SessionData* session = sm->getSession(session_id);
+                if (session) {
+                    session->data["username"] = username;
+                    session->data["authenticated"] = "true";
+                    session->data["role"] = "user";
+                    
+                    // Register username with this session
+                    sm->registerUsername(session_id, username);
+                }
+
+                response.setStatus(HTTP_OK);
+                response.setContentType("application/json");
+                response.setCookie("SESSIONID", session_id, 3600);  // 1 hour expiry
+                response.setBody("{\"success\": true, \"message\": \"Login successful\", \"session_id\": \"" + session_id + "\", \"username\": \"" + username + "\"}");
+            }
         }
         else if (uri == "/api/session/profile" && request.getMethod() == METHOD_GET) {
             // Get session data (protected endpoint)

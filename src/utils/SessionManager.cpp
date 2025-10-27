@@ -39,6 +39,7 @@ std::string SessionManager::createSession() {
 	session.session_id = session_id;
 	session.created_at = time(NULL);
 	session.last_accessed = time(NULL);
+	session.expires_at = time(NULL) + _session_timeout;
 
 	return session_id;
 }
@@ -76,7 +77,15 @@ SessionData* SessionManager::getSession(const std::string& session_id) {
  * @param session_id The session identifier to destroy
  */
 void SessionManager::destroySession(const std::string& session_id) {
-	_sessions.erase(session_id);
+	std::map<std::string, SessionData>::iterator it = _sessions.find(session_id);
+	if (it != _sessions.end()) {
+		// Remove username mapping if exists
+		std::string username = it->second.data["username"];
+		if (!username.empty()) {
+			_username_to_session.erase(username);
+		}
+		_sessions.erase(it);
+	}
 }
 
 /**
@@ -112,4 +121,38 @@ void SessionManager::setSessionTimeout(int seconds) {
  */
 size_t SessionManager::getActiveSessionCount() const {
 	return _sessions.size();
+}
+
+/**
+ * Check if a username already has an active session
+ *
+ * @param username The username to check
+ * @return Session ID if active session exists, empty string otherwise
+ */
+std::string SessionManager::getSessionByUsername(const std::string& username) {
+	// Check if username has a mapped session
+	std::map<std::string, std::string>::iterator it = _username_to_session.find(username);
+	if (it != _username_to_session.end()) {
+		std::string session_id = it->second;
+		
+		// Verify the session is still valid
+		SessionData* session = getSession(session_id);
+		if (session && session->expires_at > time(NULL)) {
+			return session_id; // Active session found
+		} else {
+			// Session expired, clean up mapping
+			_username_to_session.erase(it);
+		}
+	}
+	return ""; // No active session found
+}
+
+/**
+ * Register a username with a session ID
+ *
+ * @param session_id The session identifier
+ * @param username The username to register
+ */
+void SessionManager::registerUsername(const std::string& session_id, const std::string& username) {
+	_username_to_session[username] = session_id;
 }

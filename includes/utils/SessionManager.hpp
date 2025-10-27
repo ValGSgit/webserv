@@ -7,14 +7,16 @@ struct SessionData {
 	std::string session_id;
 	time_t created_at;
 	time_t last_accessed;
+	time_t expires_at;
 	std::map<std::string, std::string> data;
 
-	SessionData() : created_at(0), last_accessed(0) {}
+	SessionData() : created_at(0), last_accessed(0), expires_at(0) {}
 };
 
 class SessionManager {
 	private:
 		std::map<std::string, SessionData> _sessions;
+		std::map<std::string, std::string> _username_to_session;
 		int _session_timeout;
 
 		std::string generateSessionId();
@@ -29,6 +31,10 @@ class SessionManager {
 		void cleanExpiredSessions();
 		void setSessionTimeout(int seconds);
 		size_t getActiveSessionCount() const;
+		
+		// Duplicate login prevention
+		std::string getSessionByUsername(const std::string& username);
+		void registerUsername(const std::string& session_id, const std::string& username);
 };
 
 #endif

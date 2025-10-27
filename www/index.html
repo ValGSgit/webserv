@@ -1126,6 +1126,12 @@
                 });
                 const data = await response.json();
 
+                // Check for 409 Conflict (user already logged in)
+                if (response.status === 409) {
+                    showStatus('loginStatus', '⚠️ ' + data.message, 'error');
+                    return;
+                }
+
                 if (data.success) {
                     currentSession = {
                         session_id: data.session_id,
