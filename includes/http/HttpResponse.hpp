@@ -11,6 +11,7 @@ class HttpResponse {
     private:
         int _status;
         std::map<std::string, std::string> _headers;
+        std::vector<std::string> _set_cookie_headers;
         std::string _body;
         std::string _response_string;
         bool _headers_sent;
@@ -36,7 +37,12 @@ class HttpResponse {
         void setDefaultHeaders();
         void setContentType(const std::string& content_type);
         void setContentLength(size_t length);
-        
+
+        void setCookie(const std::string& name, const std::string& value,
+                      int max_age = -1, const std::string& path = "/",
+                      bool http_only = true, bool secure = false);
+        void clearCookie(const std::string& name);
+
         // Static response builders
         static HttpResponse errorResponse(int status, const std::string& message = "");
         static HttpResponse messageResponse(int status, const std::string& title = "", const std::string& message = "");
