@@ -65,10 +65,6 @@
 
 ---
 
-### Showcase
-![flow](https://github.com/user-attachments/assets/e049376a-4fbe-44e7-afd7-938dfab32fcb)
-
-
 ## 🚀 Quick Start
 
 ### Prerequisites
