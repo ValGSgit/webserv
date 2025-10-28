@@ -103,25 +103,58 @@
         <a href="/" class="back-link">← Back to Home</a>
         
         <div class="card">
-            <h1>📊 Server Status <span class="status-online">● ONLINE</span></h1>
+            <h1>📊 Server Status <span class="status-online" id="statusBadge">● ONLINE</span></h1>
             <p>Real-time monitoring and statistics for WebServ</p>
             
             <div class="stats-grid">
                 <div class="stat-box">
-                    <div class="stat-value">3</div>
+                    <div class="stat-value" id="activeServers">3</div>
                     <div class="stat-label">Active Servers</div>
                 </div>
                 <div class="stat-box">
-                    <div class="stat-value">15+</div>
-                    <div class="stat-label">Locations</div>
+                    <div class="stat-value" id="totalRequests">0</div>
+                    <div class="stat-label">Total Requests</div>
                 </div>
                 <div class="stat-box">
-                    <div class="stat-value">6+</div>
-                    <div class="stat-label">CGI Interpreters</div>
+                    <div class="stat-value" id="uptime">0:00:00</div>
+                    <div class="stat-label">Uptime</div>
                 </div>
                 <div class="stat-box">
-                    <div class="stat-value">100MB</div>
+                    <div class="stat-value" id="maxUpload">100MB</div>
                     <div class="stat-label">Max Upload</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2 style="color: #1f2937; margin-bottom: 20px;">📈 Performance Metrics</h2>
+            <div style="margin: 20px 0;">
+                <div style="margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span>CPU Usage</span>
+                        <span id="cpuValue">25%</span>
+                    </div>
+                    <div style="background: #e5e7eb; height: 20px; border-radius: 10px; overflow: hidden;">
+                        <div id="cpuBar" style="background: linear-gradient(90deg, #2563eb, #10b981); height: 100%; width: 25%; transition: width 0.5s;"></div>
+                    </div>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span>Memory Usage</span>
+                        <span id="memValue">45%</span>
+                    </div>
+                    <div style="background: #e5e7eb; height: 20px; border-radius: 10px; overflow: hidden;">
+                        <div id="memBar" style="background: linear-gradient(90deg, #f59e0b, #ef4444); height: 100%; width: 45%; transition: width 0.5s;"></div>
+                    </div>
+                </div>
+                <div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span>Network I/O</span>
+                        <span id="netValue">60%</span>
+                    </div>
+                    <div style="background: #e5e7eb; height: 20px; border-radius: 10px; overflow: hidden;">
+                        <div id="netBar" style="background: linear-gradient(90deg, #10b981, #059669); height: 100%; width: 60%; transition: width 0.5s;"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -189,8 +222,52 @@ Redirects:         /redirect, /github, /old-page
                 <button onclick="location.href='/upload.html'" style="padding: 15px; background: #059669; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Upload File</button>
                 <button onclick="location.href='/cgi-demo.html'" style="padding: 15px; background: #7c3aed; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Test CGI</button>
                 <button onclick="location.reload()" style="padding: 15px; background: #dc2626; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Refresh Status</button>
+                <button onclick="location.href='/games.html'" style="padding: 15px; background: #f59e0b; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Play Games</button>
+                <button onclick="location.href='/test.html'" style="padding: 15px; background: #06b6d4; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Run Tests</button>
             </div>
         </div>
     </div>
+    
+    <script>
+        // Simulate live stats
+        let startTime = Date.now();
+        let requestCount = 0;
+        
+        function updateUptime() {
+            const elapsed = Date.now() - startTime;
+            const hours = Math.floor(elapsed / 3600000);
+            const minutes = Math.floor((elapsed % 3600000) / 60000);
+            const seconds = Math.floor((elapsed % 60000) / 1000);
+            document.getElementById('uptime').textContent = `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+        
+        function updateMetrics() {
+            // Simulate varying metrics
+            const cpu = Math.floor(Math.random() * 30) + 20;
+            const mem = Math.floor(Math.random() * 20) + 40;
+            const net = Math.floor(Math.random() * 40) + 30;
+            
+            document.getElementById('cpuValue').textContent = cpu + '%';
+            document.getElementById('cpuBar').style.width = cpu + '%';
+            
+            document.getElementById('memValue').textContent = mem + '%';
+            document.getElementById('memBar').style.width = mem + '%';
+            
+            document.getElementById('netValue').textContent = net + '%';
+            document.getElementById('netBar').style.width = net + '%';
+            
+            // Update request count
+            requestCount += Math.floor(Math.random() * 5) + 1;
+            document.getElementById('totalRequests').textContent = requestCount;
+        }
+        
+        // Update every second
+        setInterval(updateUptime, 1000);
+        setInterval(updateMetrics, 2000);
+        
+        // Initial update
+        updateUptime();
+        updateMetrics();
+    </script>
 </body>
 </html>

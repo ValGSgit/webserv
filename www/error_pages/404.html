@@ -147,6 +147,71 @@
             animation: fadeInUp 1s ease-out 1.1s both;
         }
         
+        .quick-links {
+            margin-top: 30px;
+            animation: fadeInUp 1s ease-out 1.3s both;
+        }
+        
+        .quick-links h3 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            opacity: 0.9;
+        }
+        
+        .links-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .quick-link {
+            display: block;
+            padding: 10px 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: white;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+        
+        .quick-link:hover {
+            background: rgba(255, 215, 0, 0.2);
+            border-color: #ffd700;
+            transform: translateY(-2px);
+        }
+        
+        .search-box {
+            margin-top: 25px;
+            animation: fadeInUp 1s ease-out 1.5s both;
+        }
+        
+        .search-input {
+            padding: 12px 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 25px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 16px;
+            width: 300px;
+            max-width: 90%;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        
+        .search-input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: #ffd700;
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
         @keyframes containerFloat {
             0%, 100% { transform: translateY(0px); }
             50% { transform: translateY(-10px); }
@@ -219,12 +284,49 @@
             Oops! The page you're looking for seems to have wandered off.<br>
             It might have been moved, deleted, or you entered the wrong URL.
         </p>
+        
+        <div class="search-box">
+            <input type="text" class="search-input" id="searchInput" placeholder="🔍 Search for a page..." onkeypress="handleSearch(event)">
+        </div>
+        
         <a href="/" class="home-link">
             ← Take Me Home
         </a>
+        
+        <div class="quick-links">
+            <h3>Popular Pages</h3>
+            <div class="links-grid">
+                <a href="/" class="quick-link">🏠 Home</a>
+                <a href="/upload.html" class="quick-link">📤 Upload</a>
+                <a href="/games.html" class="quick-link">🎮 Games</a>
+                <a href="/cgi-demo.html" class="quick-link">⚡ CGI Demo</a>
+                <a href="/browse/" class="quick-link">📁 Browse</a>
+                <a href="/status.html" class="quick-link">📊 Status</a>
+            </div>
+        </div>
+        
         <div class="footer">
             <small>WebServ/1.0 • Powered by C++</small>
         </div>
     </div>
+    
+    <script>
+        function handleSearch(event) {
+            if (event.key === 'Enter') {
+                const query = document.getElementById('searchInput').value;
+                if (query) {
+                    window.location.href = '/' + query;
+                }
+            }
+        }
+        
+        // Add some interactivity
+        document.addEventListener('DOMContentLoaded', function() {
+            const shapes = document.querySelectorAll('.shape');
+            shapes.forEach(shape => {
+                shape.style.fontSize = Math.random() * 30 + 30 + 'px';
+            });
+        });
+    </script>
 </body>
 </html>

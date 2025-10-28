@@ -22,18 +22,85 @@
             --border: #e5e7eb;
         }
         
+        body.dark-mode {
+            --primary: #3b82f6;
+            --secondary: #34d399;
+            --dark: #f9fafb;
+            --light: #374151;
+            --border: #4b5563;
+        }
+        
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             line-height: 1.6;
             color: #333;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow-x: hidden;
         }
+        
+        body.dark-mode {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e5e7eb;
+        }
+        
+        /* Particle Background */
+        #particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+        
+        .particle {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            animation: float 15s infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0) translateX(0); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-100vh) translateX(100px); opacity: 0; }
+        }
+        
+        /* Dark Mode Toggle */
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: none;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.5em;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .theme-toggle:hover {
+            transform: scale(1.1) rotate(180deg);
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
         
         .container {
             max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
+            position: relative;
+            z-index: 1;
         }
         
         /* Header */
@@ -45,6 +112,22 @@
             margin-bottom: 30px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             text-align: center;
+            animation: slideDown 0.8s ease-out;
+        }
+        
+        body.dark-mode header {
+            background: rgba(31, 41, 55, 0.95);
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
         
         header h1 {
@@ -55,12 +138,22 @@
             background-clip: text;
             margin-bottom: 10px;
             font-weight: 800;
+            animation: glow 2s ease-in-out infinite;
+        }
+        
+        @keyframes glow {
+            0%, 100% { filter: drop-shadow(0 0 5px rgba(37, 99, 235, 0.5)); }
+            50% { filter: drop-shadow(0 0 20px rgba(16, 185, 129, 0.8)); }
         }
         
         header .subtitle {
             color: #666;
             font-size: 1.2em;
             margin-bottom: 20px;
+        }
+        
+        body.dark-mode header .subtitle {
+            color: #9ca3af;
         }
         
         header .badges {
@@ -77,14 +170,23 @@
             font-size: 0.9em;
             font-weight: 600;
             color: white;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
         }
         
         .badge-cpp { background: #00599C; }
         .badge-http { background: var(--primary); }
         .badge-cgi { background: var(--secondary); }
-        .badge-status { background: var(--warning); }
+        .badge-status { background: var(--warning); animation: blink 1.5s infinite; }
         
-        /* Feature Grid */
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }        /* Feature Grid */
         .features {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -99,16 +201,52 @@
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
             transition: transform 0.3s, box-shadow 0.3s;
             cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        body.dark-mode .feature-card {
+            background: rgba(55, 65, 81, 0.9);
+        }
+        
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .feature-card:hover::before {
+            left: 100%;
         }
         
         .feature-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
         }
         
         .feature-card .icon {
             font-size: 3em;
             margin-bottom: 15px;
+            animation: bounce 2s infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .feature-card:hover .icon {
+            animation: spin 0.6s ease-in-out;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg) scale(1); }
+            to { transform: rotate(360deg) scale(1.2); }
         }
         
         .feature-card h3 {
@@ -122,6 +260,10 @@
             margin-bottom: 15px;
         }
         
+        body.dark-mode .feature-card p {
+            color: #9ca3af;
+        }
+        
         .feature-card a {
             display: inline-block;
             padding: 10px 20px;
@@ -130,11 +272,25 @@
             text-decoration: none;
             border-radius: 8px;
             font-weight: 600;
-            transition: background 0.3s;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .feature-card a::after {
+            content: '→';
+            position: absolute;
+            right: 20px;
+            transition: transform 0.3s;
+        }
+        
+        .feature-card a:hover::after {
+            transform: translateX(5px);
         }
         
         .feature-card a:hover {
             background: var(--primary-dark);
+            transform: scale(1.05);
         }
         
         /* Server Stats */
@@ -144,6 +300,16 @@
             padding: 30px;
             margin-bottom: 30px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            animation: fadeIn 1s ease-out;
+        }
+        
+        body.dark-mode .stats {
+            background: rgba(55, 65, 81, 0.9);
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
         
         .stats h2 {
@@ -164,6 +330,13 @@
             background: var(--light);
             border-radius: 10px;
             border-left: 4px solid var(--primary);
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .stat-item:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
         }
         
         .stat-item .number {
@@ -171,6 +344,12 @@
             font-weight: 700;
             color: var(--primary);
             display: block;
+            animation: countUp 2s ease-out;
+        }
+        
+        @keyframes countUp {
+            from { transform: scale(0); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
         }
         
         .stat-item .label {
@@ -180,12 +359,20 @@
             letter-spacing: 1px;
         }
         
+        body.dark-mode .stat-item .label {
+            color: #9ca3af;
+        }
+        
         /* Quick Links */
         .quick-links {
             background: white;
             border-radius: 15px;
             padding: 30px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        body.dark-mode .quick-links {
+            background: rgba(55, 65, 81, 0.9);
         }
         
         .quick-links h2 {
@@ -210,13 +397,30 @@
             font-weight: 600;
             transition: all 0.3s;
             border-left: 4px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .link-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 0;
+            background: var(--primary);
+            transition: width 0.3s;
+            z-index: -1;
+        }
+        
+        .link-item:hover::before {
+            width: 100%;
         }
         
         .link-item:hover {
-            background: var(--primary);
             color: white;
             border-left-color: var(--primary-dark);
-            transform: translateX(5px);
+            transform: translateX(10px);
         }
         
         .link-item .arrow {
@@ -225,7 +429,7 @@
         }
         
         .link-item:hover .arrow {
-            transform: translateX(5px);
+            transform: translateX(10px);
         }
         
         /* Footer */
@@ -239,6 +443,12 @@
         footer a {
             color: white;
             text-decoration: underline;
+            transition: all 0.3s;
+        }
+        
+        footer a:hover {
+            color: var(--secondary);
+            text-decoration: none;
         }
         
         /* Responsive */
@@ -253,6 +463,12 @@
             
             .stat-item .number {
                 font-size: 2em;
+            }
+            
+            .theme-toggle {
+                width: 50px;
+                height: 50px;
+                font-size: 1.2em;
             }
         }
         
@@ -279,10 +495,45 @@
         .feature-card:nth-child(4) { animation-delay: 0.4s; }
         .feature-card:nth-child(5) { animation-delay: 0.5s; }
         .feature-card:nth-child(6) { animation-delay: 0.6s; }
+        .feature-card:nth-child(7) { animation-delay: 0.7s; }
+        
+        /* Scroll to top button */
+        .scroll-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--primary);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            font-size: 1.5em;
+            opacity: 0;
+            transform: translateY(100px);
+            transition: all 0.3s;
+            z-index: 1000;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .scroll-top.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .scroll-top:hover {
+            background: var(--primary-dark);
+            transform: translateY(-5px);
+        }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div id="particles"></div>
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle Dark Mode">🌙</button>
+    <button class="scroll-top" onclick="scrollToTop()" title="Scroll to top">↑</button>
+    
+    <div class="container"
         <!-- Header -->
         <header>
             <h1>🚀 WebServ</h1>
@@ -297,6 +548,7 @@
         
         <!-- Feature Cards -->
         <div class="features">
+            
             <div class="feature-card">
                 <div class="icon">📁</div>
                 <h3>File Browser</h3>
@@ -319,6 +571,13 @@
             </div>
             
             <div class="feature-card">
+                <div class="icon">🎮</div>
+                <h3>Games</h3>
+                <p>Play interactive browser games like Snake, Memory, and 2048</p>
+                <a href="/games.html">Play Games →</a>
+            </div>
+            
+            <div class="feature-card">
                 <div class="icon">🔀</div>
                 <h3>Redirections</h3>
                 <p>Test HTTP 301 redirects and URL rewriting</p>
@@ -338,9 +597,7 @@
                 <p>Monitor server performance and connection stats</p>
                 <a href="/status.html">View Status →</a>
             </div>
-        </div>
-        
-        <!-- Server Stats -->
+        </div>        <!-- Server Stats -->
         <div class="stats">
             <h2>Server Capabilities</h2>
             <div class="stats-grid">
@@ -399,6 +656,9 @@
                 <a href="/api/test" class="link-item">
                     🔌 API Endpoint <span class="arrow">→</span>
                 </a>
+                <a href="/games.html" class="link-item">
+                    🎮 Browser Games <span class="arrow">→</span>
+                </a>
             </div>
         </div>
     </div>
@@ -416,7 +676,52 @@
     </footer>
     
     <script>
-        // Add some interactivity
+        // Particle Background
+        function createParticles() {
+            const particles = document.getElementById('particles');
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.width = Math.random() * 5 + 2 + 'px';
+                particle.style.height = particle.style.width;
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDuration = Math.random() * 10 + 10 + 's';
+                particle.style.animationDelay = Math.random() * 5 + 's';
+                particles.appendChild(particle);
+            }
+        }
+        
+        // Dark Mode Toggle
+        function toggleTheme() {
+            const body = document.body;
+            const toggle = document.querySelector('.theme-toggle');
+            body.classList.toggle('dark-mode');
+            toggle.textContent = body.classList.contains('dark-mode') ? '☀️' : '🌙';
+            localStorage.setItem('darkMode', body.classList.contains('dark-mode'));
+        }
+        
+        // Load theme preference
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+            document.querySelector('.theme-toggle').textContent = '☀️';
+        }
+        
+        // Scroll to top
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        
+        // Show/hide scroll button
+        window.addEventListener('scroll', () => {
+            const scrollBtn = document.querySelector('.scroll-top');
+            if (window.scrollY > 300) {
+                scrollBtn.classList.add('visible');
+            } else {
+                scrollBtn.classList.remove('visible');
+            }
+        });
+        
+        // Feature card click
         document.querySelectorAll('.feature-card').forEach(card => {
             card.addEventListener('click', function(e) {
                 if (!e.target.matches('a')) {
@@ -431,6 +736,23 @@
             document.title = 'WebServ - ' + now.toLocaleTimeString();
         }
         setInterval(updateTime, 1000);
+        
+        // Initialize
+        createParticles();
+        
+        // Easter egg: Konami code
+        let konamiCode = [];
+        const konamiPattern = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+        
+        document.addEventListener('keydown', (e) => {
+            konamiCode.push(e.key);
+            if (konamiCode.length > konamiPattern.length) {
+                konamiCode.shift();
+            }
+            if (konamiCode.join(',') === konamiPattern.join(',')) {
+                window.location.href = '/games.html';
+            }
+        });
     </script>
 </body>
 </html>

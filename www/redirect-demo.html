@@ -67,6 +67,29 @@
             border-radius: 4px;
             font-family: 'Courier New', monospace;
         }
+        .countdown {
+            font-size: 2em;
+            font-weight: bold;
+            color: #2563eb;
+            margin: 10px 0;
+        }
+        .redirect-history {
+            background: #f9fafb;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .history-item {
+            padding: 8px;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 0.9em;
+            color: #666;
+        }
+        .history-item:last-child {
+            border-bottom: none;
+        }
     </style>
 </head>
 <body>
@@ -81,13 +104,14 @@
                 <li class="redirect-item">
                     <strong>🏠 /redirect → /</strong>
                     <p>Redirects to homepage (301 Permanent)</p>
-                    <button class="test-btn" onclick="testRedirect('/redirect')">Test Redirect</button>
+                    <button class="test-btn" onclick="testRedirect('/redirect', '/')">Test Redirect</button>
+                    <button class="test-btn" onclick="testRedirectWithCountdown('/redirect', '/', 5)" style="background: #f59e0b;">5s Countdown</button>
                 </li>
                 
                 <li class="redirect-item">
                     <strong>📄 /old-page → /index.html</strong>
                     <p>Legacy URL redirect (301 Permanent)</p>
-                    <button class="test-btn" onclick="testRedirect('/old-page')">Test Redirect</button>
+                    <button class="test-btn" onclick="testRedirect('/old-page', '/index.html')">Test Redirect</button>
                 </li>
                 
                 <li class="redirect-item">
@@ -96,6 +120,19 @@
                     <button class="test-btn" onclick="window.open('/github', '_blank')">Visit GitHub</button>
                 </li>
             </ul>
+            
+            <div id="countdownDisplay" style="display: none; text-align: center; margin-top: 20px; padding: 20px; background: #fef3c7; border-radius: 10px;">
+                <p>Redirecting in...</p>
+                <div class="countdown" id="countdownNumber">5</div>
+                <button class="test-btn" onclick="cancelRedirect()" style="background: #ef4444;">Cancel</button>
+            </div>
+            
+            <div style="margin-top: 20px;">
+                <h3 style="color: #374151; margin-bottom: 10px;">Redirect History</h3>
+                <div class="redirect-history" id="redirectHistory">
+                    <p style="color: #9ca3af; text-align: center;">No redirects tested yet</p>
+                </div>
+            </div>
         </div>
         
         <div class="card">
@@ -117,8 +154,60 @@ location /github {
     </div>
     
     <script>
-        function testRedirect(url) {
-            window.location.href = url;
+        let redirectHistory = [];
+        let countdownTimer = null;
+        let redirectUrl = null;
+        
+        function testRedirect(from, to) {
+            addToHistory(from, to || 'Unknown');
+            window.location.href = from;
+        }
+        
+        function testRedirectWithCountdown(from, to, seconds) {
+            redirectUrl = from;
+            const display = document.getElementById('countdownDisplay');
+            const numberEl = document.getElementById('countdownNumber');
+            
+            display.style.display = 'block';
+            let remaining = seconds;
+            numberEl.textContent = remaining;
+            
+            addToHistory(from, to, 'Countdown started');
+            
+            countdownTimer = setInterval(() => {
+                remaining--;
+                numberEl.textContent = remaining;
+                
+                if (remaining <= 0) {
+                    clearInterval(countdownTimer);
+                    addToHistory(from, to, 'Redirected');
+                    window.location.href = from;
+                }
+            }, 1000);
+        }
+        
+        function cancelRedirect() {
+            if (countdownTimer) {
+                clearInterval(countdownTimer);
+                countdownTimer = null;
+            }
+            document.getElementById('countdownDisplay').style.display = 'none';
+            addToHistory(redirectUrl, 'N/A', 'Cancelled');
+        }
+        
+        function addToHistory(from, to, status = 'Tested') {
+            const now = new Date().toLocaleTimeString();
+            redirectHistory.unshift({ from, to, time: now, status });
+            
+            const historyEl = document.getElementById('redirectHistory');
+            historyEl.innerHTML = '';
+            
+            redirectHistory.slice(0, 10).forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'history-item';
+                div.innerHTML = `<strong>${item.time}</strong> - ${item.from} → ${item.to} <span style="color: #10b981;">[${item.status}]</span>`;
+                historyEl.appendChild(div);
+            });
         }
     </script>
 </body>

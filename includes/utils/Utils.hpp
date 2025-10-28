@@ -56,6 +56,14 @@ class Utils {
         static bool isValidUriReference(const std::string& uriRef);
         static bool isValidPort(int port);
         
+        // Security utilities
+        static std::string sanitizeFilename(const std::string& filename);
+        static bool isSafePath(const std::string& path);
+        static std::string sanitizeForShell(const std::string& input);
+        static bool isValidHttpVersion(const std::string& version);
+        static bool containsLF(const std::string& input);
+        static bool isAllowedUploadExtension(const std::string& filename);
+        
         // URI parsing and validation - RFC 3986 compliant
         struct UriComponents {
             std::string scheme;

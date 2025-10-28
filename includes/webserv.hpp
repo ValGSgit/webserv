@@ -20,6 +20,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
+#include <sys/epoll.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
@@ -62,9 +63,10 @@ struct RouteConfig {
     std::string upload_path;
     std::vector<std::string> cgi_extensions;
     std::string redirect_url;
+    int redirect_code;  // HTTP status code for redirect (301, 302, 307, 308)
     size_t max_body_size;
 
-    RouteConfig() : directory_listing(false), max_body_size(1048576) {}
+    RouteConfig() : directory_listing(false), redirect_code(0), max_body_size(1048576) {}
 };
 
 struct ServerConfig {
