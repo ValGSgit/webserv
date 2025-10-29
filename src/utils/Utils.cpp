@@ -1212,3 +1212,180 @@ bool Utils::isAllowedUploadExtension(const std::string& filename) {
     
     return false;
 }
+
+// Debug utilities - Display structure data
+
+std::string Utils::httpMethodToString(HttpMethod method) {
+    switch (method) {
+        case METHOD_GET: return "GET";
+        case METHOD_POST: return "POST";
+        case METHOD_PUT: return "PUT";
+        case METHOD_DELETE: return "DELETE";
+        case METHOD_UNKNOWN: return "UNKNOWN";
+        default: return "INVALID";
+    }
+}
+
+std::string Utils::connectionStateToString(ConnectionState state) {
+    switch (state) {
+        case STATE_READING_HEADERS: return "READING_HEADERS";
+        case STATE_READING_BODY: return "READING_BODY";
+        case STATE_PROCESSING: return "PROCESSING";
+        case STATE_WRITING_RESPONSE: return "WRITING_RESPONSE";
+        case STATE_DONE: return "DONE";
+        case STATE_ERROR: return "ERROR";
+        default: return "INVALID";
+    }
+}
+
+void Utils::printRouteConfig(const RouteConfig& route, const std::string& route_path) {
+    std::cout << "  ┌─ Route: " << (route_path.empty() ? "(default)" : route_path) << std::endl;
+    
+    // Allowed methods
+    std::cout << "  │  Methods: ";
+    if (route.allowed_methods.empty()) {
+        std::cout << "(all allowed)";
+    } else {
+        for (size_t i = 0; i < route.allowed_methods.size(); ++i) {
+            std::cout << route.allowed_methods[i];
+            if (i < route.allowed_methods.size() - 1) std::cout << ", ";
+        }
+    }
+    std::cout << std::endl;
+    
+    // Root directory
+    std::cout << "  │  Root: " << (route.root_directory.empty() ? "(not set)" : route.root_directory) << std::endl;
+    
+    // Index file
+    std::cout << "  │  Index: " << (route.index_file.empty() ? "(not set)" : route.index_file) << std::endl;
+    
+    // Directory listing
+    std::cout << "  │  Directory Listing: " << (route.directory_listing ? "enabled" : "disabled") << std::endl;
+    
+    // Upload path
+    std::cout << "  │  Upload Path: " << (route.upload_path.empty() ? "(not set)" : route.upload_path) << std::endl;
+    
+    // CGI extensions
+    std::cout << "  │  CGI Extensions: ";
+    if (route.cgi_extensions.empty()) {
+        std::cout << "(none)";
+    } else {
+        for (size_t i = 0; i < route.cgi_extensions.size(); ++i) {
+            std::cout << route.cgi_extensions[i];
+            if (i < route.cgi_extensions.size() - 1) std::cout << ", ";
+        }
+    }
+    std::cout << std::endl;
+    
+    // Redirect
+    if (!route.redirect_url.empty()) {
+        std::cout << "  │  Redirect: " << route.redirect_url << " (code: " << route.redirect_code << ")" << std::endl;
+    } else {
+        std::cout << "  │  Redirect: (none)" << std::endl;
+    }
+    
+    // Max body size
+    std::cout << "  │  Max Body Size: " << formatFileSize(route.max_body_size) << std::endl;
+    std::cout << "  └─" << std::endl;
+}
+
+void Utils::printServerConfig(const ServerConfig& config) {
+    std::cout << "╔══════════════════════════════════════════════════════╗" << std::endl;
+    std::cout << "║              SERVER CONFIGURATION                    ║" << std::endl;
+    std::cout << "╚══════════════════════════════════════════════════════╝" << std::endl;
+    
+    std::cout << "Port: " << config.port << std::endl;
+    std::cout << "Server Name: " << (config.server_name.empty() ? "(not set)" : config.server_name) << std::endl;
+    std::cout << "Root: " << config.root << std::endl;
+    std::cout << "Index: " << config.index << std::endl;
+    std::cout << "Autoindex: " << (config.autoindex ? "enabled" : "disabled") << std::endl;
+    std::cout << "Max Body Size: " << formatFileSize(config.max_body_size) << std::endl;
+    
+    // Error pages
+    std::cout << "\nError Pages:" << std::endl;
+    if (config.error_pages.empty()) {
+        std::cout << "  (none configured)" << std::endl;
+    } else {
+        for (std::map<int, std::string>::const_iterator it = config.error_pages.begin(); 
+             it != config.error_pages.end(); ++it) {
+            std::cout << "  " << it->first << ": " << it->second << std::endl;
+        }
+    }
+    
+    // Routes
+    std::cout << "\nRoutes (" << config.routes.size() << "):" << std::endl;
+    if (config.routes.empty()) {
+        std::cout << "  (no routes configured)" << std::endl;
+    } else {
+        for (std::map<std::string, RouteConfig>::const_iterator it = config.routes.begin(); 
+             it != config.routes.end(); ++it) {
+            printRouteConfig(it->second, it->first);
+        }
+    }
+    std::cout << std::endl;
+}
+
+void Utils::printServerSocket(const ServerSocket& socket) {
+    std::cout << "╔══════════════════════════════════════════════════════╗" << std::endl;
+    std::cout << "║              SERVER SOCKET                           ║" << std::endl;
+    std::cout << "╚══════════════════════════════════════════════════════╝" << std::endl;
+    
+    std::cout << "File Descriptor: " << socket.fd << std::endl;
+    std::cout << "Port: " << socket.port << std::endl;
+    std::cout << "Config Pointer: " << (socket.config ? "valid" : "NULL") << std::endl;
+    
+    if (socket.config) {
+        std::cout << "\n--- Associated Config ---" << std::endl;
+        printServerConfig(*socket.config);
+    }
+    std::cout << std::endl;
+}
+
+void Utils::printClientConnection(const ClientConnection& client) {
+    std::cout << "╔══════════════════════════════════════════════════════╗" << std::endl;
+    std::cout << "║            CLIENT CONNECTION                         ║" << std::endl;
+    std::cout << "╚══════════════════════════════════════════════════════╝" << std::endl;
+    
+    std::cout << "File Descriptor: " << client.fd << std::endl;
+    std::cout << "Server Port: " << client.server_port << std::endl;
+    std::cout << "State: " << connectionStateToString(client.state) << std::endl;
+    std::cout << "Last Activity: " << client.last_activity << " (" << time(NULL) - client.last_activity << "s ago)" << std::endl;
+    std::cout << "Buffer Size: " << client.buffer.size() << " bytes" << std::endl;
+    std::cout << "Bytes Sent: " << client.bytes_sent << std::endl;
+    std::cout << "Keep-Alive: " << (client.keep_alive ? "yes" : "no") << std::endl;
+    
+    // Show buffer preview if not empty
+    if (!client.buffer.empty()) {
+        std::cout << "\nBuffer Preview (first 200 chars):" << std::endl;
+        std::string preview = client.buffer.substr(0, std::min(static_cast<size_t>(200), client.buffer.size()));
+        std::cout << "---" << std::endl;
+        std::cout << preview;
+        if (client.buffer.size() > 200) std::cout << "...";
+        std::cout << std::endl << "---" << std::endl;
+    }
+    std::cout << std::endl;
+}
+
+#ifdef BONUS
+void Utils::printSessionData(const SessionData& session) {
+    std::cout << "╔══════════════════════════════════════════════════════╗" << std::endl;
+    std::cout << "║              SESSION DATA                            ║" << std::endl;
+    std::cout << "╚══════════════════════════════════════════════════════╝" << std::endl;
+    
+    std::cout << "Session ID: " << session.session_id << std::endl;
+    std::cout << "Created At: " << session.created_at << std::endl;
+    std::cout << "Last Accessed: " << session.last_accessed << " (" << time(NULL) - session.last_accessed << "s ago)" << std::endl;
+    std::cout << "Expires At: " << session.expires_at << " (in " << session.expires_at - time(NULL) << "s)" << std::endl;
+    
+    std::cout << "\nSession Data (" << session.data.size() << " entries):" << std::endl;
+    if (session.data.empty()) {
+        std::cout << "  (no data)" << std::endl;
+    } else {
+        for (std::map<std::string, std::string>::const_iterator it = session.data.begin(); 
+             it != session.data.end(); ++it) {
+            std::cout << "  " << it->first << " = " << it->second << std::endl;
+        }
+    }
+    std::cout << std::endl;
+}
+#endif

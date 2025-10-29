@@ -15,7 +15,6 @@ bool HttpRequest::parseRequest(const std::string& data) {
     //size_t body_start = 0;
     size_t header_size = 0;
     
-    //std::cout << data;
     for (size_t i = 0; i < lines.size(); ++i) {
         const std::string& line = lines[i];
         
@@ -40,6 +39,13 @@ bool HttpRequest::parseRequest(const std::string& data) {
         }
         header_size += line.size();
     }
+
+#ifdef BONUS
+    // Parse cookies after headers are complete
+    if (_headers_complete) {
+        parseCookies();
+    }
+#endif
 
     // Read body if present
     if (_headers_complete && _content_length > 0) {
@@ -77,8 +83,9 @@ void HttpRequest::parseRequestLine(const std::string& line) {
         else
             parseUri(_uri);
     }
-    else
-        _status = HTTP_BAD_REQUEST;
+    // to avoid throwing error too early if the header is only partly sent, eg. (printf "GE" ; sleep 30 ; printf "T / HTTP/1.0\r\n\r\n") | nc localhost 8080
+/*     else
+        _status = HTTP_BAD_REQUEST; */
 }
 
 void HttpRequest::parseHeader(const std::string& line) {
@@ -141,6 +148,31 @@ void HttpRequest::parseQueryString(const std::string& query) {
     }
 }
 
+#ifdef BONUS
+/**
+ * Parses the Cookie header and stores cookies in the _cookies map
+ * Cookie format: "name1=value1; name2=value2; name3=value3"
+ */
+void HttpRequest::parseCookies() {
+    std::string cookie_header = getHeader("Cookie");
+    if (cookie_header.empty()) {
+        return;
+    }
+
+    // Split by semicolon to get individual cookies
+    std::vector<std::string> pairs = Utils::split(cookie_header, ';');
+    for (size_t i = 0; i < pairs.size(); ++i) {
+        std::string pair = Utils::trim(pairs[i]);
+        size_t eq_pos = pair.find('=');
+        if (eq_pos != std::string::npos) {
+            std::string name = Utils::trim(pair.substr(0, eq_pos));
+            std::string value = Utils::trim(pair.substr(eq_pos + 1));
+            _cookies[name] = value;
+        }
+    }
+}
+#endif
+
 void HttpRequest::reset() {
     _method = METHOD_UNKNOWN;
     _uri.clear();
@@ -149,6 +181,9 @@ void HttpRequest::reset() {
     _body.clear();
     _query_string.clear();
     _params.clear();
+#ifdef BONUS
+    _cookies.clear();
+#endif
     _headers_complete = false;
     _body_complete = false;
     _content_length = 0;
@@ -196,6 +231,28 @@ void HttpRequest::print() const {
     }
     std::cout << "Body length: " << _body.length() << std::endl;
 }
+
+#ifdef BONUS
+/**
+ * Gets a specific cookie value by name
+ *
+ * @param name The cookie name to look up
+ * @return The cookie value or empty string if not found
+ */
+std::string HttpRequest::getCookie(const std::string& name) const {
+    std::map<std::string, std::string>::const_iterator it = _cookies.find(name);
+    return (it != _cookies.end()) ? it->second : "";
+}
+
+/**
+ * Gets all cookies from the request
+ *
+ * @return Reference to the cookies map
+ */
+const std::map<std::string, std::string>& HttpRequest::getCookies() const {
+    return _cookies;
+}
+#endif
 
 std::vector<std::string> HttpRequest::splitIntoLines(const std::string& content) {
     std::vector<std::string> lines;

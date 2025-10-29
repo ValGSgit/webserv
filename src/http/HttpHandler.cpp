@@ -135,25 +135,134 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
         else if (!methodAllowed(uri, request.methodToString(), *config)) {
             response = HttpResponse::errorResponse(HTTP_METHOD_NOT_ALLOWED);
         }
-        // upload
-        else if (request.getMethod() == METHOD_POST) {
-            response = handleUpload(request, *config, client_fd);
+#ifdef BONUS
+        // Session API endpoints (MUST be checked BEFORE generic POST handler!)
+        else if (uri == "/api/session/login" && request.getMethod() == METHOD_POST) {
+            SessionManager* sm = _server_manager->getSessionManager();
+
+            // Parse username from request body
+            std::string username = "demo_user"; // default
+            std::string body = request.getBody();
+            
+            // Simple JSON parsing to extract username
+            size_t username_pos = body.find("\"username\"");
+            if (username_pos != std::string::npos) {
+                size_t colon_pos = body.find(":", username_pos);
+                if (colon_pos != std::string::npos) {
+                    size_t quote_start = body.find("\"", colon_pos);
+                    size_t quote_end = body.find("\"", quote_start + 1);
+                    if (quote_start != std::string::npos && quote_end != std::string::npos) {
+                        username = body.substr(quote_start + 1, quote_end - quote_start - 1);
+                        // Sanitize username (remove special chars, limit length)
+                        if (username.length() > 30) username = Utils::sanitizeFilename(username);
+                    }
+                }
+            }
+
+            // CHECK: Does this username already have an active session? (OPTION 3)
+            std::string existing_session_id = sm->getSessionByUsername(username);
+            
+            if (!existing_session_id.empty()) {
+                // User is already logged in - REJECT the new login
+                response.setStatus(409); // HTTP 409 Conflict
+                response.setContentType("application/json");
+                response.setBody("{\"success\": false, \"message\": \"User '" + username + "' is already logged in. Please logout first.\"}");
+            } else {
+                // No active session - proceed with login
+                std::string session_id = sm->createSession();
+
+                // Store data in the session
+                SessionData* session = sm->getSession(session_id);
+                if (session) {
+                    session->data["username"] = username;
+                    session->data["authenticated"] = "true";
+                    session->data["role"] = "user";
+                    
+                    // Register username with this session
+                    sm->registerUsername(session_id, username);
+                }
+
+                response.setStatus(HTTP_OK);
+                response.setContentType("application/json");
+                response.setCookie("SESSIONID", session_id, 3600);  // 1 hour expiry
+                response.setBody("{\"success\": true, \"message\": \"Login successful\", \"session_id\": \"" + session_id + "\", \"username\": \"" + username + "\"}");
+            }
         }
-        // delete
-        else if (request.getMethod() == METHOD_DELETE) {
-            response = handleDelete(request, *config, client_fd);
+        else if (uri == "/api/session/profile" && request.getMethod() == METHOD_GET) {
+            // Get session data (protected endpoint)
+            std::string session_id = request.getCookie("SESSIONID");
+
+            if (session_id.empty()) {
+                response.setStatus(HTTP_UNAUTHORIZED);
+                response.setContentType("application/json");
+                response.setBody("{\"success\": false, \"message\": \"Not authenticated\"}");
+            } else {
+                SessionManager* sm = _server_manager->getSessionManager();
+                SessionData* session = sm->getSession(session_id);
+
+                if (!session || session->data["authenticated"] != "true") {
+                    response.setStatus(HTTP_UNAUTHORIZED);
+                    response.setContentType("application/json");
+                    response.setBody("{\"success\": false, \"message\": \"Invalid or expired session\"}");
+                } else {
+                    // Return user profile
+                    std::string username = session->data["username"];
+                    std::string role = session->data["role"];
+                    response.setStatus(HTTP_OK);
+                    response.setContentType("application/json");
+                    response.setBody("{\"success\": true, \"username\": \"" + username + "\", \"role\": \"" + role + "\"}");
+                }
+            }
         }
-        // Route handling
-        else if (uri == "/") {
-            std::string index_path = config->root + "/" + config->index;
-            response = HttpResponse::fileResponse(index_path);
-        } else if (uri.find("/cgi-bin/") == 0) {
+        else if (uri == "/api/session/logout" && request.getMethod() == METHOD_POST) {
+            // Destroy session
+            std::string session_id = request.getCookie("SESSIONID");
+
+            if (!session_id.empty()) {
+                SessionManager* sm = _server_manager->getSessionManager();
+                sm->destroySession(session_id);
+            }
+
+            response.setStatus(HTTP_OK);
+            response.setContentType("application/json");
+            response.clearCookie("SESSIONID");
+            response.setBody("{\"success\": true, \"message\": \"Logged out successfully\"}");
+        }
+        else if (uri == "/api/session/info" && request.getMethod() == METHOD_GET) {
+            // Get session manager stats
+            SessionManager* sm = _server_manager->getSessionManager();
+            size_t active_sessions = sm->getActiveSessionCount();
+
+            response.setStatus(HTTP_OK);
+            response.setContentType("application/json");
+            response.setBody("{\"active_sessions\": " + Utils::toString(active_sessions) + "}");
+        }
+#endif
+        // API test endpoint
+        else if (uri == "/api/test") {
+            response = handleJsonApi(request);
+        }
+        // CGI handling
+        else if (uri.find("/cgi-bin/") == 0) {
             CgiHandler cgi;
             std::string script_path = config->root + uri;
             response = cgi.executeCgi(request, script_path);
-        } else if (uri == "/api/test") {
-            response = handleJsonApi(request);
-        } else if (uri.find("/static/") == 0) {
+        }
+        // Root index
+        else if (uri == "/") {
+            std::string index_path = config->root + "/" + config->index;
+            response = HttpResponse::fileResponse(index_path);
+        }
+        // Generic POST handler for uploads (after all API endpoints!)
+        else if (request.getMethod() == METHOD_POST) {
+            response = handleUpload(request, *config, client_fd);
+        }
+        // Generic DELETE handler
+        else if (request.getMethod() == METHOD_DELETE) {
+            response = handleDelete(request, *config, client_fd);
+        }
+        // Static files
+        else if (uri.find("/static/") == 0) {
             std::string filepath = config->root + uri;
             response = HttpResponse::fileResponse(filepath);
         } else {

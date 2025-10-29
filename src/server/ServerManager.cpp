@@ -185,7 +185,11 @@ void ServerManager::run() {
             break;
         }
         
-        // Process events
+        //printServerStatus(); //Uncomment if you want to see server status on each loop
+        // if (_clients.size() > 0) {
+        //     printAllClients();
+        // }
+        // Uncomment that if statement to see all clients data.
         for (int i = 0; i < nfds; i++) {
             int fd = _events[i].data.fd;
             
@@ -213,10 +217,13 @@ void ServerManager::run() {
         time_t now = time(NULL);
         if (now - _last_cleanup >= CLEANUP_INTERVAL) {
             cleanupTimeouts();
+#ifdef BONUS
+            _session_manager.cleanExpiredSessions();
+#endif
             _last_cleanup = now;
         }
     }
-    
+
     std::cout << "\n🛑 Server shutting down..." << std::endl;
 }
 
@@ -320,4 +327,88 @@ void ServerManager::logError(const std::string& operation, const std::string& de
         std::cerr << ": " << details;
     }
     std::cerr << std::endl;
+}
+
+// Debug utilities
+
+void ServerManager::printServerStatus() const {
+    std::cout << "╔══════════════════════════════════════════════════════╗" << std::endl;
+    std::cout << "║            SERVER MANAGER STATUS                     ║" << std::endl;
+    std::cout << "╚══════════════════════════════════════════════════════╝" << std::endl;
+    
+    std::cout << "Running: " << (_running ? "yes" : "no") << std::endl;
+    std::cout << "Epoll FD: " << _epoll_fd << std::endl;
+    std::cout << "Server Sockets: " << _server_sockets.size() << std::endl;
+    std::cout << "Active Clients: " << _clients.size() << std::endl;
+    std::cout << "Server Configs: " << _server_configs.size() << std::endl;
+    std::cout << "Last Cleanup: " << _last_cleanup << " (" << time(NULL) - _last_cleanup << "s ago)" << std::endl;
+    std::cout << "HTTP Handler: " << (_http_handler ? "initialized" : "NULL") << std::endl;
+    
+#ifdef BONUS
+    std::cout << "Active Sessions: " << _session_manager.getActiveSessionCount() << std::endl;
+#endif
+    
+    std::cout << "\n--- Server Ports ---" << std::endl;
+    for (size_t i = 0; i < _server_sockets.size(); ++i) {
+        std::cout << "  Port " << _server_sockets[i].port 
+                  << " (fd: " << _server_sockets[i].fd << ")" << std::endl;
+    }
+    
+    std::cout << "\n--- Client States ---" << std::endl;
+    std::map<ConnectionState, int> state_counts;
+    for (std::map<int, ClientConnection>::const_iterator it = _clients.begin();
+         it != _clients.end(); ++it) {
+        state_counts[it->second.state]++;
+    }
+    
+    if (state_counts.empty()) {
+        std::cout << "  (no active clients)" << std::endl;
+    } else {
+        if (state_counts[STATE_READING_HEADERS] > 0)
+            std::cout << "  Reading Headers: " << state_counts[STATE_READING_HEADERS] << std::endl;
+        if (state_counts[STATE_READING_BODY] > 0)
+            std::cout << "  Reading Body: " << state_counts[STATE_READING_BODY] << std::endl;
+        if (state_counts[STATE_PROCESSING] > 0)
+            std::cout << "  Processing: " << state_counts[STATE_PROCESSING] << std::endl;
+        if (state_counts[STATE_WRITING_RESPONSE] > 0)
+            std::cout << "  Writing Response: " << state_counts[STATE_WRITING_RESPONSE] << std::endl;
+        if (state_counts[STATE_DONE] > 0)
+            std::cout << "  Done: " << state_counts[STATE_DONE] << std::endl;
+        if (state_counts[STATE_ERROR] > 0)
+            std::cout << "  Error: " << state_counts[STATE_ERROR] << std::endl;
+    }
+    std::cout << std::endl;
+}
+
+void ServerManager::printAllClients() const {
+    std::cout << "╔══════════════════════════════════════════════════════╗" << std::endl;
+    std::cout << "║            ALL CLIENT CONNECTIONS                    ║" << std::endl;
+    std::cout << "╚══════════════════════════════════════════════════════╝" << std::endl;
+    std::cout << "Total Clients: " << _clients.size() << std::endl << std::endl;
+    
+    if (_clients.empty()) {
+        std::cout << "(no active clients)" << std::endl << std::endl;
+        return;
+    }
+    
+    for (std::map<int, ClientConnection>::const_iterator it = _clients.begin();
+         it != _clients.end(); ++it) {
+        Utils::printClientConnection(it->second);
+    }
+}
+
+void ServerManager::printServerSockets() const {
+    std::cout << "╔══════════════════════════════════════════════════════╗" << std::endl;
+    std::cout << "║            ALL SERVER SOCKETS                        ║" << std::endl;
+    std::cout << "╚══════════════════════════════════════════════════════╝" << std::endl;
+    std::cout << "Total Server Sockets: " << _server_sockets.size() << std::endl << std::endl;
+    
+    if (_server_sockets.empty()) {
+        std::cout << "(no server sockets)" << std::endl << std::endl;
+        return;
+    }
+    
+    for (size_t i = 0; i < _server_sockets.size(); ++i) {
+        Utils::printServerSocket(_server_sockets[i]);
+    }
 }
