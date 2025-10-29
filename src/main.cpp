@@ -42,6 +42,9 @@ int main(int argc, char **argv) {
         return 1;
     }
     
+    manager.printServerStatus();
+    manager.printServerSockets();
+    
     manager.run();
     
     g_server_manager = NULL;
