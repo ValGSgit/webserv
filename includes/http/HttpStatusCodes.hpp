@@ -6,6 +6,7 @@
 #define MAX_URI 2000
 #define MAX_HEADER_SIZE 8000
 #define MAX_FIELD_SIZE 4000 // that means also for cookies
+#define UPLOAD_TIMEOUT 5
 // #define MAX_FILE_SIZE 10000000 // 10 MB
 
 // 1xx Informational responses

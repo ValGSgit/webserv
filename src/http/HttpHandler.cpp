@@ -392,47 +392,69 @@ HttpResponse HttpHandler::handleUpload(const HttpRequest& request, const ServerC
         _raw_buffer = &_raw_buffer[needle];
         temp =_raw_buffer;
     }
+    size_t total_bytes_read = _raw_bytes_read - 2; // -2 for the extra \r\n
     needle = temp.find("\r\n\r\n");
     // needle is the starting index of the file
     needle += 4;
     _raw_bytes_read -= needle;
+    //start of the file
     // save also file info
     if (boundary != "")
         _file_info = temp.substr(0, needle);
-    size_t total_bytes_read = 0;
+    size_t total_bytes_write = 0;
     // if the end boundary is already in the raw_buffer
+    size_t bytes_write;
+    bytes_write = _raw_bytes_read;
     if (boundary != "" && check_boundary(&_raw_buffer[needle], boundary_end.c_str(), _raw_bytes_read))
-            _raw_bytes_read = check_boundary(&_raw_buffer[needle], boundary_end.c_str(), _raw_bytes_read);
+            bytes_write = check_boundary(&_raw_buffer[needle], boundary_end.c_str(), _raw_bytes_read);
     // chrome send the body later, dont write the raw_buffer
     if (body == "")
-        _raw_bytes_read = 0;
-    if (Utils::writeFile(filepath, &_raw_buffer[needle], _raw_bytes_read)) {
-        total_bytes_read += _raw_bytes_read;
+        bytes_write = 0;
+    if (Utils::writeFile(filepath, &_raw_buffer[needle], bytes_write)) {
+        total_bytes_write += bytes_write;
         char buffer[BUFFER_SIZE];
         int bytes_read = 0;
+        time_t begin = time(NULL);
+        //std::cout << "begin = " << begin << "\n";
         // if there are things left in fd, continue to read the body and write to file
-        while ((bytes_read = read(client_fd, buffer, BUFFER_SIZE)) > 0) {
+        while ((bytes_read = read(client_fd, buffer, BUFFER_SIZE)) >= 0 && total_bytes_read < request.getContentLength()) {
+            //timeout?
+            time_t now = time(NULL);
+            //sleep(1);
+            //std::cout << "now = " << now << "\n";
+            if (now - begin > UPLOAD_TIMEOUT) // default 5 second
+            {
+                std::remove(filepath.c_str());
+                // if you use HTTP_REQUEST_TIMEOUT 408 the browser will just send it again and again?
+                return HttpResponse::errorResponse(HTTP_INTERNAL_SERVER_ERROR, "Timeout");
+            }
             //get rid of the end boundary
-            if (boundary != "" && check_boundary(buffer, boundary_end.c_str(), bytes_read))
-                bytes_read = check_boundary(buffer, boundary_end.c_str(), bytes_read);
-            if (!Utils::writeFile(filepath, buffer, bytes_read))
-                return HttpResponse::errorResponse(HTTP_INTERNAL_SERVER_ERROR, "Failed to save file");
             total_bytes_read += bytes_read;
+            bytes_write = bytes_read;
+            if (boundary != "" && check_boundary(buffer, boundary_end.c_str(), bytes_read))
+                bytes_write = check_boundary(buffer, boundary_end.c_str(), bytes_read);
+            if (!Utils::writeFile(filepath, buffer, bytes_write))
+            {
+                std::remove(filepath.c_str());
+                return HttpResponse::errorResponse(HTTP_INTERNAL_SERVER_ERROR, "Failed to save file");
+            }
+            total_bytes_write += bytes_write;
             
             // open it to handle individual file size limit
-/*             if (total_bytes_read > MAX_FILE_SIZE) // 10MB default
+/*             if (total_bytes_write > MAX_FILE_SIZE) // 10MB default
             {
                 // delete the file!
                 std::remove(filepath.c_str());
                 return HttpResponse::errorResponse(HTTP_PAYLOAD_TOO_LARGE, "File is too big");
             } */
         }
-        if (total_bytes_read == 0)
+        if (total_bytes_write == 0)
         {
             std::remove(filepath.c_str());
             return HttpResponse::errorResponse(HTTP_BAD_REQUEST, "No file data");
         }
 
+        //std::cout << total_bytes_read << " = " << request.getContentLength() << "\n";
         return HttpResponse::messageResponse(HTTP_CREATED, "Upload Successful", "File uploaded successfully!");//response;
     } else {
         return HttpResponse::errorResponse(HTTP_INTERNAL_SERVER_ERROR, "Failed to save file");
