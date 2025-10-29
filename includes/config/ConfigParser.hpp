@@ -15,6 +15,7 @@ class ConfigParser {
         std::vector<std::string> split(const std::string& str, char delimiter);
         bool isValidMethod(const std::string& method);
         bool validateBasicSyntax(const std::vector<std::string>& lines);
+        void applyInheritanceAndNormalize(ServerConfig& server);
 
     public:
         ConfigParser();

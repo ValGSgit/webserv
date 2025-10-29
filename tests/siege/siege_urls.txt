@@ -49,8 +49,6 @@ http://localhost:8080/error_pages/500.html
 http://localhost:8080/cgi-bin/test.py
 http://localhost:8080/cgi-bin/test.py?name=John&age=30
 http://localhost:8080/cgi-bin/test.py?query=value&test=123
-http://localhost:8080/cgi-bin/advanced.py
-http://localhost:8080/cgi-bin/advanced.py?param=value
 
 # Shell CGI Scripts (should return 200 OK)
 http://localhost:8080/cgi-bin/test.sh

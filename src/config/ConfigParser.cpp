@@ -197,6 +197,10 @@ size_t ConfigParser::parseServerBlock(const std::vector<std::string>& lines, siz
         server.routes["/"] = default_route;
     }
     
+    // IMPORTANT: Apply inheritance and normalize all paths
+    // This ensures routes inherit from server config and have proper defaults
+    applyInheritanceAndNormalize(server);
+    
     return i;
 }
 
@@ -448,6 +452,60 @@ bool ConfigParser::isValidMethod(const std::string& method) {
     
     return (upper == "GET" || upper == "POST" || upper == "DELETE" || 
             upper == "PUT" || upper == "HEAD");
+}
+
+// Apply inheritance from server config to all routes and normalize paths
+// This implements Nginx-style inheritance:
+// 1. Routes inherit root, index, autoindex, max_body_size from server if not specified
+// 2. All paths are normalized (no trailing slashes in roots)
+// 3. After this, HttpHandler can just use route.root_directory directly
+void ConfigParser::applyInheritanceAndNormalize(ServerConfig& server) {
+    // Set server-level defaults if not specified
+    if (server.root.empty()) {
+        server.root = "./www";
+    }
+    if (server.index.empty()) {
+        server.index = "index.html";
+    }
+    if (server.max_body_size == 0) {
+        server.max_body_size = 1048576; // 1MB default
+    }
+    
+    // Normalize server root (remove trailing slash)
+    if (!server.root.empty() && server.root[server.root.length() - 1] == '/') {
+        server.root = server.root.substr(0, server.root.length() - 1);
+    }
+    
+    // Apply inheritance to each route
+    for (std::map<std::string, RouteConfig>::iterator it = server.routes.begin(); 
+         it != server.routes.end(); ++it) {
+        RouteConfig& route = it->second;
+        
+        // Inherit root from server if not specified
+        if (route.root_directory.empty()) {
+            route.root_directory = server.root;
+        }
+        
+        // Normalize route root (remove trailing slash)
+        if (!route.root_directory.empty() && 
+            route.root_directory[route.root_directory.length() - 1] == '/') {
+            route.root_directory = route.root_directory.substr(0, route.root_directory.length() - 1);
+        }
+        
+        // Inherit index from server if not specified
+        if (route.index_file.empty()) {
+            route.index_file = server.index;
+        }
+        
+        // Inherit max_body_size from server if not specified (or use route-specific)
+        if (route.max_body_size == 0) {
+            route.max_body_size = server.max_body_size;
+        }
+        
+        // Note: directory_listing (autoindex) defaults to false in RouteConfig constructor
+        // If it wasn't explicitly set in location block, it stays false
+        // This matches Nginx behavior where autoindex is off by default
+    }
 }
 
 void ConfigParser::printConfig() const {
