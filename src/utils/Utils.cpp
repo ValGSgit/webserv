@@ -1195,13 +1195,14 @@ bool Utils::isAllowedUploadExtension(const std::string& filename) {
         ".mp3", ".mp4", ".avi", ".mov", ".wav", ".css", ".json",
         NULL
     };
-    
+
     std::string ext = getFileExtension(filename);
     ext = toLowerCase(ext);
     
+    //std::cout << "ext = " << ext << "\n";
     // Empty extension is not allowed
     if (ext.empty()) {
-        return false;
+        return true;
     }
     
     for (int i = 0; allowed[i] != NULL; ++i) {

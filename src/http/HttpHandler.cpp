@@ -248,11 +248,6 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
             std::string script_path = config->root + uri;
             response = cgi.executeCgi(request, script_path);
         }
-        // Root index
-        else if (uri == "/") {
-            std::string index_path = config->root + "/" + config->index;
-            response = HttpResponse::fileResponse(index_path);
-        }
         // Generic POST handler for uploads (after all API endpoints!)
         else if (request.getMethod() == METHOD_POST) {
             response = handleUpload(request, *config, client_fd);
@@ -260,6 +255,11 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
         // Generic DELETE handler
         else if (request.getMethod() == METHOD_DELETE) {
             response = handleDelete(request, *config, client_fd);
+        }
+        // Root index
+        else if (uri == "/") {
+            std::string index_path = config->root + "/" + config->index;
+            response = HttpResponse::fileResponse(index_path);
         }
         // Static files
         else if (uri.find("/static/") == 0) {
@@ -346,7 +346,7 @@ HttpResponse HttpHandler::handleUpload(const HttpRequest& request, const ServerC
     // Find upload path from config
     try
     {
-        const RouteConfig &route = config.routes.at("/upload");
+        const RouteConfig &route = config.routes.at(request.getUri());
         if (route.upload_path != "")
             upload_dir = route.upload_path + "/";
     }
@@ -368,11 +368,11 @@ HttpResponse HttpHandler::handleUpload(const HttpRequest& request, const ServerC
     if (!Utils::isSafePath(filename)) {
         return HttpResponse::errorResponse(HTTP_FORBIDDEN, "Invalid filename");
     }
-    
-    // SECURITY FIX: Validate file extension
+    //std::cout << "filename = " << filename << "\n";
+/*     // SECURITY FIX: Validate file extension
     if (!Utils::isAllowedUploadExtension(filename)) {
         return HttpResponse::errorResponse(HTTP_FORBIDDEN, "File type not allowed");
-    }
+    } */
     
     std::string filepath = upload_dir + filename;
     // if file already exist, add suffix
