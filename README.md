@@ -663,25 +663,6 @@ All mandatory requirements have been implemented:
 
 ---
 
-## 📸 Screenshots
-
-### 🏠 Home Page
-The main landing page showcasing the server capabilities.
-
-### 🐍 CGI Demo
-Interactive CGI script execution with environment variable display.
-
-### 📤 File Upload
-User-friendly file upload interface with drag-and-drop support.
-
-### 📂 Directory Browser
-Clean directory listing with file sizes and modification dates.
-
-### ❌ Error Pages
-Custom styled error pages for 404, 500, and other HTTP errors.
-
----
-
 ## 🤝 Contributing
 
 While this is primarily an educational project, contributions are welcome!
