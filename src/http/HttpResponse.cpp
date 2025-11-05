@@ -227,7 +227,7 @@ HttpResponse HttpResponse::redirectResponse(const std::string& location, int sta
     HttpResponse response;
     response.setStatus(status_code);
     response.setHeader("Location", location);
-    response.setBody("");
+    response.setBody("<!DOCTYPE html><html><head><title>Redirect</title></head><body><h1>Redirecting...</h1></body></html>");
     return response;
 }
 

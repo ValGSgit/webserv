@@ -1222,8 +1222,7 @@ std::string Utils::httpMethodToString(HttpMethod method) {
         case METHOD_POST: return "POST";
         case METHOD_PUT: return "PUT";
         case METHOD_DELETE: return "DELETE";
-        case METHOD_UNKNOWN: return "UNKNOWN";
-        default: return "INVALID";
+        default: return "UNKNOWN";
     }
 }
 
@@ -1235,7 +1234,7 @@ std::string Utils::connectionStateToString(ConnectionState state) {
         case STATE_WRITING_RESPONSE: return "WRITING_RESPONSE";
         case STATE_DONE: return "DONE";
         case STATE_ERROR: return "ERROR";
-        default: return "INVALID";
+        default: return "UNKNOWN";
     }
 }
 

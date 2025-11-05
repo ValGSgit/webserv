@@ -108,9 +108,14 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
     std::cout << "Processing " << request.methodToString() << " " << request.getUri() << std::endl;
     
     std::string uri = request.getUri();
-    
+    std::cout << "Requested URI: " << uri << std::endl;
+    const RouteConfig* route = findMatchingRoute(uri, *config);
     // check max body size
-    if (request.getContentLength() > config->max_body_size)
+    size_t max_body_size = config->max_body_size;
+    if (route && route->max_body_size > 0)
+        max_body_size = route->max_body_size;
+    //std::cout << "Body size: " << request.getContentLength() << " / " << max_body_size << std::endl;
+    if (request.getContentLength() > max_body_size)
         response = HttpResponse::errorResponse(HTTP_PAYLOAD_TOO_LARGE);
     // Check for client request errors
     else if (request.getStatus()) {
@@ -118,7 +123,7 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
     }
     // Check for configured redirects in routes FIRST
     else {
-        const RouteConfig* route = findMatchingRoute(uri, *config);
+        //const RouteConfig* route = findMatchingRoute(uri, *config); // Moved up
         if (route && !route->redirect_url.empty() && route->redirect_code > 0) {
             // This route has a redirect configured
             std::string redirect_location = route->redirect_url;
@@ -339,7 +344,6 @@ HttpResponse HttpHandler::handleDelete(const HttpRequest& request, const ServerC
 
 HttpResponse HttpHandler::handleUpload(const HttpRequest& request, const ServerConfig& config, int client_fd) {
     std::cout << "Handling file upload" << std::endl;
-
     const std::string& body = request.getBody();
     // default upload path
     std::string upload_dir = config.root + "/uploads/";
@@ -401,6 +405,8 @@ HttpResponse HttpHandler::handleUpload(const HttpRequest& request, const ServerC
     // save also file info
     if (boundary != "")
         _file_info = temp.substr(0, needle);
+    else
+        total_bytes_read = _raw_bytes_read;
     size_t total_bytes_write = 0;
     // if the end boundary is already in the raw_buffer
     size_t bytes_write;
@@ -417,8 +423,14 @@ HttpResponse HttpHandler::handleUpload(const HttpRequest& request, const ServerC
         time_t begin = time(NULL);
         //std::cout << "begin = " << begin << "\n";
         // if there are things left in fd, continue to read the body and write to file
-        while ((bytes_read = read(client_fd, buffer, BUFFER_SIZE)) >= 0 && total_bytes_read < request.getContentLength()) {
+        while (total_bytes_read < request.getContentLength()) {
             //timeout?
+            bytes_read = read(client_fd, buffer, BUFFER_SIZE);
+            if (bytes_read < 0)
+            {
+                //std::cout << bytes_read << " = bytes_read\n";
+                continue ;
+            }
             time_t now = time(NULL);
             //sleep(1);
             //std::cout << "now = " << now << "\n";
@@ -440,18 +452,23 @@ HttpResponse HttpHandler::handleUpload(const HttpRequest& request, const ServerC
             }
             total_bytes_write += bytes_write;
             
-            // open it to handle individual file size limit
-/*             if (total_bytes_write > MAX_FILE_SIZE) // 10MB default
+/*             // open it to handle individual file size limit
+            if (total_bytes_read > config.max_body_size)
             {
                 // delete the file!
                 std::remove(filepath.c_str());
                 return HttpResponse::errorResponse(HTTP_PAYLOAD_TOO_LARGE, "File is too big");
             } */
+
         }
-        if (total_bytes_write == 0)
+        // std::cout << errno << " = errno after read\n";
+        // std::cout << bytes_read << " = bytes_read\n";
+        //std::cout << total_bytes_write << " = total_bytes_write\n";
+        if (total_bytes_write == 0 || total_bytes_read != request.getContentLength())
         {
             std::remove(filepath.c_str());
-            return HttpResponse::errorResponse(HTTP_BAD_REQUEST, "No file data");
+            //std::cout << total_bytes_read << " = total_bytes_read\n" << request.getContentLength() << " = request.getContentLength()\n";
+            return HttpResponse::errorResponse(HTTP_BAD_REQUEST, "Error");
         }
 
         //std::cout << total_bytes_read << " = " << request.getContentLength() << "\n";
@@ -523,7 +540,9 @@ void HttpHandler::handleRead(int client_fd) {
 void HttpHandler::handleWrite(int client_fd) {
     std::string& buffer = _response_buffers[client_fd];
     size_t& offset = _response_offsets[client_fd];
-        
+    
+    //std::cout<<"$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"<<std::endl;
+    //std::cout<<buffer<<std::endl;
     if (offset >= buffer.length()) {
         closeConnection(client_fd);
         return;

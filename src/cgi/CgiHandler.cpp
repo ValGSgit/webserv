@@ -72,7 +72,7 @@ HttpResponse CgiHandler::executeCgi(const HttpRequest& request, const std::strin
         
         // If we get here, exec failed
         perror("execve");
-        exit(1);
+        std::exit(1);
     }
 
     close(stdin_pipe[0]); 

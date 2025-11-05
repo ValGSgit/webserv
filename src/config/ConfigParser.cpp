@@ -92,6 +92,9 @@ size_t ConfigParser::parseServerBlock(const std::vector<std::string>& lines, siz
                     return start_index; // Return original index to indicate failure
                 }
                 server.routes[location] = route;
+                if (route.max_body_size == 0) {
+                    route.max_body_size = server.max_body_size; // Inherit from server if not set
+                }
                 continue;
             }
         }
@@ -209,6 +212,7 @@ size_t ConfigParser::parseLocationBlock(const std::vector<std::string>& lines, s
     size_t i = start_index;
     size_t max_iterations = lines.size(); // Safety limit
     size_t iterations = 0;
+    route.max_body_size = 0; // 0 means inherit from server by default
 
     while (i < lines.size() && brace_count > 0 && iterations < max_iterations) {
         iterations++;

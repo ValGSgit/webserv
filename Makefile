@@ -35,8 +35,6 @@ VALGRIND_FLAGS = --leak-check=full \
                  --show-reachable=yes \
                  --error-limit=no \
                  --keep-debuginfo=yes \
-                 --read-var-info=yes \
-                 --verbose
 
 # Extra flags for extreme checking
 VALGRIND_EXTREME_FLAGS = $(VALGRIND_FLAGS) \

@@ -10,14 +10,15 @@ HttpRequest::~HttpRequest() {}
 
 bool HttpRequest::parseRequest(const std::string& data) {
     // Manual parsing without stringstream/getline
+    //std::cout << data << std::endl;
     std::vector<std::string> lines = splitIntoLines(data);
     bool first_line = true;
     //size_t body_start = 0;
     size_t header_size = 0;
-    
+    //std::cout << "####################------------------------------" << std::endl;
     for (size_t i = 0; i < lines.size(); ++i) {
         const std::string& line = lines[i];
-        
+        //std::cout << line << std::endl;
         if (header_size > MAX_HEADER_SIZE || line.size() > MAX_FIELD_SIZE)
             _status = HTTP_REQUEST_HEADER_FIELDS_TOO_LARGE;
         //if (_status) // save some resources
