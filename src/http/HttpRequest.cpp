@@ -77,6 +77,10 @@ bool HttpRequest::parseRequest(const std::string& data) {
     
     // POST with Content-Length: 0 is valid (empty body)
     if (_headers_complete && _method == METHOD_POST && _content_length == 0) {
+        // if content-length not found
+        if (_headers.find("content-length") == _headers.end()) {
+            _status = HTTP_LENGTH_REQUIRED;
+        }
         _body_complete = true;
     }
     
