@@ -1,0 +1,175 @@
+HTTP STATUS CODE TEST RESULTS
+================================================================================
+
+Timestamp: 2025-11-03 04:17:08
+Total Tests: 141
+Passed: 106
+Failed: 35
+Skipped: 0
+
+DETAILED RESULTS:
+--------------------------------------------------------------------------------
+
+
+[2XX Success]
+PASS   | GET valid resource                                           | Expected: 200 Got: 200
+PASS   | GET index.html                                               | Expected: 200 Got: 200
+PASS   | GET with query string                                        | Expected: 200 Got: 200
+PASS   | GET with multiple query params                               | Expected: 200 Got: 200
+PASS   | GET with fragment                                            | Expected: 200 Got: 200
+PASS   | GET HTML file                                                | Expected: 200 Got: 200
+PASS   | GET with Accept header                                       | Expected: 200 Got: 200
+PASS   | GET with multiple headers                                    | Expected: 200 Got: 200
+PASS   | GET with Connection: close                                   | Expected: 200 Got: 200
+PASS   | GET with Connection: keep-alive                              | Expected: 200 Got: 200
+PASS   | POST to create resource                                      | Expected: 201 Got: 201
+PASS   | POST to uploads with data                                    | Expected: 201 Got: 201
+FAIL   | DELETE existing resource                                     | Expected: 204 Got: 404
+
+[3XX Redirection]
+PASS   | GET redirect endpoint (301)                                  | Expected: 301 Got: 301
+PASS   | GET old-page redirect                                        | Expected: 301 Got: 301
+PASS   | GET github redirect                                          | Expected: 301 Got: 301
+FAIL   | GET temporary redirect                                       | Expected: 302 Got: 404
+PASS   | GET directory without trailing slash                         | Expected: 301 Got: 301
+
+[4XX Client Errors]
+PASS   | Malformed request line                                       | Expected: 400 Got: 400
+PASS   | Missing HTTP version                                         | Expected: 400 Got: 400
+PASS   | Invalid HTTP version                                         | Expected: 400 Got: 400
+PASS   | Missing Host header                                          | Expected: 400 Got: 400
+PASS   | Invalid header format (no colon)                             | Expected: 400 Got: 400
+FAIL   | Request with null byte in header                             | Expected: 400 Got:   0 | No response or error: 
+PASS   | Spaces in request method                                     | Expected: 400 Got: 400
+PASS   | Missing space after method                                   | Expected: 400 Got: 400
+PASS   | Tab instead of space in request line                         | Expected: 400 Got: 400
+FAIL   | Content-Length mismatch (too short)                          | Expected: 400 Got: 201
+FAIL   | Access forbidden directory                                   | Expected: 403 Got: 404
+FAIL   | Access restricted resource                                   | Expected: 403 Got: 200
+PASS   | Path traversal attempt                                       | Expected: 403 Got: 403
+PASS   | Path traversal with encoded dots                             | Expected: 403 Got: 403
+FAIL   | Access .htaccess file                                        | Expected: 403 Got: 404
+FAIL   | Access hidden file                                           | Expected: 403 Got: 404
+PASS   | GET nonexistent file                                         | Expected: 404 Got: 404
+PASS   | GET invalid path                                             | Expected: 404 Got: 404
+PASS   | GET with random UUID path                                    | Expected: 404 Got: 404
+PASS   | GET nonexistent API endpoint                                 | Expected: 404 Got: 404
+PASS   | GET file with wrong extension                                | Expected: 404 Got: 404
+PASS   | GET uppercase filename                                       | Expected: 404 Got: 404
+FAIL   | POST to nonexistent resource                                 | Expected: 404 Got: 405
+PASS   | DELETE nonexistent file                                      | Expected: 404 Got: 404
+PASS   | POST to GET-only endpoint                                    | Expected: 405 Got: 405
+PASS   | DELETE on GET-only resource                                  | Expected: 405 Got: 405
+PASS   | PUT request                                                  | Expected: 405 Got: 405
+FAIL   | PATCH request                                                | Expected: 405 Got: 501
+FAIL   | HEAD request to POST-only endpoint                           | Expected: 405 Got: 501
+FAIL   | OPTIONS request                                              | Expected: 405 Got: 501
+FAIL   | TRACE request                                                | Expected: 405 Got: 501
+FAIL   | CONNECT request                                              | Expected: 405 Got: 501
+FAIL   | POST duplicate resource                                      | Expected: 409 Got: 201
+PASS   | POST without Content-Length                                  | Expected: 411 Got: 411
+FAIL   | POST with Transfer-Encoding instead of Content-Length        | Expected: 411 Got: 400
+FAIL   | POST with huge body                                          | Expected: 413 Got:   0 | No response or error: [Errno 104] Connection reset by peer
+PASS   | POST with Content-Length exceeding limit                     | Expected: 413 Got: 413
+PASS   | GET with extremely long URI                                  | Expected: 414 Got: 414
+PASS   | GET with very long path                                      | Expected: 414 Got: 414
+FAIL   | POST with unsupported Content-Type                           | Expected: 415 Got: 201
+PASS   | GET with huge header                                         | Expected: 431 Got: 431
+FAIL   | GET with too many headers                                    | Expected: 431 Got: 200
+
+[5XX Server Errors]
+FAIL   | GET with malformed CGI script                                | Expected: 500 Got: 404
+PASS   | Unknown HTTP method                                          | Expected: 501 Got: 501
+PASS   | PROPFIND method                                              | Expected: 501 Got: 501
+PASS   | LOCK method                                                  | Expected: 501 Got: 501
+PASS   | UNLOCK method                                                | Expected: 501 Got: 501
+FAIL   | HTTP/0.9 request                                             | Expected: 505 Got: 400
+FAIL   | HTTP/2.0 request                                             | Expected: 505 Got: 400
+FAIL   | HTTP/3.0 request                                             | Expected: 505 Got: 400
+
+[Edge Cases]
+PASS   | GET with URL-encoded spaces                                  | Expected: 404 Got: 404
+FAIL   | GET with encoded slashes                                     | Expected: 200 Got: 404
+PASS   | GET with plus signs                                          | Expected: 404 Got: 404
+PASS   | GET with encoded special chars                               | Expected: 404 Got: 404
+PASS   | GET method lowercase                                         | Expected: 400 Got: 400
+PASS   | POST method lowercase                                        | Expected: 400 Got: 400
+PASS   | GET with lowercase host header                               | Expected: 200 Got: 200
+PASS   | GET with mixed case headers                                  | Expected: 200 Got: 200
+FAIL   | GET with extra spaces                                        | Expected: 400 Got: 200
+FAIL   | GET with trailing space in path                              | Expected: 400 Got: 200
+FAIL   | GET with leading space                                       | Expected: 400 Got: 200
+PASS   | GET with empty path                                          | Expected: 400 Got: 400
+PASS   | GET root path                                                | Expected: 200 Got: 200
+PASS   | GET with double slashes                                      | Expected: 200 Got: 200
+PASS   | GET with triple slashes                                      | Expected: 200 Got: 200
+PASS   | GET with empty query string                                  | Expected: 200 Got: 200
+PASS   | GET with query containing special chars                      | Expected: 200 Got: 200
+PASS   | GET with very long query string                              | Expected: 200 Got: 200
+FAIL   | POST with Content-Length: 0                                  | Expected: 201 Got: 400
+PASS   | POST with negative Content-Length                            | Expected: 400 Got: 400
+PASS   | POST with non-numeric Content-Length                         | Expected: 400 Got: 400
+PASS   | POST with duplicate Content-Length                           | Expected: 400 Got: 400
+PASS   | GET with empty Host header                                   | Expected: 400 Got: 400
+PASS   | GET with duplicate Host headers                              | Expected: 400 Got: 400
+PASS   | GET with Host including port                                 | Expected: 200 Got: 200
+PASS   | GET with IP address as Host                                  | Expected: 200 Got: 200
+PASS   | GET with LF only (no CR)                                     | Expected: 200 Got: 200
+PASS   | GET with mixed line endings                                  | Expected: 200 Got: 200
+
+[CGI Status Codes]
+PASS   | GET valid CGI script                                         | Expected: 200 Got: 200
+PASS   | GET nonexistent CGI script                                   | Expected: 404 Got: 404
+FAIL   | GET CGI with syntax error                                    | Expected: 500 Got: 404
+FAIL   | GET CGI with unknown extension                               | Expected: 501 Got: 404
+PASS   | POST to CGI script                                           | Expected: 200 Got: 200
+PASS   | DELETE on CGI endpoint                                       | Expected: 405 Got: 405
+
+[Upload/Delete]
+PASS   | POST file upload                                             | Expected: 201 Got: 201
+PASS   | POST with multipart form data                                | Expected: 201 Got: 201
+PASS   | DELETE uploaded file                                         | Expected: 204 Got: 204
+PASS   | DELETE nonexistent file                                      | Expected: 404 Got: 404
+FAIL   | DELETE file outside upload directory                         | Expected: 403 Got: 405
+FAIL   | POST to read-only directory                                  | Expected: 403 Got: 405
+PASS   | PUT to upload endpoint                                       | Expected: 405 Got: 405
+
+[Security]
+PASS   | Path traversal with ../                                      | Expected: 403 Got: 403
+PASS   | Path traversal with encoded ../                              | Expected: 403 Got: 403
+PASS   | Path traversal with backslashes                              | Expected: 403 Got: 403
+PASS   | Access to parent directory                                   | Expected: 403 Got: 403
+FAIL   | Null byte in path                                            | Expected: 400 Got:   0 | No response or error: 
+PASS   | Command injection in query                                   | Expected: 200 Got: 200
+FAIL   | Command injection with pipe                                  | Expected: 200 Got: 400
+PASS   | CRLF injection in header                                     | Expected: 200 Got: 200
+FAIL   | SQL injection in query                                       | Expected: 200 Got: 400
+PASS   | XSS in query parameter                                       | Expected: 200 Got: 200
+
+[Autoindex]
+PASS   | GET directory with autoindex on                              | Expected: 200 Got: 200
+PASS   | GET directory with autoindex off                             | Expected: 200 Got: 200
+PASS   | GET nonexistent directory                                    | Expected: 404 Got: 404
+
+[Stress Tests]
+PASS   | Rapid request #1                                             | Expected: 200 Got: 200
+PASS   | Rapid request #2                                             | Expected: 200 Got: 200
+PASS   | Rapid request #3                                             | Expected: 200 Got: 200
+PASS   | Rapid request #4                                             | Expected: 200 Got: 200
+PASS   | Rapid request #5                                             | Expected: 200 Got: 200
+PASS   | Rapid request #6                                             | Expected: 200 Got: 200
+PASS   | Rapid request #7                                             | Expected: 200 Got: 200
+PASS   | Rapid request #8                                             | Expected: 200 Got: 200
+PASS   | Rapid request #9                                             | Expected: 200 Got: 200
+PASS   | Rapid request #10                                            | Expected: 200 Got: 200
+PASS   | Request with 50 headers                                      | Expected: 200 Got: 200
+PASS   | Request with long header value                               | Expected: 200 Got: 200
+PASS   | Request with 50 query parameters                             | Expected: 200 Got: 200
+
+[HTTP/1.1 Compliance]
+PASS   | GET with HTTP/1.0                                            | Expected: 200 Got: 200
+PASS   | POST with HTTP/1.0                                           | Expected: 201 Got: 201
+PASS   | GET with Expect: 100-continue                                | Expected: 200 Got: 200
+PASS   | GET with Range header                                        | Expected: 200 Got: 200
+PASS   | GET with If-Modified-Since                                   | Expected: 200 Got: 200
+PASS   | GET with If-None-Match                                       | Expected: 200 Got: 200

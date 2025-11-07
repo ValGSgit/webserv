@@ -15,6 +15,7 @@ bool HttpRequest::parseRequest(const std::string& data) {
     bool first_line = true;
     //size_t body_start = 0;
     size_t header_size = 0;
+    size_t header_count = 0;
     //std::cout << "####################------------------------------" << std::endl;
     for (size_t i = 0; i < lines.size(); ++i) {
         const std::string& line = lines[i];
@@ -36,6 +37,11 @@ bool HttpRequest::parseRequest(const std::string& data) {
             parseRequestLine(line);
             first_line = false;
         } else {
+            header_count++;
+            if (header_count > MAX_HEADERS) {
+                _status = HTTP_REQUEST_HEADER_FIELDS_TOO_LARGE;
+                return true;
+            }
             parseHeader(line);
         }
         header_size += line.size();
@@ -48,6 +54,15 @@ bool HttpRequest::parseRequest(const std::string& data) {
     }
 #endif
 
+    // HTTP/1.1 requires Host header and it must not be empty
+    if (_headers_complete && _version == "HTTP/1.1") {
+        std::string host = getHeader("Host");
+        if (host.empty()) {
+            _status = HTTP_BAD_REQUEST;
+            return true;
+        }
+    }
+
     // Read body if present
     if (_headers_complete && _content_length > 0) {
         std::size_t needle = data.find("\r\n\r\n");
@@ -59,6 +74,12 @@ bool HttpRequest::parseRequest(const std::string& data) {
         } */
         _body_complete = (_body.length() >= _content_length);
     }
+    
+    // POST with Content-Length: 0 is valid (empty body)
+    if (_headers_complete && _method == METHOD_POST && _content_length == 0) {
+        _body_complete = true;
+    }
+    
     return _headers_complete;
 }
 
@@ -73,7 +94,7 @@ void HttpRequest::parseRequestLine(const std::string& line) {
         
         // SECURITY FIX: Validate HTTP version
         if (!Utils::isValidHttpVersion(_version)) {
-            _status = HTTP_BAD_REQUEST;
+            _status = HTTP_HTTP_VERSION_NOT_SUPPORTED;  // 505 instead of 400
             return;
         }
         
@@ -116,6 +137,11 @@ void HttpRequest::parseHeader(const std::string& line) {
         
         if (key_lower == "content-length") {
             _content_length = Utils::toSizeT(value);
+        }
+        else if (key_lower == "transfer-encoding") {
+            // We don't support chunked encoding, return 411 Length Required
+            _status = HTTP_LENGTH_REQUIRED;
+            return;
         }
     }
 }

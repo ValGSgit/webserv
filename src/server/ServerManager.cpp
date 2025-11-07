@@ -240,6 +240,16 @@ void ServerManager::cleanupTimeouts() {
     
     for (size_t i = 0; i < to_close.size(); ++i) {
         std::cout << "⏱ Timeout: closing client fd " << to_close[i] << std::endl;
+        
+        // Send 408 Request Timeout response before closing
+        std::string timeout_response = "HTTP/1.1 408 Request Timeout\r\n"
+                                       "Content-Type: text/html\r\n"
+                                       "Connection: close\r\n"
+                                       "Content-Length: 50\r\n"
+                                       "\r\n"
+                                       "<html><body><h1>408 Request Timeout</h1></body></html>";
+        send(to_close[i], timeout_response.c_str(), timeout_response.length(), 0);
+        
         if (_http_handler) {
             _http_handler->closeConnection(to_close[i]);
         }

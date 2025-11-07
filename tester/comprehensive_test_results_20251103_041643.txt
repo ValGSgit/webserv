@@ -1,0 +1,618 @@
+====================================================================================================
+HTTP STATUS CODE COMPREHENSIVE TEST RESULTS
+====================================================================================================
+
+Timestamp: 2025-11-03 04:16:43
+Total Tests: 556
+Passed: 531
+Failed: 25
+Skipped: 0
+Duration: 12.64s
+
+CATEGORY STATISTICS:
+----------------------------------------------------------------------------------------------------
+2XX Success                              Passed:   90 Failed:    0 Success: 100.00%
+3XX Redirection                          Passed:   18 Failed:   10 Success:  64.29%
+4XX Client Errors                        Passed:  124 Failed:   13 Success:  90.51%
+5XX Server Errors                        Passed:   41 Failed:    0 Success: 100.00%
+Autoindex                                Passed:    8 Failed:    0 Success: 100.00%
+CGI Tests                                Passed:   26 Failed:    0 Success: 100.00%
+Edge Cases                               Passed:   75 Failed:    1 Success:  98.68%
+HTTP/1.1 Compliance                      Passed:   31 Failed:    0 Success: 100.00%
+Security                                 Passed:   34 Failed:    0 Success: 100.00%
+Stress/Concurrency                       Passed:   53 Failed:    0 Success: 100.00%
+Upload/Delete                            Passed:   31 Failed:    1 Success:  96.88%
+
+====================================================================================================
+DETAILED RESULTS:
+====================================================================================================
+
+
+[2XX Success]
+----------------------------------------------------------------------------------------------------
+✓ PASS   | GET /                                                                  | Exp: 200 Got: 200
+✓ PASS   | GET /index.html                                                        | Exp: 200 Got: 200
+✓ PASS   | GET /test.html                                                         | Exp: 200 Got: 200
+✓ PASS   | GET /demo.html                                                         | Exp: 200 Got: 200
+✓ PASS   | GET /status.html                                                       | Exp: 200 Got: 200
+✓ PASS   | GET with query ?                                                       | Exp: 200 Got: 200
+✓ PASS   | GET with query ?a=1                                                    | Exp: 200 Got: 200
+✓ PASS   | GET with query ?a=1&b=2                                                | Exp: 200 Got: 200
+✓ PASS   | GET with query ?test=value                                             | Exp: 200 Got: 200
+✓ PASS   | GET with query ?x=y&z=w                                                | Exp: 200 Got: 200
+✓ PASS   | GET with query ?name=John+Doe                                          | Exp: 200 Got: 200
+✓ PASS   | GET with query ?search=test                                            | Exp: 200 Got: 200
+✓ PASS   | GET with query ?id=123                                                 | Exp: 200 Got: 200
+✓ PASS   | GET with query ?page=1&limit=10                                        | Exp: 200 Got: 200
+✓ PASS   | GET with query ?filter=active                                          | Exp: 200 Got: 200
+✓ PASS   | GET with query ?sort=name                                              | Exp: 200 Got: 200
+✓ PASS   | GET with query ?order=asc                                              | Exp: 200 Got: 200
+✓ PASS   | GET with query ?q=search+term                                          | Exp: 200 Got: 200
+✓ PASS   | GET with query ?param1=val1&param2=                                    | Exp: 200 Got: 200
+✓ PASS   | GET with query ?empty=                                                 | Exp: 200 Got: 200
+✓ PASS   | GET with Accept: text/html                                             | Exp: 200 Got: 200
+✓ PASS   | GET with Accept: */*                                                   | Exp: 200 Got: 200
+✓ PASS   | GET with Accept: text/html,application/                                | Exp: 200 Got: 200
+✓ PASS   | GET with User-Agent: Mozilla/5.0                                       | Exp: 200 Got: 200
+✓ PASS   | GET with User-Agent: ComprehensiveTeste                                | Exp: 200 Got: 200
+✓ PASS   | GET with Accept-Encoding: gzip, deflate                                | Exp: 200 Got: 200
+✓ PASS   | GET with Accept-Language: en-US,en;q=0.                                | Exp: 200 Got: 200
+✓ PASS   | GET with Cache-Control: no-cache                                       | Exp: 200 Got: 200
+✓ PASS   | GET with Cache-Control: max-age=0                                      | Exp: 200 Got: 200
+✓ PASS   | GET with Connection: keep-alive                                        | Exp: 200 Got: 200
+✓ PASS   | GET with Connection: close                                             | Exp: 200 Got: 200
+✓ PASS   | GET with Referer: http://localhost/                                    | Exp: 200 Got: 200
+✓ PASS   | GET with DNT: 1                                                        | Exp: 200 Got: 200
+✓ PASS   | GET with Upgrade-Insecure-Requests: 1                                  | Exp: 200 Got: 200
+✓ PASS   | GET with Pragma: no-cache                                              | Exp: 200 Got: 200
+✓ PASS   | GET with 1 custom headers                                              | Exp: 200 Got: 200
+✓ PASS   | GET with 2 custom headers                                              | Exp: 200 Got: 200
+✓ PASS   | GET with 3 custom headers                                              | Exp: 200 Got: 200
+✓ PASS   | GET with 4 custom headers                                              | Exp: 200 Got: 200
+✓ PASS   | GET with 5 custom headers                                              | Exp: 200 Got: 200
+✓ PASS   | GET with 6 custom headers                                              | Exp: 200 Got: 200
+✓ PASS   | GET with 7 custom headers                                              | Exp: 200 Got: 200
+✓ PASS   | GET with 8 custom headers                                              | Exp: 200 Got: 200
+✓ PASS   | GET with 9 custom headers                                              | Exp: 200 Got: 200
+✓ PASS   | GET with 10 custom headers                                             | Exp: 200 Got: 200
+✓ PASS   | GET with 11 custom headers                                             | Exp: 200 Got: 200
+✓ PASS   | GET with 12 custom headers                                             | Exp: 200 Got: 200
+✓ PASS   | GET with 13 custom headers                                             | Exp: 200 Got: 200
+✓ PASS   | GET with 14 custom headers                                             | Exp: 200 Got: 200
+✓ PASS   | GET with 15 custom headers                                             | Exp: 200 Got: 200
+✓ PASS   | GET with 16 custom headers                                             | Exp: 200 Got: 200
+✓ PASS   | GET with 17 custom headers                                             | Exp: 200 Got: 200
+✓ PASS   | GET with 18 custom headers                                             | Exp: 200 Got: 200
+✓ PASS   | GET with 19 custom headers                                             | Exp: 200 Got: 200
+✓ PASS   | GET with 20 custom headers                                             | Exp: 200 Got: 200
+✓ PASS   | GET HTTP/1.0                                                           | Exp: 200 Got: 200
+✓ PASS   | GET HTTP/1.1 minimal                                                   | Exp: 200 Got: 200
+✓ PASS   | GET lowercase path                                                     | Exp: 200 Got: 200
+✓ PASS   | GET with fragment #top                                                 | Exp: 200 Got: 200
+✓ PASS   | GET with fragment #section                                             | Exp: 200 Got: 200
+✓ PASS   | GET encoded /index.html?name=John%20Doe                                | Exp: 200 Got: 200
+✓ PASS   | GET encoded /index.html?search=test%20quer                             | Exp: 200 Got: 200
+✓ PASS   | GET encoded /index.html?special=%21%40%23%                             | Exp: 200 Got: 200
+✓ PASS   | GET encoded /index.html?unicode=%C3%A9                                 | Exp: 200 Got: 200
+✓ PASS   | GET encoded /index.html?plus=a+b+c                                     | Exp: 200 Got: 200
+✓ PASS   | POST create resource #0                                                | Exp: 201 Got: 201
+✓ PASS   | POST create resource #1                                                | Exp: 201 Got: 201
+✓ PASS   | POST create resource #2                                                | Exp: 201 Got: 201
+✓ PASS   | POST create resource #3                                                | Exp: 201 Got: 201
+✓ PASS   | POST create resource #4                                                | Exp: 201 Got: 201
+✓ PASS   | POST create resource #5                                                | Exp: 201 Got: 201
+✓ PASS   | POST create resource #6                                                | Exp: 201 Got: 201
+✓ PASS   | POST create resource #7                                                | Exp: 201 Got: 201
+✓ PASS   | POST create resource #8                                                | Exp: 201 Got: 201
+✓ PASS   | POST create resource #9                                                | Exp: 201 Got: 201
+✓ PASS   | POST with text/plain                                                   | Exp: 201 Got: 201
+✓ PASS   | POST with text/html                                                    | Exp: 201 Got: 201
+✓ PASS   | POST with application/json                                             | Exp: 201 Got: 201
+✓ PASS   | POST with application/x-www-form-urlencoded                            | Exp: 201 Got: 201
+✓ PASS   | POST with multipart/form-data                                          | Exp: 201 Got: 201
+✓ PASS   | POST with application/octet-stream                                     | Exp: 201 Got: 201
+✓ PASS   | POST with application/xml                                              | Exp: 201 Got: 201
+✓ PASS   | POST with text/xml                                                     | Exp: 201 Got: 201
+✓ PASS   | POST with text/csv                                                     | Exp: 201 Got: 201
+✓ PASS   | POST with application/pdf                                              | Exp: 201 Got: 201
+✓ PASS   | DELETE resource #0                                                     | Exp: 204 Got: 404
+✓ PASS   | DELETE resource #1                                                     | Exp: 204 Got: 404
+✓ PASS   | DELETE resource #2                                                     | Exp: 204 Got: 404
+✓ PASS   | DELETE resource #3                                                     | Exp: 204 Got: 404
+✓ PASS   | DELETE resource #4                                                     | Exp: 204 Got: 404
+
+[3XX Redirection]
+----------------------------------------------------------------------------------------------------
+✓ PASS   | GET /redirect (301)                                                    | Exp: 301 Got: 301
+✓ PASS   | GET /old-page (301)                                                    | Exp: 301 Got: 301
+✗ FAIL   | GET /moved (301)                                                       | Exp: 301 Got: 404
+✗ FAIL   | GET /deprecated (301)                                                  | Exp: 301 Got: 404
+✗ FAIL   | GET /api/v1 (301)                                                      | Exp: 301 Got: 404
+✗ FAIL   | GET /legacy (301)                                                      | Exp: 301 Got: 404
+✗ FAIL   | GET /archive (301)                                                     | Exp: 301 Got: 404
+✓ PASS   | GET directory /docs without slash                                      | Exp: 301 Got: 301
+✓ PASS   | GET directory /docs/ with slash                                        | Exp: 200 Got: 200
+✗ FAIL   | GET directory /images without slash                                    | Exp: 301 Got: 404
+✓ PASS   | GET directory /images/ with slash                                      | Exp: 200 Got: 404
+✓ PASS   | GET directory /uploads without slash                                   | Exp: 301 Got: 301
+✓ PASS   | GET directory /uploads/ with slash                                     | Exp: 200 Got: 200
+✓ PASS   | GET directory /api without slash                                       | Exp: 301 Got: 301
+✓ PASS   | GET directory /api/ with slash                                         | Exp: 200 Got: 200
+✗ FAIL   | GET directory /admin without slash                                     | Exp: 301 Got: 404
+✓ PASS   | GET directory /admin/ with slash                                       | Exp: 200 Got: 404
+✗ FAIL   | GET /temp (302)                                                        | Exp: 302 Got: 404
+✗ FAIL   | GET /temporary (302)                                                   | Exp: 302 Got: 404
+✗ FAIL   | GET /session (302)                                                     | Exp: 302 Got: 404
+✓ PASS   | GET with If-None-Match "abc123"                                        | Exp: 304 Got: 200
+✓ PASS   | GET with If-None-Match "def456"                                        | Exp: 304 Got: 200
+✓ PASS   | GET with If-None-Match "xyz789"                                        | Exp: 304 Got: 200
+✓ PASS   | GET with If-None-Match "version1"                                      | Exp: 304 Got: 200
+✓ PASS   | GET with If-None-Match "v2"                                            | Exp: 304 Got: 200
+✓ PASS   | GET with If-Modified-Since                                             | Exp: 304 Got: 200
+✓ PASS   | GET with If-Modified-Since                                             | Exp: 304 Got: 200
+✓ PASS   | GET with If-Modified-Since                                             | Exp: 304 Got: 200
+
+[4XX Client Errors]
+----------------------------------------------------------------------------------------------------
+✓ PASS   | Bad request #1                                                         | Exp: 400 Got: 400
+✓ PASS   | Bad request #2                                                         | Exp: 400 Got: 400
+✓ PASS   | Bad request #3                                                         | Exp: 400 Got: 400
+✓ PASS   | Bad request #4                                                         | Exp: 400 Got: 400
+✓ PASS   | Bad request #5                                                         | Exp: 400 Got: 400
+✓ PASS   | Bad request #6                                                         | Exp: 400 Got: 400
+✗ FAIL   | Bad request #7                                                         | Exp: 400 Got: 200
+✓ PASS   | Bad request #8                                                         | Exp: 400 Got: 400
+✗ FAIL   | Bad request #9                                                         | Exp: 400 Got: 200
+✓ PASS   | Bad request #10                                                        | Exp: 400 Got: 400
+✓ PASS   | Invalid version HTTP/0.9                                               | Exp: 400 Got: 400
+✓ PASS   | Invalid version HTTP/2.0                                               | Exp: 400 Got: 400
+✓ PASS   | Invalid version HTTP/3.0                                               | Exp: 400 Got: 400
+✓ PASS   | Invalid version HTTP/1.2                                               | Exp: 400 Got: 400
+✓ PASS   | Invalid version HTTP/1                                                 | Exp: 400 Got: 400
+✓ PASS   | Invalid version HTTP/                                                  | Exp: 400 Got: 400
+✓ PASS   | Invalid version HTTP                                                   | Exp: 400 Got: 400
+✓ PASS   | Invalid version http/1.1                                               | Exp: 400 Got: 400
+✓ PASS   | Invalid version HTTPS/1.1                                              | Exp: 400 Got: 400
+✓ PASS   | HTTP/1.1 without Host                                                  | Exp: 400 Got: 400
+✓ PASS   | Bad header format #1                                                   | Exp: 400 Got: 200
+✓ PASS   | Bad header format #2                                                   | Exp: 400 Got: 200
+✓ PASS   | Bad header format #3                                                   | Exp: 400 Got: 200
+✓ PASS   | Bad header format #4                                                   | Exp: 400 Got: 200
+✓ PASS   | Bad header format #5                                                   | Exp: 400 Got: 200
+✓ PASS   | Content-Length mismatch #1                                             | Exp: 400 Got: 201
+✓ PASS   | Content-Length mismatch #2                                             | Exp: 400 Got: 201
+✓ PASS   | Content-Length mismatch #3                                             | Exp: 400 Got: 201
+✓ PASS   | Content-Length mismatch #4                                             | Exp: 400 Got: 201
+✓ PASS   | Content-Length mismatch #5                                             | Exp: 400 Got: 201
+✓ PASS   | Content-Length mismatch #6                                             | Exp: 400 Got: 201
+✓ PASS   | Content-Length mismatch #7                                             | Exp: 400 Got: 201
+✓ PASS   | Content-Length mismatch #8                                             | Exp: 400 Got: 201
+✓ PASS   | Content-Length mismatch #9                                             | Exp: 400 Got: 201
+✓ PASS   | Content-Length mismatch #10                                            | Exp: 400 Got: 201
+✓ PASS   | GET forbidden /.htaccess                                               | Exp: 403 Got: 404
+✓ PASS   | GET forbidden /.htpasswd                                               | Exp: 403 Got: 404
+✓ PASS   | GET forbidden /.git                                                    | Exp: 403 Got: 404
+✓ PASS   | GET forbidden /.env                                                    | Exp: 403 Got: 404
+✓ PASS   | GET forbidden /etc/passwd                                              | Exp: 403 Got: 404
+✓ PASS   | GET forbidden /etc/shadow                                              | Exp: 403 Got: 404
+✓ PASS   | GET forbidden /../../../etc/passwd                                     | Exp: 403 Got: 403
+✓ PASS   | GET forbidden /admin                                                   | Exp: 403 Got: 404
+✓ PASS   | GET forbidden /private                                                 | Exp: 403 Got: 404
+✓ PASS   | GET forbidden /secret                                                  | Exp: 403 Got: 404
+✓ PASS   | GET forbidden /.ssh                                                    | Exp: 403 Got: 404
+✓ PASS   | GET forbidden /config                                                  | Exp: 403 Got: 404
+✓ PASS   | GET forbidden /.config                                                 | Exp: 403 Got: 404
+✓ PASS   | GET forbidden /backup                                                  | Exp: 403 Got: 404
+✓ PASS   | GET forbidden /db                                                      | Exp: 403 Got: 404
+✓ PASS   | GET not found /nonexistent.html                                        | Exp: 404 Got: 404
+✓ PASS   | GET not found /missing.txt                                             | Exp: 404 Got: 404
+✓ PASS   | GET not found /404.php                                                 | Exp: 404 Got: 404
+✓ PASS   | GET not found /no-such-file                                            | Exp: 404 Got: 404
+✓ PASS   | GET not found /does-not-exist                                          | Exp: 404 Got: 404
+✓ PASS   | GET not found /random-path                                             | Exp: 404 Got: 404
+✓ PASS   | GET not found /test/nested/deep/path                                   | Exp: 404 Got: 404
+✓ PASS   | GET not found /a/b/c/d/e/f                                             | Exp: 404 Got: 404
+✓ PASS   | GET random path /twlzwsncat                                            | Exp: 404 Got: 404
+✓ PASS   | GET random path /sgqbgmmqno                                            | Exp: 404 Got: 404
+✓ PASS   | GET random path /sgmrvqgtoz                                            | Exp: 404 Got: 404
+✓ PASS   | GET random path /snxnvfctgs                                            | Exp: 404 Got: 404
+✓ PASS   | GET random path /ovxrzhdkth                                            | Exp: 404 Got: 404
+✓ PASS   | GET random path /fttvjfbazh                                            | Exp: 404 Got: 404
+✓ PASS   | GET random path /qvhpwatism                                            | Exp: 404 Got: 404
+✓ PASS   | GET random path /qhtyogtsbk                                            | Exp: 404 Got: 404
+✓ PASS   | GET random path /ehjdmjbier                                            | Exp: 404 Got: 404
+✓ PASS   | GET random path /wwnuzjawud                                            | Exp: 404 Got: 404
+✓ PASS   | GET random path /pavkrhcscs                                            | Exp: 404 Got: 404
+✓ PASS   | GET random path /lgqqifqdov                                            | Exp: 404 Got: 404
+✓ PASS   | GET random path /pmokmtqazd                                            | Exp: 404 Got: 404
+✓ PASS   | GET random path /mktgsntmbf                                            | Exp: 404 Got: 404
+✓ PASS   | GET random path /pfdxcqjpxh                                            | Exp: 404 Got: 404
+✓ PASS   | GET random path /pbvzebyizy                                            | Exp: 404 Got: 404
+✓ PASS   | GET random path /yazozkjunu                                            | Exp: 404 Got: 404
+✓ PASS   | GET random path /bmtxalmjfp                                            | Exp: 404 Got: 404
+✓ PASS   | GET random path /hgvvftxdib                                            | Exp: 404 Got: 404
+✓ PASS   | GET random path /ipigswyrrw                                            | Exp: 404 Got: 404
+✓ PASS   | GET random path /pidlsinuvq                                            | Exp: 404 Got: 404
+✓ PASS   | GET random path /fygtwjmsgc                                            | Exp: 404 Got: 404
+✓ PASS   | GET random path /ngfpsgueal                                            | Exp: 404 Got: 404
+✓ PASS   | GET random path /qtrtataplz                                            | Exp: 404 Got: 404
+✓ PASS   | GET random path /ekxzggcwbl                                            | Exp: 404 Got: 404
+✓ PASS   | GET random path /jnwowxhbfa                                            | Exp: 404 Got: 404
+✓ PASS   | GET random path /iuijznqaie                                            | Exp: 404 Got: 404
+✓ PASS   | GET random path /tdisskuhcy                                            | Exp: 404 Got: 404
+✓ PASS   | GET random path /rxrvdpthbz                                            | Exp: 404 Got: 404
+✓ PASS   | GET random path /kmhshxkbcb                                            | Exp: 404 Got: 404
+✓ PASS   | GET file0.xyz                                                          | Exp: 404 Got: 404
+✓ PASS   | GET file1.xyz                                                          | Exp: 404 Got: 404
+✓ PASS   | GET file0.abc                                                          | Exp: 404 Got: 404
+✓ PASS   | GET file1.abc                                                          | Exp: 404 Got: 404
+✓ PASS   | GET file0.fake                                                         | Exp: 404 Got: 404
+✓ PASS   | GET file1.fake                                                         | Exp: 404 Got: 404
+✓ PASS   | GET file0.test                                                         | Exp: 404 Got: 404
+✓ PASS   | GET file1.test                                                         | Exp: 404 Got: 404
+✓ PASS   | GET file0.random                                                       | Exp: 404 Got: 404
+✓ PASS   | GET file1.random                                                       | Exp: 404 Got: 404
+✗ FAIL   | PUT /                                                                  | Exp: 405 Got: 411
+✗ FAIL   | PUT /index.html                                                        | Exp: 405 Got: 411
+✗ FAIL   | PUT /uploads/                                                          | Exp: 405 Got: 411
+✓ PASS   | PATCH /                                                                | Exp: 405 Got: 501
+✓ PASS   | PATCH /index.html                                                      | Exp: 405 Got: 501
+✓ PASS   | PATCH /uploads/                                                        | Exp: 405 Got: 501
+✓ PASS   | TRACE /                                                                | Exp: 405 Got: 501
+✓ PASS   | TRACE /index.html                                                      | Exp: 405 Got: 501
+✓ PASS   | TRACE /uploads/                                                        | Exp: 405 Got: 501
+✓ PASS   | CONNECT /                                                              | Exp: 405 Got: 501
+✓ PASS   | CONNECT /index.html                                                    | Exp: 405 Got: 501
+✓ PASS   | CONNECT /uploads/                                                      | Exp: 405 Got: 501
+✓ PASS   | OPTIONS /                                                              | Exp: 405 Got: 501
+✓ PASS   | OPTIONS /index.html                                                    | Exp: 405 Got: 501
+✓ PASS   | OPTIONS /uploads/                                                      | Exp: 405 Got: 501
+✗ FAIL   | Incomplete request #0                                                  | Exp: 408 Got:   0 | No response: 
+✗ FAIL   | Incomplete request #1                                                  | Exp: 408 Got:   0 | No response: 
+✗ FAIL   | Incomplete request #2                                                  | Exp: 408 Got:   0 | No response: 
+✗ FAIL   | Incomplete request #3                                                  | Exp: 408 Got:   0 | No response: 
+✗ FAIL   | Incomplete request #4                                                  | Exp: 408 Got:   0 | No response: 
+✓ PASS   | POST without Content-Length                                            | Exp: 411 Got: 411
+✓ PASS   | PUT without Content-Length                                             | Exp: 411 Got: 411
+✗ FAIL   | PATCH without Content-Length                                           | Exp: 411 Got: 501
+✓ PASS   | POST with large Content-Length 10485760                                | Exp: 413 Got: 400
+✓ PASS   | POST with large Content-Length 52428800                                | Exp: 413 Got: 400
+✓ PASS   | POST with large Content-Length 104857600                               | Exp: 413 Got: 413
+✓ PASS   | GET with URI length 1000                                               | Exp: 414 Got: 404
+✓ PASS   | GET with URI length 2000                                               | Exp: 414 Got: 414
+✓ PASS   | GET with URI length 5000                                               | Exp: 414 Got: 414
+✗ FAIL   | GET with URI length 8000                                               | Exp: 414 Got: 431
+✗ FAIL   | GET with URI length 10000                                              | Exp: 414 Got: 431
+✓ PASS   | POST with application/x-custom                                         | Exp: 415 Got: 201
+✓ PASS   | POST with weird/type                                                   | Exp: 415 Got: 201
+✓ PASS   | POST with invalid                                                      | Exp: 415 Got: 201
+✓ PASS   | POST with application/x-executable                                     | Exp: 415 Got: 201
+✓ PASS   | POST with application/x-virus                                          | Exp: 415 Got: 201
+✓ PASS   | GET with 100 large headers                                             | Exp: 431 Got: 431
+✓ PASS   | GET with 200 large headers                                             | Exp: 431 Got: 431
+✓ PASS   | GET with 500 large headers                                             | Exp: 431 Got: 431
+
+[5XX Server Errors]
+----------------------------------------------------------------------------------------------------
+✓ PASS   | GET /cgi-bin/error.py                                                  | Exp: 500 Got: 404
+✓ PASS   | GET /cgi-bin/crash.sh                                                  | Exp: 500 Got: 404
+✓ PASS   | GET /cgi-bin/fail                                                      | Exp: 500 Got: 404
+✓ PASS   | PROPFIND method                                                        | Exp: 501 Got: 501
+✓ PASS   | PROPPATCH method                                                       | Exp: 501 Got: 501
+✓ PASS   | MKCOL method                                                           | Exp: 501 Got: 501
+✓ PASS   | COPY method                                                            | Exp: 501 Got: 501
+✓ PASS   | MOVE method                                                            | Exp: 501 Got: 501
+✓ PASS   | LOCK method                                                            | Exp: 501 Got: 501
+✓ PASS   | UNLOCK method                                                          | Exp: 501 Got: 501
+✓ PASS   | VERSION-CONTROL method                                                 | Exp: 501 Got: 400
+✓ PASS   | REPORT method                                                          | Exp: 501 Got: 501
+✓ PASS   | CHECKOUT method                                                        | Exp: 501 Got: 501
+✓ PASS   | CHECKIN method                                                         | Exp: 501 Got: 501
+✓ PASS   | UNCHECKOUT method                                                      | Exp: 501 Got: 501
+✓ PASS   | MKWORKSPACE method                                                     | Exp: 501 Got: 501
+✓ PASS   | UPDATE method                                                          | Exp: 501 Got: 501
+✓ PASS   | LABEL method                                                           | Exp: 501 Got: 501
+✓ PASS   | MERGE method                                                           | Exp: 501 Got: 501
+✓ PASS   | BASELINE-CONTROL method                                                | Exp: 501 Got: 400
+✓ PASS   | MKACTIVITY method                                                      | Exp: 501 Got: 501
+✓ PASS   | ORDERPATCH method                                                      | Exp: 501 Got: 501
+✓ PASS   | ACL method                                                             | Exp: 501 Got: 501
+✓ PASS   | SEARCH method                                                          | Exp: 501 Got: 501
+✓ PASS   | Invalid method INVALID                                                 | Exp: 501 Got: 501
+✓ PASS   | Invalid method CUSTOM                                                  | Exp: 501 Got: 501
+✓ PASS   | Invalid method HACK                                                    | Exp: 501 Got: 501
+✓ PASS   | Invalid method EXPLOIT                                                 | Exp: 501 Got: 501
+✓ PASS   | Invalid method TEST                                                    | Exp: 501 Got: 501
+✓ PASS   | Invalid method ABC                                                     | Exp: 501 Got: 501
+✓ PASS   | Invalid method XYZ                                                     | Exp: 501 Got: 501
+✓ PASS   | Invalid method FOO                                                     | Exp: 501 Got: 501
+✓ PASS   | Invalid method BAR                                                     | Exp: 501 Got: 501
+✓ PASS   | Invalid method RANDOM                                                  | Exp: 501 Got: 501
+✓ PASS   | Version HTTP/0.1                                                       | Exp: 505 Got: 400
+✓ PASS   | Version HTTP/0.5                                                       | Exp: 505 Got: 400
+✓ PASS   | Version HTTP/2.0                                                       | Exp: 505 Got: 400
+✓ PASS   | Version HTTP/2.1                                                       | Exp: 505 Got: 400
+✓ PASS   | Version HTTP/3.0                                                       | Exp: 505 Got: 400
+✓ PASS   | Version HTTP/4.0                                                       | Exp: 505 Got: 400
+✓ PASS   | Version HTTP/10.0                                                      | Exp: 505 Got: 400
+
+[Edge Cases]
+----------------------------------------------------------------------------------------------------
+✓ PASS   | GET empty path ''                                                      | Exp: 400 Got: 400
+✓ PASS   | GET empty path ' '                                                     | Exp: 400 Got: 400
+✓ PASS   | GET empty path '  '                                                    | Exp: 400 Got: 400
+✓ PASS   | GET empty path '	'                                                     | Exp: 400 Got: 400
+✓ PASS   | GET empty path '   '                                                   | Exp: 400 Got: 400
+✓ PASS   | GET with char '!'                                                      | Exp: 404 Got: 404
+✓ PASS   | GET with char '@'                                                      | Exp: 404 Got: 404
+✓ PASS   | GET with char '#'                                                      | Exp: 404 Got: 404
+✓ PASS   | GET with char '$'                                                      | Exp: 404 Got: 404
+✓ PASS   | GET with char '%'                                                      | Exp: 404 Got: 404
+✓ PASS   | GET with char '^'                                                      | Exp: 404 Got: 404
+✓ PASS   | GET with char '&'                                                      | Exp: 404 Got: 404
+✓ PASS   | GET with char '*'                                                      | Exp: 404 Got: 404
+✓ PASS   | GET with char '('                                                      | Exp: 404 Got: 404
+✓ PASS   | GET with char ')'                                                      | Exp: 404 Got: 404
+✓ PASS   | GET with char '+'                                                      | Exp: 404 Got: 404
+✓ PASS   | GET with char '='                                                      | Exp: 404 Got: 404
+✓ PASS   | GET with char '{'                                                      | Exp: 404 Got: 404
+✓ PASS   | GET with char '}'                                                      | Exp: 404 Got: 404
+✓ PASS   | GET with char '['                                                      | Exp: 404 Got: 404
+✓ PASS   | GET with char ']'                                                      | Exp: 404 Got: 404
+✓ PASS   | GET with char '|'                                                      | Exp: 404 Got: 404
+✓ PASS   | GET with char '\'                                                      | Exp: 404 Got: 404
+✓ PASS   | GET with char ':'                                                      | Exp: 404 Got: 404
+✓ PASS   | GET with char ';'                                                      | Exp: 404 Got: 404
+✓ PASS   | Path traversal /../                                                    | Exp: 403 Got: 403
+✓ PASS   | Path traversal /./                                                     | Exp: 403 Got: 200
+✓ PASS   | Path traversal /../etc/passwd                                          | Exp: 403 Got: 403
+✓ PASS   | Path traversal /../../                                                 | Exp: 403 Got: 403
+✓ PASS   | Path traversal /./././                                                 | Exp: 403 Got: 200
+✓ PASS   | Path traversal /.//                                                    | Exp: 403 Got: 200
+✓ PASS   | Path traversal /...//                                                  | Exp: 403 Got: 403
+✓ PASS   | Path traversal /..../                                                  | Exp: 403 Got: 403
+✓ PASS   | Path traversal /test/../                                               | Exp: 403 Got: 403
+✓ PASS   | Path traversal /test/./                                                | Exp: 403 Got: 404
+✓ PASS   | Path traversal /test/../..                                             | Exp: 403 Got: 403
+✓ PASS   | Path traversal /%2e%2e/                                                | Exp: 403 Got: 403
+✓ PASS   | Path traversal /%2e/                                                   | Exp: 403 Got: 404
+✓ PASS   | Path traversal /..%2f                                                  | Exp: 403 Got: 403
+✓ PASS   | Path traversal /.%2e/                                                  | Exp: 403 Got: 404
+✓ PASS   | Path traversal /test/..%2f..%2f                                        | Exp: 403 Got: 403
+✓ PASS   | Path traversal /.%00/                                                  | Exp: 403 Got: 404
+✓ PASS   | Path traversal /..%00/                                                 | Exp: 403 Got: 404
+✓ PASS   | Path traversal /test/..                                                | Exp: 403 Got: 404
+✓ PASS   | Path traversal /test/../test                                           | Exp: 403 Got: 403
+✓ PASS   | Path traversal /./test                                                 | Exp: 403 Got: 404
+✓ PASS   | Encoded space in path                                                  | Exp: 404 Got: 404
+✓ PASS   | Encoded slash in path                                                  | Exp: 404 Got: 404
+✓ PASS   | Encoded question in path                                               | Exp: 404 Got: 404
+✓ PASS   | Encoded hash in path                                                   | Exp: 404 Got: 404
+✓ PASS   | Encoded plus in path                                                   | Exp: 404 Got: 404
+✓ PASS   | Encoded percent in path                                                | Exp: 404 Got: 404
+✓ PASS   | Encoded ampersand in path                                              | Exp: 404 Got: 404
+✓ PASS   | Encoded equals in path                                                 | Exp: 404 Got: 404
+✓ PASS   | Encoded at in path                                                     | Exp: 404 Got: 404
+✓ PASS   | Encoded exclamation in path                                            | Exp: 404 Got: 404
+✓ PASS   | Case test /INDEX.HTML                                                  | Exp: 404 Got: 404
+✓ PASS   | Case test /Test.Html                                                   | Exp: 404 Got: 404
+✓ PASS   | Case test /DEMO.HTML                                                   | Exp: 404 Got: 404
+✓ PASS   | Multiple slashes //                                                    | Exp: 404 Got: 200
+✓ PASS   | Multiple slashes ///                                                   | Exp: 404 Got: 200
+✓ PASS   | Multiple slashes ////                                                  | Exp: 404 Got: 200
+✓ PASS   | Multiple slashes /////                                                 | Exp: 404 Got: 200
+✓ PASS   | Multiple slashes //index.html                                          | Exp: 404 Got: 200
+✓ PASS   | Multiple slashes ///index.html                                         | Exp: 404 Got: 200
+✓ PASS   | Multiple slashes /test//file.html                                      | Exp: 404 Got: 404
+✓ PASS   | Multiple slashes /test///file.html                                     | Exp: 404 Got: 404
+✓ PASS   | Special sequence in path                                               | Exp: 400 Got: 404
+✗ FAIL   | Special sequence in path                                               | Exp: 400 Got:   0 | No response: 
+✓ PASS   | Special sequence in path                                               | Exp: 400 Got: 404
+✓ PASS   | Special sequence in path                                               | Exp: 400 Got: 400
+✓ PASS   | Special sequence in path                                               | Exp: 400 Got: 404
+✓ PASS   | Special sequence in path                                               | Exp: 400 Got: 400
+✓ PASS   | Long query string 1001 chars                                           | Exp: 414 Got: 200
+✓ PASS   | Long query string 2001 chars                                           | Exp: 414 Got: 414
+✓ PASS   | Long query string 5001 chars                                           | Exp: 414 Got: 414
+
+[CGI Tests]
+----------------------------------------------------------------------------------------------------
+✓ PASS   | GET /cgi-bin/test.py                                                   | Exp: 200 Got: 200
+✓ PASS   | GET /cgi-bin/hello.sh                                                  | Exp: 200 Got: 404
+✓ PASS   | GET /cgi-bin/env.py                                                    | Exp: 200 Got: 404
+✓ PASS   | GET /cgi-bin/info.py                                                   | Exp: 200 Got: 404
+✓ PASS   | GET /cgi-bin/test.py?name=test                                         | Exp: 200 Got: 200
+✓ PASS   | GET /cgi-bin/test.py?id=123                                            | Exp: 200 Got: 200
+✓ PASS   | GET /cgi-bin/test.py?action=list                                       | Exp: 200 Got: 200
+✓ PASS   | GET /cgi-bin/test.py?page=1                                            | Exp: 200 Got: 200
+✓ PASS   | GET /cgi-bin/hello.sh?name=test                                        | Exp: 200 Got: 404
+✓ PASS   | GET /cgi-bin/hello.sh?id=123                                           | Exp: 200 Got: 404
+✓ PASS   | GET /cgi-bin/hello.sh?action=list                                      | Exp: 200 Got: 404
+✓ PASS   | GET /cgi-bin/hello.sh?page=1                                           | Exp: 200 Got: 404
+✓ PASS   | POST /cgi-bin/test.py #0                                               | Exp: 200 Got: 200
+✓ PASS   | POST /cgi-bin/test.py #1                                               | Exp: 200 Got: 200
+✓ PASS   | POST /cgi-bin/test.py #2                                               | Exp: 200 Got: 200
+✓ PASS   | POST /cgi-bin/test.py #3                                               | Exp: 200 Got: 200
+✓ PASS   | POST /cgi-bin/test.py #4                                               | Exp: 200 Got: 200
+✓ PASS   | POST /cgi-bin/hello.sh #0                                              | Exp: 200 Got: 404
+✓ PASS   | POST /cgi-bin/hello.sh #1                                              | Exp: 200 Got: 404
+✓ PASS   | POST /cgi-bin/hello.sh #2                                              | Exp: 200 Got: 404
+✓ PASS   | POST /cgi-bin/hello.sh #3                                              | Exp: 200 Got: 404
+✓ PASS   | POST /cgi-bin/hello.sh #4                                              | Exp: 200 Got: 404
+✓ PASS   | GET invalid CGI /cgi-bin/nonexistent.py                                | Exp: 404 Got: 404
+✓ PASS   | GET invalid CGI /cgi-bin/missing.sh                                    | Exp: 404 Got: 404
+✓ PASS   | GET invalid CGI /cgi-bin/fake                                          | Exp: 404 Got: 404
+✓ PASS   | GET invalid CGI /cgi-bin/.hidden                                       | Exp: 404 Got: 404
+
+[Upload/Delete]
+----------------------------------------------------------------------------------------------------
+✗ FAIL   | POST 0 bytes                                                           | Exp: 201 Got: 400
+✓ PASS   | POST 1 bytes                                                           | Exp: 201 Got: 201
+✓ PASS   | POST 10 bytes                                                          | Exp: 201 Got: 201
+✓ PASS   | POST 100 bytes                                                         | Exp: 201 Got: 201
+✓ PASS   | POST 1024 bytes                                                        | Exp: 201 Got: 201
+✓ PASS   | POST 10240 bytes                                                       | Exp: 201 Got: 201
+✓ PASS   | POST 102400 bytes                                                      | Exp: 201 Got: 201
+✓ PASS   | POST text/plain                                                        | Exp: 201 Got: 201
+✓ PASS   | POST text/html                                                         | Exp: 201 Got: 201
+✓ PASS   | POST application/json                                                  | Exp: 201 Got: 201
+✓ PASS   | POST application/xml                                                   | Exp: 201 Got: 201
+✓ PASS   | POST image/jpeg                                                        | Exp: 201 Got: 201
+✓ PASS   | DELETE file0.txt                                                       | Exp: 204 Got: 404
+✓ PASS   | DELETE file1.txt                                                       | Exp: 204 Got: 404
+✓ PASS   | DELETE file2.txt                                                       | Exp: 204 Got: 404
+✓ PASS   | DELETE file3.txt                                                       | Exp: 204 Got: 404
+✓ PASS   | DELETE file4.txt                                                       | Exp: 204 Got: 404
+✓ PASS   | DELETE file5.txt                                                       | Exp: 204 Got: 404
+✓ PASS   | DELETE file6.txt                                                       | Exp: 204 Got: 404
+✓ PASS   | DELETE file7.txt                                                       | Exp: 204 Got: 404
+✓ PASS   | DELETE file8.txt                                                       | Exp: 204 Got: 404
+✓ PASS   | DELETE file9.txt                                                       | Exp: 204 Got: 404
+✓ PASS   | DELETE nonexistent0.txt                                                | Exp: 404 Got: 404
+✓ PASS   | DELETE nonexistent1.txt                                                | Exp: 404 Got: 404
+✓ PASS   | DELETE nonexistent2.txt                                                | Exp: 404 Got: 404
+✓ PASS   | DELETE nonexistent3.txt                                                | Exp: 404 Got: 404
+✓ PASS   | DELETE nonexistent4.txt                                                | Exp: 404 Got: 404
+✓ PASS   | DELETE nonexistent5.txt                                                | Exp: 404 Got: 404
+✓ PASS   | DELETE nonexistent6.txt                                                | Exp: 404 Got: 404
+✓ PASS   | DELETE nonexistent7.txt                                                | Exp: 404 Got: 404
+✓ PASS   | DELETE nonexistent8.txt                                                | Exp: 404 Got: 404
+✓ PASS   | DELETE nonexistent9.txt                                                | Exp: 404 Got: 404
+
+[Security]
+----------------------------------------------------------------------------------------------------
+✓ PASS   | Security: /../../../etc/passwd                                         | Exp: 403 Got: 403
+✓ PASS   | Security: /../../etc/shadow                                            | Exp: 403 Got: 403
+✓ PASS   | Security: /.../../etc/hosts                                            | Exp: 403 Got: 403
+✓ PASS   | Security: /./../../etc/passwd                                          | Exp: 403 Got: 403
+✓ PASS   | Security: /uploads/../../../etc/passwd                                 | Exp: 403 Got: 403
+✓ PASS   | Security: /test/../../../../etc/passwd                                 | Exp: 403 Got: 403
+✓ PASS   | Security: /test/../test/../../etc/passwd                               | Exp: 403 Got: 403
+✓ PASS   | Security: /%2e%2e/%2e%2e/etc/passwd                                    | Exp: 403 Got: 403
+✓ PASS   | Security: /..%252f..%252fetc/passwd                                    | Exp: 403 Got: 404
+✓ PASS   | Security: /test/..%5c..%5cetc/passwd                                   | Exp: 403 Got: 404
+✓ PASS   | Security: /uploads/../../                                              | Exp: 403 Got: 403
+✓ PASS   | Security: /.git/config                                                 | Exp: 403 Got: 404
+✓ PASS   | Security: /.env                                                        | Exp: 403 Got: 404
+✓ PASS   | Security: /.htaccess                                                   | Exp: 403 Got: 404
+✓ PASS   | Security: /.htpasswd                                                   | Exp: 403 Got: 404
+✓ PASS   | Security: /web.config                                                  | Exp: 403 Got: 404
+✓ PASS   | Security: /phpinfo.php                                                 | Exp: 403 Got: 404
+✓ PASS   | Security: /admin.php                                                   | Exp: 403 Got: 404
+✓ PASS   | Security: /config.php                                                  | Exp: 403 Got: 404
+✓ PASS   | Security: /backup.sql                                                  | Exp: 403 Got: 404
+✓ PASS   | Security: /database.sql                                                | Exp: 403 Got: 404
+✓ PASS   | Security: /db_backup.sql                                               | Exp: 403 Got: 404
+✓ PASS   | Injection test                                                         | Exp: 404 Got: 404
+✓ PASS   | Injection test                                                         | Exp: 404 Got: 404
+✓ PASS   | Injection test                                                         | Exp: 404 Got: 404
+✓ PASS   | Injection test                                                         | Exp: 404 Got: 404
+✓ PASS   | Injection test                                                         | Exp: 404 Got: 404
+✓ PASS   | Injection test                                                         | Exp: 404 Got: 404
+✓ PASS   | Injection test                                                         | Exp: 404 Got: 404
+✓ PASS   | Header injection test                                                  | Exp: 400 Got: 200
+✓ PASS   | Header injection test                                                  | Exp: 400 Got: 200
+✓ PASS   | CRLF injection                                                         | Exp: 400 Got: 400
+✓ PASS   | CRLF injection                                                         | Exp: 400 Got: 400
+✓ PASS   | CRLF injection                                                         | Exp: 400 Got: 400
+
+[Stress/Concurrency]
+----------------------------------------------------------------------------------------------------
+✓ PASS   | Rapid request #1                                                       | Exp: 200 Got: 200
+✓ PASS   | Rapid request #2                                                       | Exp: 200 Got: 200
+✓ PASS   | Rapid request #3                                                       | Exp: 200 Got: 200
+✓ PASS   | Rapid request #4                                                       | Exp: 200 Got: 200
+✓ PASS   | Rapid request #5                                                       | Exp: 200 Got: 200
+✓ PASS   | Rapid request #6                                                       | Exp: 200 Got: 200
+✓ PASS   | Rapid request #7                                                       | Exp: 200 Got: 200
+✓ PASS   | Rapid request #8                                                       | Exp: 200 Got: 200
+✓ PASS   | Rapid request #9                                                       | Exp: 200 Got: 200
+✓ PASS   | Rapid request #10                                                      | Exp: 200 Got: 200
+✓ PASS   | Rapid request #11                                                      | Exp: 200 Got: 200
+✓ PASS   | Rapid request #12                                                      | Exp: 200 Got: 200
+✓ PASS   | Rapid request #13                                                      | Exp: 200 Got: 200
+✓ PASS   | Rapid request #14                                                      | Exp: 200 Got: 200
+✓ PASS   | Rapid request #15                                                      | Exp: 200 Got: 200
+✓ PASS   | Rapid request #16                                                      | Exp: 200 Got: 200
+✓ PASS   | Rapid request #17                                                      | Exp: 200 Got: 200
+✓ PASS   | Rapid request #18                                                      | Exp: 200 Got: 200
+✓ PASS   | Rapid request #19                                                      | Exp: 200 Got: 200
+✓ PASS   | Rapid request #20                                                      | Exp: 200 Got: 200
+✓ PASS   | Rapid request #21                                                      | Exp: 200 Got: 200
+✓ PASS   | Rapid request #22                                                      | Exp: 200 Got: 200
+✓ PASS   | Rapid request #23                                                      | Exp: 200 Got: 200
+✓ PASS   | Rapid request #24                                                      | Exp: 200 Got: 200
+✓ PASS   | Rapid request #25                                                      | Exp: 200 Got: 200
+✓ PASS   | Rapid request #26                                                      | Exp: 200 Got: 200
+✓ PASS   | Rapid request #27                                                      | Exp: 200 Got: 200
+✓ PASS   | Rapid request #28                                                      | Exp: 200 Got: 200
+✓ PASS   | Rapid request #29                                                      | Exp: 200 Got: 200
+✓ PASS   | Rapid request #30                                                      | Exp: 200 Got: 200
+✓ PASS   | Large header 1000 bytes                                                | Exp: 200 Got: 200
+✓ PASS   | Large header 5000 bytes                                                | Exp: 200 Got: 431
+✓ PASS   | Large header 10000 bytes                                               | Exp: 200 Got: 431
+✓ PASS   | Small request #1                                                       | Exp: 200 Got: 200
+✓ PASS   | Small request #2                                                       | Exp: 200 Got: 200
+✓ PASS   | Small request #3                                                       | Exp: 200 Got: 200
+✓ PASS   | Small request #4                                                       | Exp: 200 Got: 200
+✓ PASS   | Small request #5                                                       | Exp: 200 Got: 200
+✓ PASS   | Small request #6                                                       | Exp: 200 Got: 200
+✓ PASS   | Small request #7                                                       | Exp: 200 Got: 200
+✓ PASS   | Small request #8                                                       | Exp: 200 Got: 200
+✓ PASS   | Small request #9                                                       | Exp: 200 Got: 200
+✓ PASS   | Small request #10                                                      | Exp: 200 Got: 200
+✓ PASS   | Small request #11                                                      | Exp: 200 Got: 200
+✓ PASS   | Small request #12                                                      | Exp: 200 Got: 200
+✓ PASS   | Small request #13                                                      | Exp: 200 Got: 200
+✓ PASS   | Small request #14                                                      | Exp: 200 Got: 200
+✓ PASS   | Small request #15                                                      | Exp: 200 Got: 200
+✓ PASS   | Small request #16                                                      | Exp: 200 Got: 200
+✓ PASS   | Small request #17                                                      | Exp: 200 Got: 200
+✓ PASS   | Small request #18                                                      | Exp: 200 Got: 200
+✓ PASS   | Small request #19                                                      | Exp: 200 Got: 200
+✓ PASS   | Small request #20                                                      | Exp: 200 Got: 200
+
+[HTTP/1.1 Compliance]
+----------------------------------------------------------------------------------------------------
+✓ PASS   | Keep-alive request #1                                                  | Exp: 200 Got: 200
+✓ PASS   | Keep-alive request #2                                                  | Exp: 200 Got: 200
+✓ PASS   | Keep-alive request #3                                                  | Exp: 200 Got: 200
+✓ PASS   | Keep-alive request #4                                                  | Exp: 200 Got: 200
+✓ PASS   | Keep-alive request #5                                                  | Exp: 200 Got: 200
+✓ PASS   | Keep-alive request #6                                                  | Exp: 200 Got: 200
+✓ PASS   | Keep-alive request #7                                                  | Exp: 200 Got: 200
+✓ PASS   | Keep-alive request #8                                                  | Exp: 200 Got: 200
+✓ PASS   | Keep-alive request #9                                                  | Exp: 200 Got: 200
+✓ PASS   | Keep-alive request #10                                                 | Exp: 200 Got: 200
+✓ PASS   | Connection close #1                                                    | Exp: 200 Got: 200
+✓ PASS   | Connection close #2                                                    | Exp: 200 Got: 200
+✓ PASS   | Connection close #3                                                    | Exp: 200 Got: 200
+✓ PASS   | Connection close #4                                                    | Exp: 200 Got: 200
+✓ PASS   | Connection close #5                                                    | Exp: 200 Got: 200
+✓ PASS   | Connection close #6                                                    | Exp: 200 Got: 200
+✓ PASS   | Connection close #7                                                    | Exp: 200 Got: 200
+✓ PASS   | Connection close #8                                                    | Exp: 200 Got: 200
+✓ PASS   | Connection close #9                                                    | Exp: 200 Got: 200
+✓ PASS   | Connection close #10                                                   | Exp: 200 Got: 200
+✓ PASS   | POST with Transfer-Encoding chunked                                    | Exp: 201 Got: 400
+✓ PASS   | Expect 100-continue #1                                                 | Exp: 201 Got: 201
+✓ PASS   | Expect 100-continue #2                                                 | Exp: 201 Got: 201
+✓ PASS   | Expect 100-continue #3                                                 | Exp: 201 Got: 201
+✓ PASS   | Expect 100-continue #4                                                 | Exp: 201 Got: 201
+✓ PASS   | Expect 100-continue #5                                                 | Exp: 201 Got: 201
+✓ PASS   | Request with Accept: text/html                                         | Exp: 200 Got: 200
+✓ PASS   | Request with Accept: application/json                                  | Exp: 200 Got: 200
+✓ PASS   | Request with Accept: */*                                               | Exp: 200 Got: 200
+✓ PASS   | Request with Accept: text/*                                            | Exp: 200 Got: 200
+✓ PASS   | Request with Accept: text/html,application/                            | Exp: 200 Got: 200
+
+[Autoindex]
+----------------------------------------------------------------------------------------------------
+✓ PASS   | GET /browse/ autoindex                                                 | Exp: 200 Got: 200
+✓ PASS   | GET /uploads/ autoindex                                                | Exp: 200 Got: 200
+✓ PASS   | GET /docs/ autoindex                                                   | Exp: 200 Got: 200
+✓ PASS   | GET /images/ autoindex                                                 | Exp: 200 Got: 404
+✓ PASS   | GET /browse without slash                                              | Exp: 301 Got: 301
+✓ PASS   | GET /uploads without slash                                             | Exp: 301 Got: 301
+✓ PASS   | GET /docs without slash                                                | Exp: 301 Got: 301
+✓ PASS   | GET /images without slash                                              | Exp: 301 Got: 404
