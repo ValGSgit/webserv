@@ -180,7 +180,7 @@ void ServerManager::run() {
         int nfds = epoll_wait(_epoll_fd, _events, MAX_CONNECTIONS, 1000);
         
         if (nfds == -1) {
-            if (errno == EINTR) continue;
+            //if (errno == EINTR) continue;
             perror("epoll_wait");
             break;
         }

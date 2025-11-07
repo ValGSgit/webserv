@@ -531,9 +531,6 @@ void HttpHandler::handleRead(int client_fd) {
     if (bytes_read == 0) {
         std::cout << "Client disconnected (fd: " << client_fd << ")" << std::endl;
         closeConnection(client_fd);
-    } else if (errno != EAGAIN && errno != EWOULDBLOCK) {
-        perror("read");
-        closeConnection(client_fd);
     }
 }
 
@@ -554,7 +551,7 @@ void HttpHandler::handleWrite(int client_fd) {
             std::cout << "✓ Response sent successfully to fd " << client_fd << std::endl;
             closeConnection(client_fd);
         }
-    } else if (bytes_sent == -1 && errno != EAGAIN && errno != EWOULDBLOCK) {
+    } else if (bytes_sent == -1) {
         perror("write");
         closeConnection(client_fd);
     }
@@ -567,9 +564,9 @@ void HttpHandler::acceptConnection(int server_fd, int server_port) {
 
     int client_fd = accept(server_fd, (struct sockaddr*)&client_addr, &client_len);
     if (client_fd == -1) {
-        if (errno != EAGAIN && errno != EWOULDBLOCK) {
-            perror("accept");
-        }
+        //if (errno != EAGAIN && errno != EWOULDBLOCK) {
+            //perror("accept");
+        //}
         return;
     }
     Utils::setNonBlocking(client_fd);
