@@ -54,7 +54,7 @@ bool ServerManager::initialize(const std::string& config_file) {
 bool ServerManager::setupEpoll() {
     _epoll_fd = epoll_create1(0);
     if (_epoll_fd == -1) {
-        perror("epoll_create1");
+        std::cerr << "epoll_create1 failed\n";
         return false;
     }
     return true;
@@ -86,14 +86,14 @@ bool ServerManager::createServerSocket(const ServerConfig& config) {
     // Create socket
     int server_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (server_fd == -1) {
-        perror("socket");
+                std::cerr << "socket failed\n";
         return false;
     }
     
     // Set socket options
     int opt = 1;
     if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) {
-        perror("setsockopt");
+        std::cerr << "setsockopt failed\n";
         close(server_fd);
         return false;
     }
@@ -109,14 +109,14 @@ bool ServerManager::createServerSocket(const ServerConfig& config) {
     addr.sin_port = htons(port);
     
     if (bind(server_fd, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
-        perror("bind");
+        std::cerr << "bind failed\n";
         close(server_fd);
         return false;
     }
     
     // Listen
     if (listen(server_fd, SOMAXCONN) == -1) {
-        perror("listen");
+        std::cerr << "listen failed\n";
         close(server_fd);
         return false;
     }
@@ -143,7 +143,7 @@ void ServerManager::addToEpoll(int fd, uint32_t events) {
     ev.data.fd = fd;
     
     if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, fd, &ev) == -1) {
-        perror("epoll_ctl: add");
+        std::cerr << "epoll_ctl:add failed\n";
     }
 }
 
@@ -154,13 +154,13 @@ void ServerManager::modifyEpoll(int fd, uint32_t events) {
     ev.data.fd = fd;
     
     if (epoll_ctl(_epoll_fd, EPOLL_CTL_MOD, fd, &ev) == -1) {
-        perror("epoll_ctl: mod");
+        std::cerr << "epoll_ctl:mod failed\n";
     }
 }
 
 void ServerManager::removeFromEpoll(int fd) {
     if (epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, fd, NULL) == -1) {
-        perror("epoll_ctl: del");
+        std::cerr << "epoll_ctl:del failed\n";
     }
 }
 
@@ -181,7 +181,7 @@ void ServerManager::run() {
         
         if (nfds == -1) {
             //if (errno == EINTR) continue;
-            perror("epoll_wait");
+            std::cerr << "epoll_wait failed\n";
             break;
         }
         

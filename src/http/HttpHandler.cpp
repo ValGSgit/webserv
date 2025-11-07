@@ -428,9 +428,11 @@ HttpResponse HttpHandler::handleUpload(const HttpRequest& request, const ServerC
             bytes_read = read(client_fd, buffer, BUFFER_SIZE);
             if (bytes_read < 0)
             {
-                //std::cout << bytes_read << " = bytes_read\n";
+                std::cerr << "read failed\n";
                 continue ;
             }
+            if (bytes_read == 0)
+                continue ;
             time_t now = time(NULL);
             //sleep(1);
             //std::cout << "now = " << now << "\n";
@@ -527,7 +529,11 @@ void HttpHandler::handleRead(int client_fd) {
             return;
         }
     }
-        
+    if (bytes_read < 0)
+    {
+        std::cerr << "read failed\n";
+        closeConnection(client_fd);
+    }
     if (bytes_read == 0) {
         std::cout << "Client disconnected (fd: " << client_fd << ")" << std::endl;
         closeConnection(client_fd);
@@ -552,7 +558,7 @@ void HttpHandler::handleWrite(int client_fd) {
             closeConnection(client_fd);
         }
     } else if (bytes_sent == -1) {
-        perror("write");
+        std::cerr << "write failed\n";
         closeConnection(client_fd);
     }
 }
@@ -565,7 +571,7 @@ void HttpHandler::acceptConnection(int server_fd, int server_port) {
     int client_fd = accept(server_fd, (struct sockaddr*)&client_addr, &client_len);
     if (client_fd == -1) {
         //if (errno != EAGAIN && errno != EWOULDBLOCK) {
-            //perror("accept");
+            //std::cerr << "accept failed\n";
         //}
         return;
     }
@@ -575,7 +581,7 @@ void HttpHandler::acceptConnection(int server_fd, int server_port) {
     ev.events = EPOLLIN | EPOLLET;
     ev.data.fd = client_fd;
     if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, client_fd, &ev) == -1) {
-        perror("epoll_ctl: client_fd");
+        std::cerr << "epoll_ctl failed\n";
         close(client_fd);
         return;
     }

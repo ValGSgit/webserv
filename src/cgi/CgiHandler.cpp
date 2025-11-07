@@ -24,7 +24,7 @@ HttpResponse CgiHandler::executeCgi(const HttpRequest& request, const std::strin
     // Create pipes for communication
     int stdin_pipe[2], stdout_pipe[2];
     if (pipe(stdin_pipe) == -1 || pipe(stdout_pipe) == -1) {
-        perror("pipe");
+        std::cerr << "pipe failed\n";;
         return HttpResponse::errorResponse(HTTP_INTERNAL_SERVER_ERROR);
     }
     
@@ -48,7 +48,7 @@ HttpResponse CgiHandler::executeCgi(const HttpRequest& request, const std::strin
     // Fork process
     pid_t pid = fork();
     if (pid == -1) {
-        perror("fork");
+        std::cerr << "fork failed\n";
         close(stdin_pipe[0]); close(stdin_pipe[1]);
         close(stdout_pipe[0]); close(stdout_pipe[1]);
         return HttpResponse::errorResponse(HTTP_INTERNAL_SERVER_ERROR);
@@ -71,7 +71,7 @@ HttpResponse CgiHandler::executeCgi(const HttpRequest& request, const std::strin
         execve(cgi_executable.c_str(), const_cast<char* const*>(args), &env_array[0]);
         
         // If we get here, exec failed
-        perror("execve");
+        std::cerr << "execve failed\n";
         std::exit(1);
     }
 
@@ -93,7 +93,7 @@ HttpResponse CgiHandler::executeCgi(const HttpRequest& request, const std::strin
     // Create epoll instance for CGI pipe
     int epoll_fd = epoll_create1(0);
     if (epoll_fd == -1) {
-        perror("epoll_create1");
+        std::cerr << "epoll_create1 failed\n";
         close(stdout_pipe[0]);
         kill(pid, SIGTERM);
         waitpid(pid, NULL, 0);
@@ -107,7 +107,7 @@ HttpResponse CgiHandler::executeCgi(const HttpRequest& request, const std::strin
     ev.data.fd = stdout_pipe[0];
     
     if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, stdout_pipe[0], &ev) == -1) {
-        perror("epoll_ctl");
+        std::cerr << "epoll_ctl failed\n";
         close(epoll_fd);
         close(stdout_pipe[0]);
         kill(pid, SIGTERM);
@@ -134,7 +134,7 @@ HttpResponse CgiHandler::executeCgi(const HttpRequest& request, const std::strin
         
         if (nfds == -1) {
             if (errno == EINTR) continue;  // Interrupted by signal, retry
-            perror("epoll_wait");
+            std::cerr << "epoll_wait failed\n";
             break;
         } else if (nfds == 0) {
             // Timeout
@@ -145,8 +145,13 @@ HttpResponse CgiHandler::executeCgi(const HttpRequest& request, const std::strin
         
         // Data available to read
         bytes_read = read(stdout_pipe[0], buffer, sizeof(buffer) - 1);
-        if (bytes_read <= 0) break;  // EOF or error
-        
+        if (bytes_read == 0)
+            break;  // EOF or error
+        if (bytes_read < 0)
+        {
+            std::cerr << "read failed\n";
+            break ;
+        }
         buffer[bytes_read] = '\0';
         output += std::string(buffer, bytes_read);
     }

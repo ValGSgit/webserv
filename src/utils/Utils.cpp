@@ -163,7 +163,8 @@ std::string Utils::readFile(const std::string& filepath) {
     while ((bytes_read = read(fd, buffer, BUFFER_SIZE)) > 0) {
         content.append(buffer, bytes_read);
     }
-    
+    if (bytes_read < 0)
+        std::cerr << "read failed\n";
     close(fd);
     return content;
 }
@@ -175,6 +176,11 @@ bool Utils::writeFile(const std::string& filepath, void *buffer, int bytes) {//c
     
     ssize_t bytes_written = write(fd, buffer, bytes);//content.c_str(), content.length());
     close(fd);
+    if (bytes_written == -1)
+    {
+        std::cerr << "writeFile failed\n";
+        return false;
+    }
     //std::cout << "bytes_written = " << bytes_written << std::endl;
     return bytes_written == bytes;//static_cast<ssize_t>(content.length());
 }
