@@ -36,6 +36,7 @@ private:
     HttpResponse handleDelete(const HttpRequest& request, const ServerConfig& config, int client_fd);
     HttpResponse handleJsonApi(const HttpRequest& request);
     const ServerConfig* findServerForClient(int client_fd);
+    std::string getMethodAllowed(const std::string& uri, const ServerConfig& config);
     bool methodAllowed(const std::string& uri, const std::string& method, const ServerConfig& config);
     const RouteConfig* findMatchingRoute(const std::string& uri, const ServerConfig& config);
     

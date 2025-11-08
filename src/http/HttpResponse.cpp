@@ -20,6 +20,10 @@ void HttpResponse::setBody(const std::string& body) {
     setContentLength(_body.length());
 }
 
+void HttpResponse::removeBody() {
+    _body = "";
+}
+
 void HttpResponse::appendBody(const std::string& data) {
     _body += data;
     setContentLength(_body.length());
@@ -75,6 +79,10 @@ void HttpResponse::setContentType(const std::string& content_type) {
 
 void HttpResponse::setContentLength(size_t length) {
     _headers["Content-Length"] = Utils::toString(length);
+}
+
+void HttpResponse::setAllow(const std::string& methods) {
+    _headers["Allow"] = methods;
 }
 
 #ifdef BONUS

@@ -1227,6 +1227,7 @@ std::string Utils::httpMethodToString(HttpMethod method) {
         case METHOD_GET: return "GET";
         case METHOD_POST: return "POST";
         case METHOD_PUT: return "PUT";
+        case METHOD_HEAD: return "HEAD";
         case METHOD_DELETE: return "DELETE";
         default: return "UNKNOWN";
     }

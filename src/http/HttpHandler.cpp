@@ -24,6 +24,50 @@ const ServerConfig* HttpHandler::findServerForClient(int client_fd) {
     return _server_manager->findServerConfig(client->server_port);
 }
 
+std::string HttpHandler::getMethodAllowed(const std::string& uri, const ServerConfig& config)
+{
+    std::string MethodAllowed;
+
+    // Try to find the most specific matching route
+    std::string route_path = uri;
+    
+    // Keep going up the directory tree until we find a matching route
+    while (true) {
+        try {
+            const RouteConfig& route = config.routes.at(route_path); //at not allowed
+            
+            // Found a matching route! Check if method is allowed
+            for (size_t i = 0; i < route.allowed_methods.size(); ++i) {
+                    if (i != 0)
+                        MethodAllowed += ", ";
+                    MethodAllowed += route.allowed_methods[i];  // Method is allowed
+            }
+            
+            // Route found but method not allowed
+            return MethodAllowed;
+            
+        } catch (const std::exception& e) {
+            // Route not found, try parent directory
+            if (route_path == "/") {
+                // Reached root, no route found
+                // Allow GET by default for backwards compatibility
+                return ("GET");
+            }
+            
+            // Remove last path segment and try again
+            size_t last_slash = route_path.find_last_of('/');
+            if (last_slash == 0) {
+                route_path = "/";  // Parent is root
+            } else if (last_slash != std::string::npos) {
+                route_path = route_path.substr(0, last_slash);
+            } else {
+                // No slash found (shouldn't happen with valid URIs)
+                return ("GET");
+            }
+        }
+    }
+}
+
 bool HttpHandler::methodAllowed(const std::string& uri, const std::string& method, const ServerConfig& config) {
     // Try to find the most specific matching route
     std::string route_path = uri;
@@ -139,6 +183,7 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
         // Check if method is allowed
         else if (!methodAllowed(uri, request.methodToString(), *config)) {
             response = HttpResponse::errorResponse(HTTP_METHOD_NOT_ALLOWED);
+            response.setAllow(getMethodAllowed(uri, *config));
         }
 #ifdef BONUS
         // Session API endpoints (MUST be checked BEFORE generic POST handler!)
@@ -283,6 +328,10 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
                 response = HttpResponse::errorResponse(HTTP_NOT_FOUND);
             }
         }
+    }
+    // remove body for HEAD
+    if (request.getMethod() == METHOD_HEAD) {
+            response.removeBody();
     }
     
     // Prepare response for sending
@@ -531,8 +580,9 @@ void HttpHandler::handleRead(int client_fd) {
     }
     if (bytes_read < 0)
     {
-        std::cerr << "read failed\n";
-        closeConnection(client_fd);
+        // the fd is hanging, just try again, don't close connection yet
+        std::cerr << "handleRead failed, " << strerror(errno) << ", will keep trying until time out" << "\n";
+        //closeConnection(client_fd);
     }
     if (bytes_read == 0) {
         std::cout << "Client disconnected (fd: " << client_fd << ")" << std::endl;

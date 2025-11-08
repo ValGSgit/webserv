@@ -90,8 +90,10 @@ bool HttpRequest::parseRequest(const std::string& data) {
 //parsing first line
 void HttpRequest::parseRequestLine(const std::string& line) {
     // Manual parsing without istringstream
+    //std::cout << line << std::endl;
     std::vector<std::string> tokens = Utils::split(line, ' ');
-    if (tokens.size() >= 3) {
+    if (tokens.size() == 3) {
+        // these are case-sensitive
         _method = stringToMethod(tokens[0]);
         _uri = tokens[1];
         _version = tokens[2];
@@ -108,6 +110,20 @@ void HttpRequest::parseRequestLine(const std::string& line) {
             _status = HTTP_NOT_IMPLEMENTED;
         else
             parseUri(_uri);
+        // check only two space in between
+        int i = 0;
+        int space = 0;
+        while (line[i])
+        {
+            if(line[i] == ' ')
+                space++;
+            i++;
+        }
+        if(space != 2)
+        {
+            _status = HTTP_BAD_REQUEST;
+            return ;
+        }
     }
     // to avoid throwing error too early if the header is only partly sent, eg. (printf "GE" ; sleep 30 ; printf "T / HTTP/1.0\r\n\r\n") | nc localhost 8080
 /*     else
@@ -137,15 +153,27 @@ void HttpRequest::parseHeader(const std::string& line) {
             }
         }
         
-        _headers[key_lower] = value;
+        _headers[key_lower] = Utils::toLowerCase(value);
         
         if (key_lower == "content-length") {
             _content_length = Utils::toSizeT(value);
+            // can't co-exist
+            if (_headers.find("transfer-encoding") != _headers.end())
+                _status = HTTP_BAD_REQUEST;
+            return;
         }
         else if (key_lower == "transfer-encoding") {
-            // We don't support chunked encoding, return 411 Length Required
             _status = HTTP_LENGTH_REQUIRED;
+            if (_headers.find("content-length") != _headers.end())
+                _status = HTTP_BAD_REQUEST;
+            // We don't support chunked encoding, return 411 Length Required
             return;
+        }
+        // expectation is not supported
+        if (key_lower == "expect")
+        {
+            _status = HTTP_EXPECTATION_FAILED;
+            return ;
         }
     }
 }
@@ -163,6 +191,7 @@ HttpMethod HttpRequest::stringToMethod(const std::string& method_str) {
     if (method_str == "GET") return METHOD_GET;
     if (method_str == "POST") return METHOD_POST;
     if (method_str == "PUT") return METHOD_PUT;
+    if (method_str == "HEAD") return METHOD_HEAD;
     if (method_str == "DELETE") return METHOD_DELETE;
     return METHOD_UNKNOWN;
 }
@@ -245,6 +274,7 @@ std::string HttpRequest::methodToString() const {
         case METHOD_GET: return "GET";
         case METHOD_POST: return "POST";
         case METHOD_PUT: return "PUT";
+        case METHOD_HEAD: return "HEAD";
         case METHOD_DELETE: return "DELETE";
         default: return "UNKNOWN";
     }
