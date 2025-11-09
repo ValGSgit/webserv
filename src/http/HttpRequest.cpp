@@ -8,8 +8,6 @@ HttpRequest::HttpRequest()
 
 HttpRequest::~HttpRequest() {}
 
-// RFC 7230 Section 3 - HTTP Message Format
-// Parses an HTTP/1.1 request message
 bool HttpRequest::parseRequest(const std::string& data) {
     // Manual parsing without stringstream/getline
     std::vector<std::string> lines = splitIntoLines(data);
@@ -20,15 +18,11 @@ bool HttpRequest::parseRequest(const std::string& data) {
     for (size_t i = 0; i < lines.size(); ++i) {
         const std::string& line = lines[i];
         
-        // RFC 7230 Section 3.2.5 - Field Limits
-        // Servers that receive a request header field, or set of fields, larger than they wish
-        // to process MUST respond with an appropriate 4xx (Client Error) status code
         if (header_size > MAX_HEADER_SIZE || line.size() > MAX_FIELD_SIZE)
             _status = HTTP_REQUEST_HEADER_FIELDS_TOO_LARGE;
         //if (_status) // save some resources
         //    return true;
 
-        // RFC 7230 Section 3 - Empty line indicates end of header section
         // why \r? it's already skipped in splitIntoLines()
         if (line.empty() || line == "\r") {
             _headers_complete = true;
@@ -53,7 +47,6 @@ bool HttpRequest::parseRequest(const std::string& data) {
     }
 #endif
 
-    // RFC 7230 Section 3.3 - Message Body
     // Read body if present
     if (_headers_complete && _content_length > 0) {
         std::size_t needle = data.find("\r\n\r\n");
@@ -65,42 +58,26 @@ bool HttpRequest::parseRequest(const std::string& data) {
         } */
         _body_complete = (_body.length() >= _content_length);
     }
-    
-    // RFC 7230 Section 5.4 - Host header is REQUIRED for HTTP/1.1
-    if (_headers_complete && _version == "HTTP/1.1") {
-        if (getHeader("host").empty()) {
-            _status = HTTP_BAD_REQUEST; // Missing required Host header
-        }
-    }
-    
     return _headers_complete;
 }
 
-// RFC 7230 Section 3.1.1 - Request Line Format
-// request-line = method SP request-target SP HTTP-version CRLF
 //parsing first line
 void HttpRequest::parseRequestLine(const std::string& line) {
     // Manual parsing without istringstream
     std::vector<std::string> tokens = Utils::split(line, ' ');
-    
-    // RFC 7230 Section 3.1.1 - Request line must have exactly 3 parts
     if (tokens.size() >= 3) {
         _method = stringToMethod(tokens[0]);
         _uri = tokens[1];
         _version = tokens[2];
         
-        // RFC 7230 Section 2.6 - HTTP Version Format
-        // HTTP-version = HTTP-name "/" DIGIT "." DIGIT
-        // We only support HTTP/1.1 (and tolerate HTTP/1.0)
+        // SECURITY FIX: Validate HTTP version
         if (!Utils::isValidHttpVersion(_version)) {
             _status = HTTP_BAD_REQUEST;
             return;
         }
         
-        // RFC 7230 Section 3.1.1 - Request-target limits
         if (_uri.size() > MAX_URI) // need to include domain name?
             _status = HTTP_URI_TOO_LONG;
-        // RFC 7231 Section 4 - Unknown methods should return 501 Not Implemented
         else if (_method == METHOD_UNKNOWN)
             _status = HTTP_NOT_IMPLEMENTED;
         else
@@ -111,17 +88,13 @@ void HttpRequest::parseRequestLine(const std::string& line) {
         _status = HTTP_BAD_REQUEST; */
 }
 
-// RFC 7230 Section 3.2 - Header Fields
-// header-field = field-name ":" OWS field-value OWS
 void HttpRequest::parseHeader(const std::string& line) {
     size_t colon_pos = line.find(':');
     if (colon_pos != std::string::npos) {
         std::string key = Utils::trim(line.substr(0, colon_pos));
         std::string value = Utils::trim(line.substr(colon_pos + 1));
         
-        // RFC 7230 Section 3.2 - Field names are case-insensitive
-        // RFC 7230 Section 3.2.4 - No whitespace allowed between field name and colon
-        // SECURITY FIX: Check for injection in header values (CRLF injection)
+        // SECURITY FIX: Check for injection in header values
         if (Utils::containsLF(value) || Utils::containsLF(key)) {
             _status = HTTP_BAD_REQUEST;
             return;
@@ -129,9 +102,7 @@ void HttpRequest::parseHeader(const std::string& line) {
         
         std::string key_lower = Utils::toLowerCase(key);
         
-        // RFC 7230 Section 3.3.2 - Duplicate Content-Length with different values is invalid
-        // RFC 7230 Section 3.3.3 - Transfer-Encoding and Content-Length together = bad request
-        // RFC 7230 Section 5.4 - Multiple Host headers is invalid
+        // SECURITY FIX: Detect duplicate Content-Length headers
         if (key_lower == "content-length" || key_lower == "transfer-encoding" || key_lower == "host") {
             if (_headers.find(key_lower) != _headers.end()) {
                 // Duplicate critical header
@@ -142,29 +113,12 @@ void HttpRequest::parseHeader(const std::string& line) {
         
         _headers[key_lower] = value;
         
-        // RFC 7230 Section 3.3.2 - Content-Length header processing
         if (key_lower == "content-length") {
             _content_length = Utils::toSizeT(value);
-        }
-        
-        // RFC 7230 Section 3.3.1 - Transfer-Encoding header processing
-        if (key_lower == "transfer-encoding") {
-            // Check if chunked encoding is used
-            std::string value_lower = Utils::toLowerCase(value);
-            if (value_lower.find("chunked") != std::string::npos) {
-                _chunked = true;
-                
-                // RFC 7230 Section 3.3.3 - When Transfer-Encoding is present,
-                // Content-Length MUST be ignored
-                if (_headers.find("content-length") != _headers.end()) {
-                    _content_length = 0; // Ignore Content-Length when chunked
-                }
-            }
         }
     }
 }
 
-// RFC 3986 - URI parsing
 void HttpRequest::parseUri(const std::string& uri) {
     size_t query_pos = uri.find('?');
     if (query_pos != std::string::npos) {
@@ -176,11 +130,9 @@ void HttpRequest::parseUri(const std::string& uri) {
 
 HttpMethod HttpRequest::stringToMethod(const std::string& method_str) {
     if (method_str == "GET") return METHOD_GET;
-    if (method_str == "HEAD") return METHOD_HEAD;
     if (method_str == "POST") return METHOD_POST;
     if (method_str == "PUT") return METHOD_PUT;
     if (method_str == "DELETE") return METHOD_DELETE;
-    if (method_str == "OPTIONS") return METHOD_OPTIONS;
     return METHOD_UNKNOWN;
 }
 
@@ -260,11 +212,9 @@ std::string HttpRequest::getHeader(const std::string& key) const {
 std::string HttpRequest::methodToString() const {
     switch (_method) {
         case METHOD_GET: return "GET";
-        case METHOD_HEAD: return "HEAD";
         case METHOD_POST: return "POST";
         case METHOD_PUT: return "PUT";
         case METHOD_DELETE: return "DELETE";
-        case METHOD_OPTIONS: return "OPTIONS";
         default: return "UNKNOWN";
     }
 }
@@ -308,10 +258,8 @@ std::vector<std::string> HttpRequest::splitIntoLines(const std::string& content)
     std::vector<std::string> lines;
     std::string line;
     
-    // RFC 7230 Section 3 - Message Format
-    // The HTTP and MIME specs specify that header lines must end with \r\n (CRLF)
-    // https://stackoverflow.com/questions/6324167/do-browsers-send-r-n-or-n-or-does-it-depend-on-the-browser
-    // However, we tolerate \n for robustness
+    //The HTTP and MIME specs specify that header lines must end with \r\n
+    //https://stackoverflow.com/questions/6324167/do-browsers-send-r-n-or-n-or-does-it-depend-on-the-browser
     for (size_t i = 0; i < content.length(); ++i) {
         if (content[i] == '\n') {
             lines.push_back(line);

@@ -9,7 +9,6 @@ ServerManager::~ServerManager() {
     shutdown();
 }
 
-// Initialize the server with configuration file
 bool ServerManager::initialize(const std::string& config_file) {
     try {
         // Parse configuration

@@ -33,9 +33,7 @@ private:
 
     void processRequest(int client_fd, int server_port);
     HttpResponse handleUpload(const HttpRequest& request, const ServerConfig& config, int client_fd);
-    HttpResponse handlePut(const HttpRequest& request, const ServerConfig& config, int client_fd);
     HttpResponse handleDelete(const HttpRequest& request, const ServerConfig& config, int client_fd);
-    HttpResponse handleOptions(const std::string& uri, const ServerConfig& config);
     HttpResponse handleJsonApi(const HttpRequest& request);
     const ServerConfig* findServerForClient(int client_fd);
     bool methodAllowed(const std::string& uri, const std::string& method, const ServerConfig& config);

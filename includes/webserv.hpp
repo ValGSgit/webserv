@@ -35,16 +35,13 @@
 #define CONNECTION_TIMEOUT 60
 #define CGI_TIMEOUT 30
 
-// RFC 7231 Section 4 - Request Methods
 // HTTP Methods
 enum HttpMethod {
-    METHOD_GET,      // RFC 7231 Section 4.3.1 - Safe, Idempotent, Cacheable
-    METHOD_HEAD,     // RFC 7231 Section 4.3.2 - Safe, Idempotent, Cacheable (GET without body)
-    METHOD_POST,     // RFC 7231 Section 4.3.3 - Not safe, Not idempotent, Conditional cacheable
-    METHOD_PUT,      // RFC 7231 Section 4.3.4 - Not safe, Idempotent, Not cacheable
-    METHOD_DELETE,   // RFC 7231 Section 4.3.5 - Not safe, Idempotent, Not cacheable
-    METHOD_OPTIONS,  // RFC 7231 Section 4.3.7 - Safe, Idempotent, Not cacheable
-    METHOD_UNKNOWN   // Not a standard method - should return 501 Not Implemented
+    METHOD_GET,
+    METHOD_POST,
+    METHOD_PUT,
+    METHOD_DELETE,
+    METHOD_UNKNOWN
 };
 
 // Connection States
