@@ -11,10 +11,12 @@ void HttpResponse::setStatus(int status) {
     _status = status;
 }
 
+// RFC 7230 Section 3.2 - Header Fields
 void HttpResponse::setHeader(const std::string& key, const std::string& value) {
     _headers[key] = value;
 }
 
+// RFC 7230 Section 3.3.2 - Content-Length
 void HttpResponse::setBody(const std::string& body) {
     _body = body;
     setContentLength(_body.length());
@@ -52,27 +54,38 @@ void HttpResponse::reset() {
     setDefaultHeaders();
 }
 
+// RFC 7230 Section 3.2 - Header Fields
+// RFC 7231 Section 7.1.1.2 - Date header field
 void HttpResponse::setDefaultHeaders() {
-    // SECURITY FIX: Remove version information from Server header
+    // RFC 7231 Section 7.4.2 - Server header (optional but common)
+    // SECURITY: Don't expose version information
     _headers["Server"] = "WebServ";
     
+    // RFC 7231 Section 7.1.1.2 - Date header SHOULD be sent in all responses
+    // Date format per RFC 7231 Section 7.1.1.1 uses IMF-fixdate format
     std::time_t time = std::time(NULL);
     char buffer[30];
     std::strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S", std::localtime(&time));
     _headers["Date"] = buffer;
+    
+    // RFC 7230 Section 6.1 - Connection header (we use close, not persistent)
     _headers["Connection"] = "close";
     
-    // SECURITY FIX: Added security headers for browser protection
+    // SECURITY: Added security headers for browser protection
+    // These are not required by HTTP/1.1 but recommended for security
     _headers["X-Content-Type-Options"] = "nosniff";
     _headers["X-Frame-Options"] = "DENY";
     _headers["X-XSS-Protection"] = "1; mode=block";
     _headers["Referrer-Policy"] = "no-referrer";
 }
 
+// RFC 7231 Section 3.1.1.5 - Content-Type
 void HttpResponse::setContentType(const std::string& content_type) {
     _headers["Content-Type"] = content_type;
 }
 
+// RFC 7230 Section 3.3.2 - Content-Length
+// The Content-Length header field indicates the size of the message body
 void HttpResponse::setContentLength(size_t length) {
     _headers["Content-Length"] = Utils::toString(length);
 }
@@ -123,24 +136,34 @@ std::string HttpResponse::statusToString(int status) const {
     return Utils::toString((int)status) + " " + Utils::getStatusMessage((int)status);
 }
 
+// RFC 7230 Section 3.1.2 - Status Line Format
+// status-line = HTTP-version SP status-code SP reason-phrase CRLF
+// RFC 7230 Section 3.2 - Header Fields Format
+// RFC 7230 Section 3 - Message body follows headers after CRLF CRLF
 void HttpResponse::buildResponseString() {
+    // RFC 7230 Section 3.1.2 - Status line
     _response_string = "HTTP/1.1 " + statusToString(_status) + "\r\n";
 
+    // RFC 7230 Section 3.2 - Header fields
     for (std::map<std::string, std::string>::const_iterator it = _headers.begin();
          it != _headers.end(); ++it) {
         _response_string += it->first + ": " + it->second + "\r\n";
     }
 
 #ifdef BONUS
-    // Add all Set-Cookie headers (multiple are allowed)
+    // RFC 6265 - HTTP State Management Mechanism (Cookies)
+    // Multiple Set-Cookie headers are allowed
     for (size_t i = 0; i < _set_cookie_headers.size(); ++i) {
         _response_string += "Set-Cookie: " + _set_cookie_headers[i] + "\r\n";
     }
 #endif
 
+    // RFC 7230 Section 3 - Empty line separates headers from body
     _response_string += "\r\n" + _body;
 }
 
+// RFC 7231 Section 6 - Response Status Codes
+// Creates a response with a specific status and message
 HttpResponse HttpResponse::messageResponse(int status, const std::string& title, const std::string& message) {
     HttpResponse response;
     response.setStatus(status);
@@ -157,6 +180,7 @@ HttpResponse HttpResponse::messageResponse(int status, const std::string& title,
     return response;
 }
 
+// RFC 7231 Section 6 - Response Status Codes
 HttpResponse HttpResponse::errorResponse(int status, const std::string& message) {
     HttpResponse response;
     response.setStatus(status);
@@ -223,12 +247,46 @@ HttpResponse HttpResponse::directoryListingResponse(const std::string& path, con
     return response;
 }
 
+// RFC 7231 Section 6.4 - Redirection 3xx Status Codes
+// RFC 7231 Section 7.1.2 - Location header field
 HttpResponse HttpResponse::redirectResponse(const std::string& location, int status_code) {
     HttpResponse response;
     response.setStatus(status_code);
     response.setHeader("Location", location);
     response.setBody("");
     return response;
+}
+
+// RFC 7231 Section 4.3.7 - OPTIONS Method
+// Returns a response indicating the allowed methods for a resource
+HttpResponse HttpResponse::optionsResponse(const std::vector<std::string>& allowed_methods) {
+    HttpResponse response;
+    response.setStatus(HTTP_OK);
+    
+    // RFC 7231 Section 7.4.1 - Allow header field
+    // The Allow header field lists the set of methods advertised as supported by the target resource
+    std::string allow_header;
+    for (size_t i = 0; i < allowed_methods.size(); ++i) {
+        if (i > 0) allow_header += ", ";
+        allow_header += allowed_methods[i];
+    }
+    response.setHeader("Allow", allow_header);
+    
+    // OPTIONS responses typically have no body, but Content-Length: 0 is good practice
+    response.setBody("");
+    
+    return response;
+}
+
+// RFC 7231 Section 4.3.2 - HEAD Method
+// The HEAD method is identical to GET except that the server MUST NOT
+// send a message body in the response
+// IMPORTANT: Content-Length header should reflect what GET would have returned
+void HttpResponse::removeBody() {
+    // Keep Content-Length as it was set (reflecting the body size)
+    // Just clear the body content
+    _body.clear();
+    // Note: We do NOT update Content-Length here - it should remain as it was
 }
 
 void HttpResponse::print() const {

@@ -1,5 +1,7 @@
 #include "../../includes/http/HttpHandler.hpp"
 #include "../../includes/server/ServerManager.hpp"
+#include <fstream>
+#include <sys/stat.h>
 
 HttpHandler::~HttpHandler() {}
 
@@ -46,9 +48,10 @@ bool HttpHandler::methodAllowed(const std::string& uri, const std::string& metho
         } catch (const std::exception& e) {
             // Route not found, try parent directory
             if (route_path == "/") {
-                // Reached root, no route found
-                // Allow GET by default for backwards compatibility
-                return (method == "GET");
+                // RFC 7231: Reached root, no route found
+                // Allow safe methods (GET, HEAD, OPTIONS) by default
+                // OPTIONS should always be allowed (RFC 7231 Section 4.3.7)
+                return (method == "GET" || method == "HEAD" || method == "OPTIONS");
             }
             
             // Remove last path segment and try again
@@ -58,8 +61,9 @@ bool HttpHandler::methodAllowed(const std::string& uri, const std::string& metho
             } else if (last_slash != std::string::npos) {
                 route_path = route_path.substr(0, last_slash);
             } else {
-                // No slash found (shouldn't happen with valid URIs)
-                return (method == "GET");
+                // RFC 7231: No slash found (shouldn't happen with valid URIs)
+                // Allow safe methods by default
+                return (method == "GET" || method == "HEAD" || method == "OPTIONS");
             }
         }
     }
@@ -105,10 +109,29 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
         return;
     }
 
-    std::cout << "Processing " << request.methodToString() << " " << request.getUri() << std::endl;
+    // ========== DEBUG: Log incoming request ==========
+    std::cout << "\n╔════════════════════════════════════════════════════════════════╗\n";
+    std::cout << "║              INCOMING REQUEST (FD: " << client_fd << ", Port: " << server_port << ")              ║\n";
+    std::cout << "╠════════════════════════════════════════════════════════════════╣\n";
+    std::cout << "  Method:  " << request.methodToString() << "\n";
+    std::cout << "  URI:     " << request.getUri() << "\n";
+    std::cout << "  Version: " << request.getVersion() << "\n";
+    std::cout << "  Headers:\n";
+    const std::map<std::string, std::string>& headers = request.getHeaders();
+    for (std::map<std::string, std::string>::const_iterator it = headers.begin(); it != headers.end(); ++it) {
+        std::cout << "    " << it->first << ": " << it->second << "\n";
+    }
+    if (!request.getBody().empty()) {
+        std::cout << "  Body length: " << request.getBody().length() << " bytes\n";
+        if (request.getBody().length() < 200) {
+            std::cout << "  Body: " << request.getBody() << "\n";
+        }
+    }
+    std::cout << "╚════════════════════════════════════════════════════════════════╝\n";
     
     std::string uri = request.getUri();
     
+    // RFC 7230 Section 3.3.2 - Payload size validation
     // check max body size
     if (request.getContentLength() > config->max_body_size)
         response = HttpResponse::errorResponse(HTTP_PAYLOAD_TOO_LARGE);
@@ -131,6 +154,8 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
             
             response = HttpResponse::redirectResponse(redirect_location, route->redirect_code);
         }
+        // RFC 7231 Section 4 - Method Definitions
+        // RFC 7231 Section 6.5.5 - 405 Method Not Allowed
         // Check if method is allowed
         else if (!methodAllowed(uri, request.methodToString(), *config)) {
             response = HttpResponse::errorResponse(HTTP_METHOD_NOT_ALLOWED);
@@ -238,6 +263,13 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
             response.setBody("{\"active_sessions\": " + Utils::toString(active_sessions) + "}");
         }
 #endif
+        // RFC 7231 Section 4.3.7 - OPTIONS method
+        // Returns the communication options available for the target resource
+        else if (request.getMethod() == METHOD_OPTIONS) {
+            std::cout << "[OPTIONS] Handling OPTIONS request for URI: " << uri << std::endl;
+            response = handleOptions(uri, *config);
+            std::cout << "[OPTIONS] Response created with status: " << response.getStatus() << std::endl;
+        }
         // API test endpoint
         else if (uri == "/api/test") {
             response = handleJsonApi(request);
@@ -253,19 +285,66 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
             std::string index_path = config->root + "/" + config->index;
             response = HttpResponse::fileResponse(index_path);
         }
+        // RFC 7231 Section 4.3.3 - POST method for resource creation/modification
         // Generic POST handler for uploads (after all API endpoints!)
         else if (request.getMethod() == METHOD_POST) {
             response = handleUpload(request, *config, client_fd);
         }
+        // RFC 7231 Section 4.3.4 - PUT method for resource creation/replacement
+        // PUT creates or completely replaces the resource at the target URI
+        else if (request.getMethod() == METHOD_PUT) {
+            std::cout << "[PUT] Handling PUT request for URI: " << uri << std::endl;
+            response = handlePut(request, *config, client_fd);
+            std::cout << "[PUT] Response created with status: " << response.getStatus() << std::endl;
+        }
+        // RFC 7231 Section 4.3.5 - DELETE method for resource removal
         // Generic DELETE handler
         else if (request.getMethod() == METHOD_DELETE) {
             response = handleDelete(request, *config, client_fd);
+        }
+        // RFC 7231 Section 4.3.2 - HEAD method
+        // Identical to GET but must not return a message body
+        else if (request.getMethod() == METHOD_HEAD) {
+            std::cout << "[HEAD] Handling HEAD request for URI: " << uri << std::endl;
+            // Process as GET, then remove body
+            std::string filepath;
+            if (uri == "/") {
+                filepath = config->root + "/" + config->index;
+            } else if (uri.find("/static/") == 0) {
+                filepath = config->root + uri;
+            } else {
+                filepath = config->root + uri;
+            }
+            
+            std::cout << "[HEAD] Filepath: " << filepath << std::endl;
+            
+            if (Utils::fileExists(filepath)) {
+                if (Utils::isDirectory(filepath)) {
+                    std::cout << "[HEAD] Directory detected, generating listing\n";
+                    response = HttpResponse::directoryListingResponse(filepath, uri);
+                } else {
+                    std::cout << "[HEAD] File detected, generating file response\n";
+                    response = HttpResponse::fileResponse(filepath);
+                }
+            } else {
+                std::cout << "[HEAD] File not found: " << filepath << std::endl;
+                response = HttpResponse::errorResponse(HTTP_NOT_FOUND);
+            }
+            
+            std::cout << "[HEAD] Response status before removeBody(): " << response.getStatus() << std::endl;
+            std::cout << "[HEAD] Body length before removeBody(): " << response.getBody().length() << " bytes\n";
+            
+            // Remove body but keep all headers (including Content-Length)
+            response.removeBody();
+            
+            std::cout << "[HEAD] Body length after removeBody(): " << response.getBody().length() << " bytes\n";
         }
         // Static files
         else if (uri.find("/static/") == 0) {
             std::string filepath = config->root + uri;
             response = HttpResponse::fileResponse(filepath);
         } else {
+            // RFC 7231 Section 4.3.1 - GET method for resource retrieval
             // Try to serve as file or directory
             std::string filepath = config->root + uri;
             if (Utils::fileExists(filepath)) {
@@ -275,6 +354,7 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
                     response = HttpResponse::fileResponse(filepath);
                 }
             } else {
+                // RFC 7231 Section 6.5.4 - 404 Not Found
                 response = HttpResponse::errorResponse(HTTP_NOT_FOUND);
             }
         }
@@ -284,6 +364,23 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
     _response_buffers[client_fd] = response.getResponseString();
     _response_offsets[client_fd] = 0;
     
+    // ========== DEBUG: Log outgoing response ==========
+    std::cout << "\n╔════════════════════════════════════════════════════════════════╗\n";
+    std::cout << "║              OUTGOING RESPONSE (FD: " << client_fd << ")                     ║\n";
+    std::cout << "╠════════════════════════════════════════════════════════════════╣\n";
+    std::cout << "  Status: " << response.getStatus() << "\n";
+    std::cout << "  Body Length: " << response.getBody().length() << " bytes\n";
+    std::cout << "  Response Preview (first 500 chars):\n";
+    std::string resp_str = _response_buffers[client_fd];
+    if (resp_str.length() > 500) {
+        std::cout << resp_str.substr(0, 500) << "...\n";
+    } else {
+        std::cout << resp_str << "\n";
+    }
+    std::cout << "╚════════════════════════════════════════════════════════════════╝\n\n";
+    // ========== END DEBUG ==========
+    
+    // RFC 7230 Section 6 - Connection Management
     // Switch to write mode
     struct epoll_event ev;
     ev.events = EPOLLOUT | EPOLLET;
@@ -321,6 +418,9 @@ static int check_boundary(char *buffer, const char *boundary, size_t len)
 	return (0);
 }
 
+// RFC 7231 Section 4.3.5 - DELETE Method
+// The DELETE method requests that the origin server remove the association
+// between the target resource and its current functionality
 HttpResponse HttpHandler::handleDelete(const HttpRequest& request, const ServerConfig& config, int client_fd)
 {
     (void)config;
@@ -328,15 +428,139 @@ HttpResponse HttpHandler::handleDelete(const HttpRequest& request, const ServerC
     std::string file_path = config.root + request.getUri();
     int fd = open(file_path.c_str(), O_WRONLY, 0644);
     if (fd == -1)
+        // RFC 7231 Section 6.5.4 - 404 Not Found
         return HttpResponse::errorResponse(HTTP_NOT_FOUND, "File not found!"); // why is 204 not working???
     close(fd);
     std::remove(file_path.c_str());
+    // RFC 7231 Section 6.3.1 - 200 OK or 202 Accepted or 204 No Content
     // or 202 HTTP_ACCEPTED?
     return HttpResponse::messageResponse(HTTP_OK, "File deleted!");
 }
 
+// RFC 7231 Section 4.3.4 - PUT Method
+// The PUT method requests that the state of the target resource be created
+// or replaced with the state defined by the representation enclosed in the request
+HttpResponse HttpHandler::handlePut(const HttpRequest& request, const ServerConfig& config, int client_fd) {
+    (void)client_fd;
+    
+    std::string uri = request.getUri();
+    std::string file_path = config.root + uri;
+    
+    std::cout << "[PUT] Target file path: " << file_path << std::endl;
+    std::cout << "[PUT] Request body length: " << request.getBody().length() << " bytes\n";
+    
+    // RFC 7231: Check if resource already exists (determines 200 vs 201 response)
+    bool resource_exists = Utils::fileExists(file_path);
+    
+    // Prevent writing to directories
+    if (Utils::fileExists(file_path) && Utils::isDirectory(file_path)) {
+        std::cout << "[PUT] ERROR: Cannot PUT to a directory\n";
+        return HttpResponse::errorResponse(HTTP_CONFLICT, "Cannot replace a directory");
+    }
+    
+    // Create parent directories if they don't exist
+    size_t last_slash = file_path.find_last_of('/');
+    if (last_slash != std::string::npos) {
+        std::string dir_path = file_path.substr(0, last_slash);
+        if (!Utils::fileExists(dir_path)) {
+            std::cout << "[PUT] Creating parent directory: " << dir_path << std::endl;
+            // Create directory recursively (simplified - you may need mkdir -p logic)
+            mkdir(dir_path.c_str(), 0755);
+        }
+    }
+    
+    // Write the body to the file (create or replace)
+    std::ofstream outfile(file_path.c_str(), std::ios::binary | std::ios::trunc);
+    if (!outfile.is_open()) {
+        std::cout << "[PUT] ERROR: Failed to open file for writing\n";
+        return HttpResponse::errorResponse(HTTP_INTERNAL_SERVER_ERROR, "Failed to write file");
+    }
+    
+    outfile.write(request.getBody().c_str(), request.getBody().length());
+    outfile.close();
+    
+    std::cout << "[PUT] File written successfully\n";
+    
+    // RFC 7231 Section 4.3.4: 
+    // - 201 Created if a new resource was created
+    // - 200 OK or 204 No Content if an existing resource was modified
+    if (resource_exists) {
+        std::cout << "[PUT] Resource replaced (200 OK)\n";
+        return HttpResponse::messageResponse(HTTP_OK, "Resource updated successfully");
+    } else {
+        std::cout << "[PUT] Resource created (201 Created)\n";
+        HttpResponse response;
+        response.setStatus(HTTP_CREATED); // 201
+        response.setContentType("text/plain");
+        response.setBody("Resource created successfully");
+        // RFC 7231: Should include Location header with the URI of the created resource
+        response.setHeader("Location", uri);
+        return response;
+    }
+}
+
+// RFC 7231 Section 4.3.7 - OPTIONS Method
+// The OPTIONS method requests information about the communication options
+// available for the target resource
+HttpResponse HttpHandler::handleOptions(const std::string& uri, const ServerConfig& config) {
+    std::cout << "[OPTIONS] handleOptions() called for URI: " << uri << std::endl;
+    
+    // Find the matching route to determine allowed methods
+    const RouteConfig* route = findMatchingRoute(uri, config);
+    
+    std::vector<std::string> allowed_methods;
+    
+    if (route && !route->allowed_methods.empty()) {
+        std::cout << "[OPTIONS] Route found with configured allowed methods\n";
+        // Use configured allowed methods for this route
+        allowed_methods = route->allowed_methods;
+    } else {
+        std::cout << "[OPTIONS] No route or no configured methods, using defaults\n";
+        // Default allowed methods - GET and HEAD are always safe
+        allowed_methods.push_back("GET");
+        allowed_methods.push_back("HEAD");
+        allowed_methods.push_back("OPTIONS");
+        
+        // Check if resource exists to determine other methods
+        std::string filepath = config.root + uri;
+        if (Utils::fileExists(filepath)) {
+            // For existing files, also allow POST (upload/overwrite) and DELETE
+            if (!Utils::isDirectory(filepath)) {
+                allowed_methods.push_back("DELETE");
+            }
+        }
+        // POST is typically allowed for upload endpoints
+        if (uri.find("/upload") != std::string::npos || uri == "/") {
+            allowed_methods.push_back("POST");
+        }
+    }
+    
+    // Always include OPTIONS itself
+    bool has_options = false;
+    for (size_t i = 0; i < allowed_methods.size(); ++i) {
+        if (allowed_methods[i] == "OPTIONS") {
+            has_options = true;
+            break;
+        }
+    }
+    if (!has_options) {
+        allowed_methods.push_back("OPTIONS");
+    }
+    
+    std::cout << "[OPTIONS] Allowed methods for " << uri << ": ";
+    for (size_t i = 0; i < allowed_methods.size(); ++i) {
+        std::cout << allowed_methods[i];
+        if (i < allowed_methods.size() - 1) std::cout << ", ";
+    }
+    std::cout << std::endl;
+    
+    return HttpResponse::optionsResponse(allowed_methods);
+}
 
 
+// RFC 7231 Section 4.3.3 - POST Method
+// The POST method requests that the target resource process the representation
+// enclosed in the request according to the resource's own specific semantics
 HttpResponse HttpHandler::handleUpload(const HttpRequest& request, const ServerConfig& config, int client_fd) {
     std::cout << "Handling file upload" << std::endl;
 

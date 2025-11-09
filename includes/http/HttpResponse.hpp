@@ -54,6 +54,10 @@ class HttpResponse {
         static HttpResponse fileResponse(const std::string& filepath);
         static HttpResponse directoryListingResponse(const std::string& path, const std::string& uri);
         static HttpResponse redirectResponse(const std::string& location, int status_code = HTTP_MOVED_PERMANENTLY);
+        static HttpResponse optionsResponse(const std::vector<std::string>& allowed_methods);
+        
+        // Helper for HEAD requests - removes body but keeps all headers
+        void removeBody();
 };
 
 #endif

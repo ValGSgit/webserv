@@ -411,16 +411,22 @@ size_t Utils::toSizeT(const std::string& str) {
     return result;
 }
 
+// RFC 7231 Section 4.3 - Method Definitions
+// Validates if a method string is a known/valid HTTP method
 bool Utils::isValidHttpMethod(const std::string& method) {
     return (method == "GET" || method == "POST" || method == "DELETE" ||
             method == "PUT" || method == "HEAD" || method == "OPTIONS");
 }
 
+// RFC 3986 - Uniform Resource Identifier (URI): Generic Syntax
+// For backwards compatibility, this validates absolute URIs
 bool Utils::isValidUri(const std::string& uri) {
     // For backwards compatibility, this validates absolute URIs
     return isValidAbsoluteUri(uri);
 }
 
+// RFC 3986 Section 4.3 - Absolute URI
+// absolute-URI = scheme ":" hier-part [ "?" query ]
 bool Utils::isValidAbsoluteUri(const std::string& uri) {
     if (uri.empty()) return false;
     
@@ -433,6 +439,8 @@ bool Utils::isValidAbsoluteUri(const std::string& uri) {
     return validateUriComponents(components);
 }
 
+// RFC 3986 Section 4.1 - URI-reference
+// URI-reference = URI / relative-ref
 bool Utils::isValidUriReference(const std::string& uriRef) {
     if (uriRef.empty()) return false;
     
@@ -440,6 +448,8 @@ bool Utils::isValidUriReference(const std::string& uriRef) {
     return parseUri(uriRef, components) && validateUriComponents(components);
 }
 
+// RFC 3986 Section 3 - Syntax Components
+// Parse a URI into its components
 bool Utils::parseUri(const std::string& uri, UriComponents& components) {
     if (uri.empty()) return false;
     
@@ -611,6 +621,8 @@ bool Utils::validateUriComponents(const UriComponents& components) {
     return true;
 }
 
+// RFC 3986 Section 3.1 - Scheme
+// scheme = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
 bool Utils::isValidScheme(const std::string& scheme) {
     if (scheme.empty()) return false;
     
@@ -632,6 +644,8 @@ bool Utils::isValidScheme(const std::string& scheme) {
     return true;
 }
 
+// RFC 3986 Section 3.2.1 - User Information
+// userinfo = *( unreserved / pct-encoded / sub-delims / ":" )
 bool Utils::isValidUserinfo(const std::string& userinfo) {
     for (size_t i = 0; i < userinfo.length(); ++i) {
         char c = userinfo[i];
@@ -644,6 +658,8 @@ bool Utils::isValidUserinfo(const std::string& userinfo) {
     return true;
 }
 
+// RFC 3986 Section 3.2.2 - Host
+// host = IP-literal / IPv4address / reg-name
 bool Utils::isValidHost(const std::string& host) {
     if (host.empty()) return true; // Empty host is valid in some contexts
     
@@ -654,6 +670,8 @@ bool Utils::isValidHost(const std::string& host) {
     return isValidRegisteredName(host);
 }
 
+// RFC 3986 Section 3.2.2 - IPv4 Address Validation
+// IPv4address = dec-octet "." dec-octet "." dec-octet "." dec-octet
 bool Utils::isValidIPv4Address(const std::string& ip) {
     std::vector<std::string> octets = split(ip, '.');
     if (octets.size() != 4) return false;
@@ -1178,10 +1196,15 @@ std::string Utils::sanitizeForShell(const std::string& input) {
     return result;
 }
 
+// RFC 2616 Section 5.1.1 (obsoleted by RFC 7230)
+// RFC 7230 Section 2.6 - HTTP Version
+// We support HTTP/1.0 and HTTP/1.1
 bool Utils::isValidHttpVersion(const std::string& version) {
     return (version == "HTTP/1.0" || version == "HTTP/1.1");
 }
 
+// SECURITY: Check for CRLF injection attempts
+// RFC 7230 Section 3.2 - Header fields must not contain CR or LF
 bool Utils::containsLF(const std::string& input) {
     return (input.find('\r') != std::string::npos || 
             input.find('\n') != std::string::npos);
@@ -1218,9 +1241,11 @@ bool Utils::isAllowedUploadExtension(const std::string& filename) {
 std::string Utils::httpMethodToString(HttpMethod method) {
     switch (method) {
         case METHOD_GET: return "GET";
+        case METHOD_HEAD: return "HEAD";
         case METHOD_POST: return "POST";
         case METHOD_PUT: return "PUT";
         case METHOD_DELETE: return "DELETE";
+        case METHOD_OPTIONS: return "OPTIONS";
         case METHOD_UNKNOWN: return "UNKNOWN";
         default: return "INVALID";
     }
