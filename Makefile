@@ -52,7 +52,7 @@ BONUS_FLAG = .bonus
 all: $(NAME)
 
 bonus: CXXFLAGS += -D BONUS
-bonus: $(BONUS_FLAG)
+bonus: fclean $(BONUS_FLAG)
 
 $(BONUS_FLAG): $(OBJS) $(BONUS_OBJS)
 	$(CXX) $(CXXFLAGS) $(OBJS) $(BONUS_OBJS) -o $(NAME)

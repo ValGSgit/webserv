@@ -21,6 +21,8 @@ void HttpResponse::setBody(const std::string& body) {
 }
 
 void HttpResponse::removeBody() {
+    // For HEAD requests: Keep Content-Length but clear body
+    // Content-Length was already set when body was added
     _body = "";
 }
 

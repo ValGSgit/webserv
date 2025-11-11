@@ -153,7 +153,12 @@ void HttpRequest::parseHeader(const std::string& line) {
             }
         }
         
-        _headers[key_lower] = Utils::toLowerCase(value);
+        // For most headers we lowercase the value, but NOT for Cookie header (values are case-sensitive)
+        if (key_lower == "cookie") {
+            _headers[key_lower] = value;  // Keep original case for cookie values
+        } else {
+            _headers[key_lower] = Utils::toLowerCase(value);
+        }
         
         if (key_lower == "content-length") {
             _content_length = Utils::toSizeT(value);
@@ -193,6 +198,7 @@ HttpMethod HttpRequest::stringToMethod(const std::string& method_str) {
     if (method_str == "PUT") return METHOD_PUT;
     if (method_str == "HEAD") return METHOD_HEAD;
     if (method_str == "DELETE") return METHOD_DELETE;
+    if (method_str == "OPTIONS") return METHOD_OPTIONS;
     return METHOD_UNKNOWN;
 }
 
@@ -276,6 +282,7 @@ std::string HttpRequest::methodToString() const {
         case METHOD_PUT: return "PUT";
         case METHOD_HEAD: return "HEAD";
         case METHOD_DELETE: return "DELETE";
+        case METHOD_OPTIONS: return "OPTIONS";
         default: return "UNKNOWN";
     }
 }

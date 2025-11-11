@@ -42,6 +42,7 @@ enum HttpMethod {
     METHOD_PUT,
     METHOD_HEAD,
     METHOD_DELETE,
+    METHOD_OPTIONS,
     METHOD_UNKNOWN
 };
 

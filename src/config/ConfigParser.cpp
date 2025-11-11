@@ -455,7 +455,7 @@ bool ConfigParser::isValidMethod(const std::string& method) {
     }
     
     return (upper == "GET" || upper == "POST" || upper == "DELETE" || 
-            upper == "PUT" || upper == "HEAD");
+            upper == "PUT" || upper == "HEAD" || upper == "OPTIONS");
 }
 
 // Apply inheritance from server config to all routes and normalize paths

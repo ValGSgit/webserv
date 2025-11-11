@@ -165,6 +165,13 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
     else if (request.getStatus()) {
         response = HttpResponse::errorResponse(request.getStatus());
     }
+    // Handle OPTIONS method (should be checked BEFORE method allowed check)
+    else if (request.getMethod() == METHOD_OPTIONS) {
+        // OPTIONS returns allowed methods for the URI
+        response.setStatus(HTTP_OK);
+        response.setAllow(getMethodAllowed(uri, *config));
+        response.setContentLength(0);
+    }
     // Check for configured redirects in routes FIRST
     else {
         //const RouteConfig* route = findMatchingRoute(uri, *config); // Moved up
