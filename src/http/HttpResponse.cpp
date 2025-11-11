@@ -69,9 +69,9 @@ void HttpResponse::setDefaultHeaders() {
     _headers["Connection"] = "close";
     
     // SECURITY FIX: Added security headers for browser protection
-    _headers["X-Content-Type-Options"] = "nosniff";
-    _headers["X-Frame-Options"] = "DENY";
-    _headers["X-XSS-Protection"] = "1; mode=block";
+    //_headers["X-Content-Type-Options"] = "nosniff";
+    //_headers["X-Frame-Options"] = "DENY";
+    //_headers["X-XSS-Protection"] = "1; mode=block";
     _headers["Referrer-Policy"] = "no-referrer";
 }
 

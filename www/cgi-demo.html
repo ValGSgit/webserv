@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CGI Visual Demo - WebServ</title>
+    <title>CGI Interactive Demos - WebServ</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -14,7 +14,10 @@
             padding: 20px;
         }
         
-        .container { max-width: 1400px; margin: 0 auto; }
+        .container { 
+            max-width: 1600px; 
+            margin: 0 auto; 
+        }
         
         .header {
             text-align: center;
@@ -50,36 +53,78 @@
             background: rgba(255,255,255,0.3);
         }
         
-        .demo-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 25px;
-            margin-top: 20px;
+        /* Tab Navigation */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
         }
         
-        .demo-card {
+        .tab-button {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid transparent;
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .tab-button:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+        
+        .tab-button.active {
+            background: white;
+            color: #667eea;
+            border-color: white;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+        
+        .tab-icon {
+            font-size: 1.5em;
+        }
+        
+        /* Tab Content */
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .demo-container {
             background: white;
             border-radius: 15px;
-            padding: 30px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            transition: transform 0.3s;
-        }
-        
-        .demo-card:hover {
-            transform: translateY(-5px);
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
         }
         
         .demo-header {
             display: flex;
             align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
             border-bottom: 3px solid #f0f0f0;
         }
         
         .demo-icon {
-            font-size: 2.5em;
-            margin-right: 15px;
+            font-size: 3em;
+            margin-right: 20px;
         }
         
         .demo-title {
@@ -89,44 +134,59 @@
         .demo-title h2 {
             color: #1f2937;
             margin-bottom: 5px;
+            font-size: 2em;
         }
         
         .demo-title .language {
             color: #6366f1;
-            font-size: 0.9em;
+            font-size: 1em;
             font-weight: 600;
         }
         
         .demo-description {
             color: #666;
-            margin-bottom: 20px;
+            margin-bottom: 30px;
             line-height: 1.6;
+            font-size: 1.1em;
+        }
+        
+        .demo-layout {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 30px;
+            min-height: 650px;
         }
         
         .demo-controls {
-            margin-bottom: 20px;
+            background: #f9fafb;
+            padding: 25px;
+            border-radius: 10px;
+            border: 2px solid #e5e7eb;
+            height: fit-content;
         }
         
         .input-group {
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
         
         .input-group label {
             display: block;
             color: #374151;
             font-weight: 600;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
+            font-size: 0.95em;
         }
         
         .input-group input,
         .input-group textarea,
         .input-group select {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             border: 2px solid #e5e7eb;
             border-radius: 8px;
             font-size: 1em;
             transition: border-color 0.3s;
+            font-family: inherit;
         }
         
         .input-group input:focus,
@@ -140,17 +200,20 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
-            padding: 12px 30px;
+            padding: 15px 30px;
             border-radius: 8px;
             font-weight: 600;
             cursor: pointer;
-            font-size: 1em;
+            font-size: 1.05em;
             width: 100%;
-            transition: opacity 0.3s;
+            transition: all 0.3s;
+            margin-top: 10px;
         }
         
         .btn:hover {
             opacity: 0.9;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
         }
         
         .btn:active {
@@ -160,22 +223,23 @@
         .output-frame {
             background: #f9fafb;
             border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            min-height: 200px;
-            margin-top: 15px;
+            border-radius: 10px;
             overflow: hidden;
+            height: 100%;
+            min-height: 650px;
         }
         
         .output-frame iframe {
             width: 100%;
-            min-height: 200px;
+            height: 100%;
+            min-height: 650px;
             border: none;
             display: block;
         }
         
         .status-badge {
             display: inline-block;
-            padding: 4px 12px;
+            padding: 6px 14px;
             border-radius: 12px;
             font-size: 0.85em;
             font-weight: 600;
@@ -192,46 +256,24 @@
             color: #92400e;
         }
         
-        .feature-list {
-            background: white;
-            border-radius: 15px;
-            padding: 30px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            margin-top: 25px;
+        .info-box {
+            background: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+            font-size: 0.9em;
+            color: #1e40af;
         }
         
-        .feature-list h2 {
-            color: #1f2937;
-            margin-bottom: 20px;
-        }
-        
-        .features {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 15px;
-        }
-        
-        .feature-item {
-            display: flex;
-            align-items: center;
-            padding: 12px;
-            background: #f9fafb;
-            border-radius: 8px;
-            color: #374151;
-        }
-        
-        .feature-item::before {
-            content: '✓';
-            display: inline-block;
-            width: 24px;
-            height: 24px;
-            background: #10b981;
-            color: white;
-            border-radius: 50%;
-            text-align: center;
-            line-height: 24px;
-            margin-right: 12px;
-            font-weight: bold;
+        @media (max-width: 1024px) {
+            .demo-layout {
+                grid-template-columns: 1fr;
+            }
+            
+            .output-frame {
+                min-height: 500px;
+            }
         }
     </style>
 </head>
@@ -240,240 +282,324 @@
         <a href="/" class="back-link">← Back to Home</a>
         
         <div class="header">
-            <h1>⚡ CGI Visual Demo</h1>
-            <p>Interactive demonstrations of CGI execution across multiple interpreters</p>
+            <h1>🚀 CGI Interactive Demos</h1>
+            <p>Explore powerful server-side scripting with Python, Perl, Ruby, PHP & Bash</p>
         </div>
         
-        <div class="demo-grid">
-            <!-- Python Demo -->
-            <div class="demo-card">
+        <!-- Tab Navigation -->
+        <div class="tabs">
+            <button class="tab-button active" onclick="showTab('python')">
+                <span class="tab-icon">🐍</span>
+                <span>Python Calculator</span>
+            </button>
+            <button class="tab-button" onclick="showTab('bash')">
+                <span class="tab-icon">💻</span>
+                <span>Bash Dashboard</span>
+            </button>
+            <button class="tab-button" onclick="showTab('perl')">
+                <span class="tab-icon">🐪</span>
+                <span>Perl Text Processor</span>
+            </button>
+            <button class="tab-button" onclick="showTab('ruby')">
+                <span class="tab-icon">💎</span>
+                <span>Ruby 3D Engine</span>
+            </button>
+            <button class="tab-button" onclick="showTab('php')">
+                <span class="tab-icon">🐘</span>
+                <span>PHP Visualizer</span>
+            </button>
+            <button class="tab-button" onclick="showTab('env')">
+                <span class="tab-icon">🌐</span>
+                <span>Environment</span>
+            </button>
+        </div>
+        
+        <!-- Python Tab -->
+        <div class="tab-content active" id="python-tab">
+            <div class="demo-container">
                 <div class="demo-header">
                     <div class="demo-icon">🐍</div>
                     <div class="demo-title">
-                        <h2>Python Calculator</h2>
-                        <span class="language">Python 3</span>
+                        <h2>Scientific Calculator</h2>
+                        <span class="language">Python 3 CGI</span>
                     </div>
                     <span class="status-badge status-ready">Ready</span>
                 </div>
                 <div class="demo-description">
-                    Beautiful visual calculator with real-time computation using Python CGI
+                    Perform advanced mathematical operations with real-time visual feedback
                 </div>
-                <div class="demo-controls">
-                    <div class="input-group">
-                        <label>First Number:</label>
-                        <input type="number" id="py-num1" value="42" step="any">
+                <div class="demo-layout">
+                    <div class="demo-controls">
+                        <div class="input-group">
+                            <label>First Number:</label>
+                            <input type="number" id="py-num1" value="42" step="any">
+                        </div>
+                        <div class="input-group">
+                            <label>Second Number:</label>
+                            <input type="number" id="py-num2" value="8" step="any">
+                        </div>
+                        <div class="input-group">
+                            <label>Operation:</label>
+                            <select id="py-op">
+                                <option value="add">➕ Addition</option>
+                                <option value="subtract">➖ Subtraction</option>
+                                <option value="multiply">✖️ Multiplication</option>
+                                <option value="divide">➗ Division</option>
+                                <option value="power">🔺 Power</option>
+                            </select>
+                        </div>
+                        <button class="btn" onclick="runPython()">Calculate</button>
+                        <div class="info-box">
+                            <strong>Features:</strong><br>
+                            • Real-time calculation<br>
+                            • Error handling<br>
+                            • Beautiful UI
+                        </div>
                     </div>
-                    <div class="input-group">
-                        <label>Operation:</label>
-                        <select id="py-op">
-                            <option value="add">Addition (+)</option>
-                            <option value="subtract">Subtraction (-)</option>
-                            <option value="multiply">Multiplication (×)</option>
-                            <option value="divide">Division (÷)</option>
-                            <option value="power">Power (^)</option>
-                        </select>
+                    <div class="output-frame">
+                        <iframe id="py-output"></iframe>
                     </div>
-                    <div class="input-group">
-                        <label>Second Number:</label>
-                        <input type="number" id="py-num2" value="8" step="any">
-                    </div>
-                    <button class="btn" onclick="runPython()">Calculate</button>
-                </div>
-                <div class="output-frame">
-                    <iframe id="py-output"></iframe>
                 </div>
             </div>
-            
-            <!-- Shell Script Demo -->
-            <div class="demo-card">
+        </div>
+        
+        <!-- Bash Tab -->
+        <div class="tab-content" id="bash-tab">
+            <div class="demo-container">
                 <div class="demo-header">
-                    <div class="demo-icon">🐚</div>
+                    <div class="demo-icon">💻</div>
                     <div class="demo-title">
-                        <h2>System Info Dashboard</h2>
-                        <span class="language">Bash Script</span>
+                        <h2>System Dashboard</h2>
+                        <span class="language">Bash Shell Script</span>
                     </div>
                     <span class="status-badge status-ready">Ready</span>
                 </div>
                 <div class="demo-description">
-                    Displays system information with visual formatting using shell scripting
+                    Generate beautiful system information dashboards with server-side Bash scripting
                 </div>
-                <div class="demo-controls">
-                    <div class="input-group">
-                        <label>Information Type:</label>
-                        <select id="sh-type">
-                            <option value="full">Full Dashboard</option>
-                            <option value="time">Date & Time</option>
-                            <option value="system">System Info</option>
-                            <option value="user">User Info</option>
-                        </select>
+                <div class="demo-layout">
+                    <div class="demo-controls">
+                        <div class="input-group">
+                            <label>Dashboard Type:</label>
+                            <select id="sh-type">
+                                <option value="system">💻 System Overview</option>
+                                <option value="time">⏰ Date & Time</option>
+                                <option value="network">🌐 Network Info</option>
+                                <option value="user">👤 User Info</option>
+                            </select>
+                        </div>
+                        <button class="btn" onclick="runShell()">Generate Dashboard</button>
+                        <div class="info-box">
+                            <strong>Features:</strong><br>
+                            • Live system stats<br>
+                            • Environment variables<br>
+                            • Process information
+                        </div>
                     </div>
-                    <button class="btn" onclick="runShell()">Generate Dashboard</button>
-                </div>
-                <div class="output-frame">
-                    <iframe id="sh-output"></iframe>
+                    <div class="output-frame">
+                        <iframe id="sh-output"></iframe>
+                    </div>
                 </div>
             </div>
-            
-            <!-- Perl Demo -->
-            <div class="demo-card">
+        </div>
+        
+        <!-- Perl Tab -->
+        <div class="tab-content" id="perl-tab">
+            <div class="demo-container">
                 <div class="demo-header">
                     <div class="demo-icon">🐪</div>
                     <div class="demo-title">
                         <h2>Text Processor</h2>
-                        <span class="language">Perl</span>
+                        <span class="language">Perl CGI</span>
                     </div>
                     <span class="status-badge status-ready">Ready</span>
                 </div>
                 <div class="demo-description">
                     Advanced text manipulation and analysis with visual statistics
                 </div>
-                <div class="demo-controls">
-                    <div class="input-group">
-                        <label>Enter Text:</label>
-                        <textarea id="perl-text" rows="4">The quick brown fox jumps over the lazy dog</textarea>
+                <div class="demo-layout">
+                    <div class="demo-controls">
+                        <div class="input-group">
+                            <label>Enter Text:</label>
+                            <textarea id="perl-text" rows="6">The quick brown fox jumps over the lazy dog</textarea>
+                        </div>
+                        <div class="input-group">
+                            <label>Operation:</label>
+                            <select id="perl-op">
+                                <option value="analyze">📊 Analyze Text</option>
+                                <option value="reverse">🔄 Reverse Text</option>
+                                <option value="uppercase">🔠 UPPERCASE</option>
+                                <option value="titlecase">📝 Title Case</option>
+                            </select>
+                        </div>
+                        <button class="btn" onclick="runPerl()">Process Text</button>
+                        <div class="info-box">
+                            <strong>Features:</strong><br>
+                            • Character counting<br>
+                            • Word frequency<br>
+                            • Text transformations
+                        </div>
                     </div>
-                    <div class="input-group">
-                        <label>Operation:</label>
-                        <select id="perl-op">
-                            <option value="analyze">Analyze Text</option>
-                            <option value="reverse">Reverse Text</option>
-                            <option value="uppercase">UPPERCASE</option>
-                            <option value="titlecase">Title Case</option>
-                        </select>
+                    <div class="output-frame">
+                        <iframe id="perl-output"></iframe>
                     </div>
-                    <button class="btn" onclick="runPerl()">Process Text</button>
-                </div>
-                <div class="output-frame">
-                    <iframe id="perl-output"></iframe>
-                </div>
-            </div>
-            
-            <!-- Ruby Demo -->
-            <div class="demo-card">
-                <div class="demo-header">
-                    <div class="demo-icon">💎</div>
-                    <div class="demo-title">
-                        <h2>Color Generator</h2>
-                        <span class="language">Ruby</span>
-                    </div>
-                    <span class="status-badge status-ready">Ready</span>
-                </div>
-                <div class="demo-description">
-                    Generate beautiful color palettes with hex codes and previews
-                </div>
-                <div class="demo-controls">
-                    <div class="input-group">
-                        <label>Base Color:</label>
-                        <input type="color" id="ruby-color" value="#6366f1">
-                    </div>
-                    <div class="input-group">
-                        <label>Palette Type:</label>
-                        <select id="ruby-type">
-                            <option value="monochrome">Monochrome</option>
-                            <option value="complementary">Complementary</option>
-                            <option value="analogous">Analogous</option>
-                            <option value="triadic">Triadic</option>
-                        </select>
-                    </div>
-                    <button class="btn" onclick="runRuby()">Generate Palette</button>
-                </div>
-                <div class="output-frame">
-                    <iframe id="ruby-output"></iframe>
-                </div>
-            </div>
-            
-            <!-- PHP Demo -->
-            <div class="demo-card">
-                <div class="demo-header">
-                    <div class="demo-icon">🐘</div>
-                    <div class="demo-title">
-                        <h2>Data Visualizer</h2>
-                        <span class="language">PHP</span>
-                    </div>
-                    <span class="status-badge status-ready">Ready</span>
-                </div>
-                <div class="demo-description">
-                    Create visual charts and graphs from your data using PHP
-                </div>
-                <div class="demo-controls">
-                    <div class="input-group">
-                        <label>Data Values (comma-separated):</label>
-                        <input type="text" id="php-data" value="23,45,67,34,89,56">
-                    </div>
-                    <div class="input-group">
-                        <label>Labels (comma-separated):</label>
-                        <input type="text" id="php-labels" value="Jan,Feb,Mar,Apr,May,Jun">
-                    </div>
-                    <div class="input-group">
-                        <label>Chart Type:</label>
-                        <select id="php-type">
-                            <option value="bar">Bar Chart</option>
-                            <option value="progress">Progress Bars</option>
-                            <option value="stats">Statistics</option>
-                        </select>
-                    </div>
-                    <button class="btn" onclick="runPHP()">Visualize Data</button>
-                </div>
-                <div class="output-frame">
-                    <iframe id="php-output"></iframe>
-                </div>
-            </div>
-            
-            <!-- Environment Demo -->
-            <div class="demo-card">
-                <div class="demo-header">
-                    <div class="demo-icon">🔧</div>
-                    <div class="demo-title">
-                        <h2>CGI Environment</h2>
-                        <span class="language">Python</span>
-                    </div>
-                    <span class="status-badge status-ready">Ready</span>
-                </div>
-                <div class="demo-description">
-                    Displays all CGI environment variables and request information
-                </div>
-                <div class="demo-controls">
-                    <div class="input-group">
-                        <label>Custom Header Value:</label>
-                        <input type="text" id="env-header" value="WebServ-Demo" placeholder="X-Custom-Header">
-                    </div>
-                    <div class="input-group">
-                        <label>Query Parameter:</label>
-                        <input type="text" id="env-query" value="test=123&demo=true">
-                    </div>
-                    <button class="btn" onclick="runEnvironment()">Show Environment</button>
-                </div>
-                <div class="output-frame">
-                    <iframe id="env-output"></iframe>
                 </div>
             </div>
         </div>
         
-        <div class="feature-list">
-            <h2>🎯 CGI Implementation Features</h2>
-            <div class="features">
-                <div class="feature-item">Multiple Interpreters (Python, PHP, Perl, Ruby, Bash)</div>
-                <div class="feature-item">GET & POST Request Methods</div>
-                <div class="feature-item">Query String Parsing</div>
-                <div class="feature-item">POST Data via STDIN</div>
-                <div class="feature-item">Environment Variables (REQUEST_METHOD, QUERY_STRING, etc.)</div>
-                <div class="feature-item">Content-Type Handling (text/html, application/json)</div>
-                <div class="feature-item">Dynamic HTML Generation</div>
-                <div class="feature-item">Process Timeout Protection</div>
-                <div class="feature-item">Error Handling & Status Codes</div>
-                <div class="feature-item">Visual Output Rendering</div>
-                <div class="feature-item">Custom Headers Support</div>
-                <div class="feature-item">Binary Data Handling</div>
+        <!-- Ruby Tab -->
+        <div class="tab-content" id="ruby-tab">
+            <div class="demo-container">
+                <div class="demo-header">
+                    <div class="demo-icon">💎</div>
+                    <div class="demo-title">
+                        <h2>3D Wireframe Engine</h2>
+                        <span class="language">Ruby CGI</span>
+                    </div>
+                    <span class="status-badge status-ready">Ready</span>
+                </div>
+                <div class="demo-description">
+                    Interactive 3D wireframe rendering with real-time rotation and shape morphing
+                </div>
+                <div class="demo-layout">
+                    <div class="demo-controls">
+                        <div class="input-group">
+                            <label>3D Shape:</label>
+                            <select id="ruby-shape">
+                                <option value="cube">📦 Cube (8 vertices)</option>
+                                <option value="pyramid">🔺 Pyramid (5 vertices)</option>
+                                <option value="octahedron">💠 Octahedron (6 vertices)</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Rotation X: <span id="ruby-x-val">45°</span></label>
+                            <input type="range" id="ruby-angle-x" min="0" max="360" value="45" step="15">
+                        </div>
+                        <div class="input-group">
+                            <label>Rotation Y: <span id="ruby-y-val">30°</span></label>
+                            <input type="range" id="ruby-angle-y" min="0" max="360" value="30" step="15">
+                        </div>
+                        <button class="btn" onclick="runRuby()">Render 3D</button>
+                        <div class="info-box">
+                            <strong>Features:</strong><br>
+                            • Real-time 3D rotation<br>
+                            • Multiple shapes<br>
+                            • SVG rendering
+                        </div>
+                    </div>
+                    <div class="output-frame">
+                        <iframe id="ruby-output"></iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- PHP Tab -->
+        <div class="tab-content" id="php-tab">
+            <div class="demo-container">
+                <div class="demo-header">
+                    <div class="demo-icon">🐘</div>
+                    <div class="demo-title">
+                        <h2>Data Visualizer</h2>
+                        <span class="language">PHP CGI</span>
+                    </div>
+                    <span class="status-badge status-loading" id="php-status">Requires php-cli</span>
+                </div>
+                <div class="demo-description">
+                    Create visual charts and graphs from your data using PHP
+                    <br><small style="color: #f59e0b;">⚠️ Install with: <code>sudo apt install php-cli</code></small>
+                </div>
+                <div class="demo-layout">
+                    <div class="demo-controls">
+                        <div class="input-group">
+                            <label>Data Values (comma-separated):</label>
+                            <input type="text" id="php-data" value="23,45,67,34,89,56">
+                        </div>
+                        <div class="input-group">
+                            <label>Labels (comma-separated):</label>
+                            <input type="text" id="php-labels" value="Jan,Feb,Mar,Apr,May,Jun">
+                        </div>
+                        <div class="input-group">
+                            <label>Chart Type:</label>
+                            <select id="php-type">
+                                <option value="bar">📊 Bar Chart</option>
+                                <option value="progress">📈 Progress Bars</option>
+                            </select>
+                        </div>
+                        <button class="btn" onclick="runPHP()">Visualize Data</button>
+                        <div class="info-box">
+                            <strong>Features:</strong><br>
+                            • Multiple chart types<br>
+                            • Statistics calculation<br>
+                            • Responsive design
+                        </div>
+                    </div>
+                    <div class="output-frame">
+                        <iframe id="php-output"></iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Environment Tab -->
+        <div class="tab-content" id="env-tab">
+            <div class="demo-container">
+                <div class="demo-header">
+                    <div class="demo-icon">🌐</div>
+                    <div class="demo-title">
+                        <h2>CGI Environment</h2>
+                        <span class="language">Python CGI</span>
+                    </div>
+                    <span class="status-badge status-ready">Ready</span>
+                </div>
+                <div class="demo-description">
+                    View all CGI environment variables and server information
+                </div>
+                <div class="demo-layout">
+                    <div class="demo-controls">
+                        <div class="input-group">
+                            <label>Additional Query:</label>
+                            <input type="text" id="env-query" placeholder="name=value" value="test=hello&demo=true">
+                        </div>
+                        <button class="btn" onclick="runEnv()">Show Environment</button>
+                        <div class="info-box">
+                            <strong>Displays:</strong><br>
+                            • HTTP headers<br>
+                            • Server variables<br>
+                            • Request information
+                        </div>
+                    </div>
+                    <div class="output-frame">
+                        <iframe id="env-output"></iframe>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
     
     <script>
+        // Tab Switching Function
+        function showTab(tabName) {
+            // Hide all tabs
+            const tabs = document.querySelectorAll('.tab-content');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            // Deactivate all buttons
+            const buttons = document.querySelectorAll('.tab-button');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.add('active');
+            
+            // Activate button
+            event.target.closest('.tab-button').classList.add('active');
+        }
+        
+        // CGI Runner Functions
         function runPython() {
             const num1 = document.getElementById('py-num1').value;
             const num2 = document.getElementById('py-num2').value;
             const op = document.getElementById('py-op').value;
-            
             const url = `/cgi-bin/calculator.py?num1=${num1}&num2=${num2}&op=${op}`;
             document.getElementById('py-output').src = url;
         }
@@ -492,11 +618,21 @@
         }
         
         function runRuby() {
-            const color = document.getElementById('ruby-color').value.substring(1);
-            const type = document.getElementById('ruby-type').value;
-            const url = `/cgi-bin/colorgen.rb?color=${color}&type=${type}`;
+            const shape = document.getElementById('ruby-shape').value;
+            const angleX = document.getElementById('ruby-angle-x').value;
+            const angleY = document.getElementById('ruby-angle-y').value;
+            const url = `/cgi-bin/colorgen.rb?ax=${angleX}&ay=${angleY}&az=0&shape=${shape}&auto=false`;
             document.getElementById('ruby-output').src = url;
         }
+        
+        // Update rotation value displays
+        document.getElementById('ruby-angle-x').addEventListener('input', function(e) {
+            document.getElementById('ruby-x-val').textContent = e.target.value + '°';
+        });
+        
+        document.getElementById('ruby-angle-y').addEventListener('input', function(e) {
+            document.getElementById('ruby-y-val').textContent = e.target.value + '°';
+        });
         
         function runPHP() {
             const data = encodeURIComponent(document.getElementById('php-data').value);
@@ -506,21 +642,15 @@
             document.getElementById('php-output').src = url;
         }
         
-        function runEnvironment() {
-            const header = encodeURIComponent(document.getElementById('env-header').value);
+        function runEnv() {
             const query = document.getElementById('env-query').value;
-            const url = `/cgi-bin/environment.py?${query}&custom=${header}`;
+            const url = `/cgi-bin/environment.py?${query}`;
             document.getElementById('env-output').src = url;
         }
         
-        // Auto-run demos on load
+        // Auto-run Python calculator on load
         window.onload = function() {
             runPython();
-            runShell();
-            runPerl();
-            runRuby();
-            runPHP();
-            runEnvironment();
         };
     </script>
 </body>
