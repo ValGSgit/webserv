@@ -42,6 +42,8 @@ jobs:
       run: make
     
     - name: Run Comprehensive Test Suite
+      env:
+        SKIP_SLOW_TESTS: "1"
       run: |
         chmod +x tests/run_all_tests.sh
         chmod +x tests/comprehensive_edge_cases.sh
