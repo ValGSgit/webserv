@@ -62,6 +62,12 @@ bool HttpRequest::parseRequest(const std::string& data) {
             return true;
         }
     }
+    
+    // SECURITY FIX: If headers are complete but request line was malformed (empty URI), set bad request
+    if (_headers_complete && _uri.empty()) {
+        _status = HTTP_BAD_REQUEST;
+        return true;
+    }
 
     // Read body if present
     if (_headers_complete && _content_length > 0) {
@@ -84,7 +90,18 @@ bool HttpRequest::parseRequest(const std::string& data) {
         _body_complete = true;
     }
     
-    return _headers_complete;
+    // If headers are complete but body is expected and not yet complete, wait for more data
+    // Only return true when the FULL request is ready to be processed
+    if (_headers_complete) {
+        // If we expect a body (Content-Length > 0) but haven't received it all yet, return false
+        if (_content_length > 0 && !_body_complete) {
+            return false;  // Keep reading, request not complete yet
+        }
+        // Headers complete and either no body expected or body is complete
+        return true;
+    }
+    
+    return false;  // Headers not complete yet
 }
 
 //parsing first line
@@ -184,11 +201,22 @@ void HttpRequest::parseHeader(const std::string& line) {
 }
 
 void HttpRequest::parseUri(const std::string& uri) {
-    size_t query_pos = uri.find('?');
+    // Remove fragment first (fragments are client-side only, never sent to server in valid HTTP)
+    // But some clients might send them, so we handle them
+    std::string uri_without_fragment = uri;
+    size_t fragment_pos = uri.find('#');
+    if (fragment_pos != std::string::npos) {
+        uri_without_fragment = uri.substr(0, fragment_pos);
+    }
+    
+    // Now parse query string
+    size_t query_pos = uri_without_fragment.find('?');
     if (query_pos != std::string::npos) {
-        _query_string = uri.substr(query_pos + 1);
-        _uri = uri.substr(0, query_pos);
+        _query_string = uri_without_fragment.substr(query_pos + 1);
+        _uri = uri_without_fragment.substr(0, query_pos);
         parseQueryString(_query_string);
+    } else {
+        _uri = uri_without_fragment;
     }
 }
 
