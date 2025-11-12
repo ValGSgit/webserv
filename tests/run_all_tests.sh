@@ -339,10 +339,10 @@ main() {
         "run_session_cookie_tests" \
         "true"
     
-    # Python comprehensive tests
+    # Python comprehensive tests (includes comprehensive_tester.py - 500+ test cases)
     run_test_suite \
         "Python Comprehensive Tests" \
-        "Running Python Test Suite" \
+        "Running Python Test Suite (comprehensive_tester.py)" \
         "run_python_comprehensive_tests" \
         "true"
     

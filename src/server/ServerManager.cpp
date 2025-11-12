@@ -180,8 +180,8 @@ void ServerManager::run() {
         int nfds = epoll_wait(_epoll_fd, _events, MAX_CONNECTIONS, 1000);
         
         if (nfds == -1) {
-            //if (errno == EINTR) continue;
-            std::cerr << "epoll_wait failed\n";
+            if (errno == EINTR) continue; //This errno is okay since its not after a read/write op
+            std::cerr << "Errno was " << errno << "\n";
             break;
         }
         
