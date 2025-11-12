@@ -28,7 +28,7 @@ jobs:
           perl \
           ruby \
           curl \
-          netcat \
+          netcat-openbsd \
           lsof
     
     - name: Install Python dependencies
