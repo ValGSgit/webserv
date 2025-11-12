@@ -1,6 +1,10 @@
 #!/usr/bin/env php
 <?php
 
+// Manual query string parsing for CGI
+$query_string = getenv('QUERY_STRING');
+parse_str($query_string, $_GET);
+
 // Parse query parameters
 $data_str = isset($_GET['data']) ? urldecode($_GET['data']) : '23,45,67,34,89,56';
 $labels_str = isset($_GET['labels']) ? urldecode($_GET['labels']) : 'Jan,Feb,Mar,Apr,May,Jun';
@@ -20,7 +24,8 @@ $min_value = min($data);
 $avg_value = array_sum($data) / count($data);
 $total = array_sum($data);
 
-header('Content-Type: text/html');
+// Output headers for CGI
+echo "Content-Type: text/html\r\n\r\n";
 ?>
 <!DOCTYPE html>
 <html>

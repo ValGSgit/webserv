@@ -8,9 +8,18 @@ from urllib.parse import parse_qs
 query = os.environ.get('QUERY_STRING', '')
 params = parse_qs(query)
 
-num1 = float(params.get('num1', ['0'])[0])
-num2 = float(params.get('num2', ['0'])[0])
-op = params.get('op', ['add'])[0]
+# Safely get parameters with error handling
+try:
+    num1 = float(params.get('num1', ['0'])[0])
+except (ValueError, IndexError):
+    num1 = 0.0
+
+try:
+    num2 = float(params.get('num2', ['0'])[0])
+except (ValueError, IndexError):
+    num2 = 0.0
+
+op = params.get('op', ['add'])[0] if 'op' in params else 'add'
 
 # Perform calculation
 result = 0

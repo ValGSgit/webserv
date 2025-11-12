@@ -2,15 +2,24 @@
 
 use strict;
 use warnings;
-use CGI;
 
-my $cgi = CGI->new;
-my $text = $cgi->param('text') || 'The quick brown fox jumps over the lazy dog';
-my $op = $cgi->param('op') || 'analyze';
+# Manual query string parsing for CGI
+my $query_string = $ENV{'QUERY_STRING'} || '';
+my %params;
 
-# Decode URL encoding
-$text =~ s/\+/ /g;
-$text =~ s/%([0-9A-Fa-f]{2})/chr(hex($1))/eg;
+# Parse query string
+foreach my $pair (split(/&/, $query_string)) {
+    if ($pair =~ /^([^=]+)=(.*)$/) {
+        my ($key, $value) = ($1, $2);
+        # Decode URL encoding
+        $value =~ s/\+/ /g;
+        $value =~ s/%([0-9A-Fa-f]{2})/chr(hex($1))/eg;
+        $params{$key} = $value;
+    }
+}
+
+my $text = $params{'text'} || 'The quick brown fox jumps over the lazy dog';
+my $op = $params{'op'} || 'analyze';
 
 my $output_text = $text;
 my $operation_name = "Text Analysis";
