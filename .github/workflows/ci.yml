@@ -48,7 +48,7 @@ jobs:
     
     - name: Upload Test Reports
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: test-reports
         path: |
@@ -56,10 +56,11 @@ jobs:
           tests/test_output/*.log
           server_test.log
         retention-days: 30
+        if-no-files-found: warn
     
     - name: Upload Server Logs
       if: failure()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: server-logs
         path: |
@@ -67,6 +68,7 @@ jobs:
           server.log
           valgrind_*.log
         retention-days: 30
+        if-no-files-found: warn
 
   valgrind-memory-check:
     runs-on: ubuntu-latest
@@ -133,11 +135,12 @@ jobs:
     
     - name: Upload Valgrind Reports
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: valgrind-reports
         path: valgrind_*.log
         retention-days: 30
+        if-no-files-found: warn
 
   security-audit:
     runs-on: ubuntu-latest
@@ -181,8 +184,9 @@ jobs:
     
     - name: Upload Security Reports
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: security-reports
         path: tests/security/results/*.txt
         retention-days: 30
+        if-no-files-found: warn

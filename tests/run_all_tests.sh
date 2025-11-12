@@ -5,7 +5,8 @@
 # Comprehensive test suite for CI/CD and local testing
 ################################################################################
 
-set -e  # Exit on error
+# Don't exit on first error - we want to run all tests
+set +e
 
 # Colors
 RED='\033[0;31m'
@@ -180,27 +181,28 @@ run_test_suite() {
     
     local start_time=$(date +%s)
     
-    # Run the test
-    if eval "$test_command"; then
-        local end_time=$(date +%s)
-        local duration=$((end_time - start_time))
+    # Run the test and capture exit code
+    eval "$test_command"
+    local test_exit_code=$?
+    
+    local end_time=$(date +%s)
+    local duration=$((end_time - start_time))
+    
+    if [ $test_exit_code -eq 0 ]; then
         log_success "✓ $suite_name PASSED (${duration}s)"
         ((PASSED_SUITES++))
-        return 0
     else
-        local end_time=$(date +%s)
-        local duration=$((end_time - start_time))
-        
         if [ "$is_optional" = "true" ]; then
             log_warn "⊘ $suite_name SKIPPED/FAILED (${duration}s) - Optional test"
             ((SKIPPED_SUITES++))
-            return 0
         else
             log_error "✗ $suite_name FAILED (${duration}s)"
             ((FAILED_SUITES++))
-            return 1
         fi
     fi
+    
+    # Always return 0 to continue running other tests
+    return 0
 }
 
 ################################################################################
@@ -209,9 +211,10 @@ run_test_suite() {
 
 run_comprehensive_edge_cases() {
     if [ -f "${SCRIPT_DIR}/comprehensive_edge_cases.sh" ]; then
-        "${SCRIPT_DIR}/comprehensive_edge_cases.sh"
+        bash "${SCRIPT_DIR}/comprehensive_edge_cases.sh"
+        return $?
     else
-        log_error "comprehensive_edge_cases.sh not found"
+        log_error "comprehensive_edge_cases.sh not found at ${SCRIPT_DIR}/comprehensive_edge_cases.sh"
         return 1
     fi
 }
@@ -219,8 +222,9 @@ run_comprehensive_edge_cases() {
 run_security_tests() {
     if [ -f "${SCRIPT_DIR}/security/run_all_security_tests.py" ]; then
         python3 "${SCRIPT_DIR}/security/run_all_security_tests.py"
+        return $?
     else
-        log_error "security tests not found"
+        log_warn "security tests not found at ${SCRIPT_DIR}/security/run_all_security_tests.py"
         return 1
     fi
 }
@@ -228,8 +232,9 @@ run_security_tests() {
 run_session_cookie_tests() {
     if [ -f "${SCRIPT_DIR}/session_cookie/run_all_tests.sh" ]; then
         bash "${SCRIPT_DIR}/session_cookie/run_all_tests.sh"
+        return $?
     else
-        log_warn "session/cookie tests not found"
+        log_warn "session/cookie tests not found at ${SCRIPT_DIR}/session_cookie/run_all_tests.sh"
         return 1
     fi
 }
