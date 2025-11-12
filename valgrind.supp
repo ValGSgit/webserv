@@ -270,10 +270,14 @@
    syscall_uninit
    Memcheck:Param
    socketcall.sendto(msg)
+   fun:send*
+   ...
 }
 
 {
    write_uninit
    Memcheck:Param
    write(buf)
+   fun:write
+   ...
 }
