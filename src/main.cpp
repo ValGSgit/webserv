@@ -21,8 +21,12 @@ void signalHandler(int signal) {
 }
 
 int main(int argc, char **argv) {
-    if (argc != 2) {
-        std::cerr << "Usage: " << argv[0] << " <config_file>" << std::endl;
+    // Use default config if not provided
+    std::string config_file = (argc > 1) ? argv[1] : "webserv.conf";
+    
+    if (argc > 2) {
+        std::cerr << "Usage: " << argv[0] << " [config_file]" << std::endl;
+        std::cerr << "  If no config file is provided, webserv.conf will be used by default" << std::endl;
         return 1;
     }
 
@@ -32,12 +36,12 @@ int main(int argc, char **argv) {
     signal(SIGPIPE, SIG_IGN);
 
     std::cout << "🌐 WebServ - HTTP Server with epoll" << std::endl;
-    std::cout << "📝 Config file: " << argv[1] << std::endl;
+    std::cout << "📝 Config file: " << config_file << std::endl;
     
     ServerManager manager;
     g_server_manager = &manager;
     
-    if (!manager.initialize(argv[1])) {
+    if (!manager.initialize(config_file)) {
         std::cerr << "❌ Failed to initialize server" << std::endl;
         return 1;
     }
