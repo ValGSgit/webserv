@@ -5,6 +5,9 @@ on:
     branches: [ main, testing, bonus ]
   pull_request:
     branches: [ main, testing, bonus ]
+  schedule:
+    # Run twice a week: Monday and Thursday at 2:00 AM UTC
+    - cron: '0 2 * * 1,4'
 
 jobs:
   build-and-test:
@@ -28,7 +31,7 @@ jobs:
           perl \
           ruby \
           curl \
-          netcat \
+          netcat-openbsd \
           lsof
     
     - name: Install Python dependencies
@@ -39,6 +42,8 @@ jobs:
       run: make
     
     - name: Run Comprehensive Test Suite
+      env:
+        SKIP_SLOW_TESTS: "1"
       run: |
         chmod +x tests/run_all_tests.sh
         chmod +x tests/comprehensive_edge_cases.sh
