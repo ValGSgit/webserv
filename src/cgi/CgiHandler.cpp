@@ -79,9 +79,9 @@ HttpResponse CgiHandler::executeCgi(const HttpRequest& request, const std::strin
     close(stdout_pipe[1]);
     
     // Write request body to CGI stdin
-    const std::string& body = request.getBody();
+    const std::vector<char>& body = request.getBody();
     if (!body.empty()) {
-        write(stdin_pipe[1], body.c_str(), body.length());
+        write(stdin_pipe[1], &body[0], body.size());
     }
     close(stdin_pipe[1]);
     
@@ -200,7 +200,7 @@ void CgiHandler::setupEnvironment(const HttpRequest& request, const std::string&
     if (!content_length.empty()) {
         _env["CONTENT_LENGTH"] = Utils::sanitizeForShell(content_length);
     } else {
-        _env["CONTENT_LENGTH"] = Utils::toString(request.getBody().length());
+        _env["CONTENT_LENGTH"] = Utils::toString(request.getBody().size());
     }
     
     // HTTP headers (convert to HTTP_HEADER_NAME format)

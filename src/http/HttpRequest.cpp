@@ -3,12 +3,12 @@
 
 HttpRequest::HttpRequest() 
     : _status(0), _method(METHOD_UNKNOWN), _version("HTTP/1.1"), _headers_complete(false), 
-      _body_complete(false), _content_length(0), _chunked(false) {
+      _body_complete(false), _in_body(false), _content_length(0), _chunked(false) {
 }
 
 HttpRequest::~HttpRequest() {}
 
-bool HttpRequest::parseRequest(const std::string& data) {
+bool HttpRequest::parseRequest(const std::string& data, char *buffer, ssize_t bytes_read) {
     // Manual parsing without stringstream/getline
     //std::cout << data << std::endl;
     std::vector<std::string> lines = splitIntoLines(data);
@@ -18,6 +18,8 @@ bool HttpRequest::parseRequest(const std::string& data) {
     size_t header_count = 0;
     //std::cout << "####################------------------------------" << std::endl;
     for (size_t i = 0; i < lines.size(); ++i) {
+        if (_headers_complete)
+            break ;
         const std::string& line = lines[i];
         //std::cout << line << std::endl;
         if (header_size > MAX_HEADER_SIZE || line.size() > MAX_FIELD_SIZE)
@@ -69,20 +71,97 @@ bool HttpRequest::parseRequest(const std::string& data) {
         return true;
     }
 
+    // for chunked request
+    if (_headers_complete && _chunked) {
+        std::size_t needle = data.find("\r\n\r\n");
+        int i = 0;
+        if (!_in_body && needle != std::string::npos)
+        {
+            needle += 4;
+            i = needle;
+        }
+        _in_body = true;
+        bool data = false;
+        std::string info;
+        long line_size = 0;
+        long info_dec = 0;
+        while (i < bytes_read)
+        {
+            //std::cout << buffer[i];
+            if (buffer[i] == '\r' && buffer[i + 1] == '\n')
+            {
+                if (!data)
+                {
+                    data = true;
+                    //std::cout << "info = " << info << std::endl;
+
+                    // atoi_base
+                    info_dec = std::strtol(info.c_str(), NULL ,16);
+                    //info_dec = atoi_base(info);
+                    if (info == "0")
+                        break ;
+                    // reset info
+                    info = "";
+                }
+                else
+                {
+                    data = false;
+                    //std::cout << "info_dec = " << info_dec << std::endl;
+                    //std::cout << "line_size = " << line_size << std::endl;
+                    // wrong info
+                    if (info_dec != line_size)
+                    {
+                        _status = HTTP_BAD_REQUEST;
+                        _body_complete = true;
+                        return true;
+                    }
+                    line_size = 0;
+                }
+                i += 2;
+                continue ;
+            }
+            if (data)
+            {
+                _body.push_back(buffer[i]);
+                line_size++;
+            }
+            else
+                info += buffer[i];
+            i++;
+        }
+        //std::cout << info << " = info\n";
+        if (info == "0")
+        {
+            //std::cout << "body is complete\n";
+            _body_complete = true;
+            return true ;
+        }
+    }
+
     // Read body if present
     if (_headers_complete && _content_length > 0) {
         std::size_t needle = data.find("\r\n\r\n");
-        if (needle != std::string::npos)
-            _body += data.substr(needle + 4);
-/*         for (size_t i = body_start; i < lines.size(); ++i) {
-            if (i > body_start) _body += "\n";
-            _body += lines[i];
-        } */
-        _body_complete = (_body.length() >= _content_length);
+        int i = 0;
+        if (!_in_body && needle != std::string::npos)
+        {
+            needle += 4;
+            i = needle;
+        }
+        _in_body = true;
+        //std::cout << "body----------------\n" << std::endl;
+        while (i < bytes_read)
+        {
+            //std::cout << buffer[i];
+            _body.push_back(buffer[i]);
+            i++;
+        }
+        //std::cout << _body.size() << " = _body.size()\n";
+        //std::cout << _content_length << " = _content_length\n";
+        _body_complete = (_body.size() >= _content_length);
     }
     
     // POST with Content-Length: 0 is valid (empty body)
-    if (_headers_complete && _method == METHOD_POST && _content_length == 0) {
+    if (_headers_complete && _method == METHOD_POST && _content_length == 0 && !_chunked) {
         // if content-length not found
         if (_headers.find("content-length") == _headers.end()) {
             _status = HTTP_LENGTH_REQUIRED;
@@ -92,7 +171,7 @@ bool HttpRequest::parseRequest(const std::string& data) {
     
     // If headers are complete but body is expected and not yet complete, wait for more data
     // Only return true when the FULL request is ready to be processed
-    if (_headers_complete) {
+    if (_headers_complete && !_chunked) {
         // If we expect a body (Content-Length > 0) but haven't received it all yet, return false
         if (_content_length > 0 && !_body_complete) {
             return false;  // Keep reading, request not complete yet
@@ -185,10 +264,15 @@ void HttpRequest::parseHeader(const std::string& line) {
             return;
         }
         else if (key_lower == "transfer-encoding") {
-            _status = HTTP_LENGTH_REQUIRED;
+            // if we don't support chunked encoding, return 411 Length Required
+            //_status = HTTP_LENGTH_REQUIRED;
             if (_headers.find("content-length") != _headers.end())
                 _status = HTTP_BAD_REQUEST;
-            // We don't support chunked encoding, return 411 Length Required
+            // only chunked supported, no compress, deflate, gzip, etc
+            if (_headers[key_lower] == "chunked")
+                _chunked = true;
+            else
+                _status = HTTP_BAD_REQUEST;
             return;
         }
         // expectation is not supported
@@ -289,7 +373,8 @@ HttpMethod HttpRequest::getMethod() const { return _method; }
 const std::string& HttpRequest::getUri() const { return _uri; }
 const std::string& HttpRequest::getVersion() const { return _version; }
 const std::map<std::string, std::string>& HttpRequest::getHeaders() const { return _headers; }
-const std::string& HttpRequest::getBody() const { return _body; }
+const std::vector<char>& HttpRequest::getBody() const { return _body; }
+//const std::string& HttpRequest::getBody() const { return _body; }
 const std::string& HttpRequest::getQueryString() const { return _query_string; }
 const std::map<std::string, std::string>& HttpRequest::getParams() const { return _params; }
 bool HttpRequest::isHeadersComplete() const { return _headers_complete; }
@@ -325,7 +410,7 @@ void HttpRequest::print() const {
          it != _headers.end(); ++it) {
         std::cout << "  " << it->first << ": " << it->second << std::endl;
     }
-    std::cout << "Body length: " << _body.length() << std::endl;
+    std::cout << "Body length: " << _body.size() << std::endl;
 }
 
 #ifdef BONUS

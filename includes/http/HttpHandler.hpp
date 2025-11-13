@@ -20,8 +20,6 @@ private:
 
     ServerManager* _server_manager;
     int _epoll_fd;
-    char *_raw_buffer;
-    size_t _raw_bytes_read;
     std::string _file_info;
     
     // Client request/response tracking

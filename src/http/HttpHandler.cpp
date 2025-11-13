@@ -305,6 +305,11 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
             std::string script_path = config->root + uri;
             response = cgi.executeCgi(request, script_path);
         }
+        // chunked request
+/*         else if (request.isChunked() && request.getMethod() == METHOD_POST) {
+            // unchunk body
+            response = handleUpload(request, *config, client_fd);
+        } */
         // Generic POST handler for uploads (after all API endpoints!)
         else if (request.getMethod() == METHOD_POST) {
             response = handleUpload(request, *config, client_fd);
@@ -354,7 +359,7 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
 
 // return the index of boundary in the buffer if found
 // what if the boundary lays between buffer?
-static int check_boundary(char *buffer, const char *boundary, size_t len)
+static int check_boundary(const std::vector<char> &buffer, const char *boundary, size_t len)
 {
     size_t	i;
 	size_t	j;
@@ -399,8 +404,9 @@ HttpResponse HttpHandler::handleDelete(const HttpRequest& request, const ServerC
 
 
 HttpResponse HttpHandler::handleUpload(const HttpRequest& request, const ServerConfig& config, int client_fd) {
+    (void) client_fd;
     std::cout << "Handling file upload" << std::endl;
-    const std::string& body = request.getBody();
+    const std::vector<char>& body = request.getBody();
     // default upload path
     std::string upload_dir = config.root + "/uploads/";
     // Find upload path from config
@@ -412,15 +418,45 @@ HttpResponse HttpHandler::handleUpload(const HttpRequest& request, const ServerC
     }
     catch(const std::exception& e){}
     // use temp string to find things
-    std::string temp = _raw_buffer;
+    std::string temp = request.getHeader("content-type");
+    std::size_t needle = temp.find("boundary=");
+    std::string boundary;
+    std::string boundary_end;
+    std::string file_info;
+    size_t start = 0;
+    size_t size = body.size();
+    // if boundary is found
+    if (needle != std::string::npos)
+    {
+        boundary = "--" + temp.substr(needle + 9, temp.find_first_of("\r\n", needle + 9) - needle - 9);
+        boundary_end = "\r\n" + boundary + "--";
+        int i = 0;
+        while (body[i])
+        {
+            file_info += body[i];
+            if (body[i] == '\r')
+            {
+                if (body[i + 1] == '\n' && body[i + 2] == '\r' && body[i + 3] == '\n')
+                {
+                    i += 4;
+                    break ;
+                }
+            }
+            i++;
+        }
+        start = i;
+        size = check_boundary(body, boundary_end.c_str(), body.size());
+        size -= start;
+    }
+    _file_info = file_info;
     // Simple upload handling - save to uploads directory
-    std::size_t needle = temp.find("filename=");
     std::string filename;
+    filename = "uploaded_file_" + Utils::toString(static_cast<int>(time(NULL)));
+    temp = _file_info;
+    needle = temp.find("filename=");
     if (needle != std::string::npos)
         filename = temp.substr(needle + 10, temp.find_first_of("\"", needle + 10) - needle - 10);
-    else
-        filename = "uploaded_file_" + Utils::toString(static_cast<int>(time(NULL)));
-    
+
     // SECURITY FIX: Sanitize filename to prevent path traversal
     filename = Utils::sanitizeFilename(filename);
     
@@ -438,102 +474,20 @@ HttpResponse HttpHandler::handleUpload(const HttpRequest& request, const ServerC
     // if file already exist, add suffix
     if (Utils::fileExists(filepath))
         filepath = filepath + "_copy_" + Utils::toString(static_cast<int>(time(NULL)));
-    // find boundary
-    needle = temp.find("boundary=");
-    std::string boundary;
-    std::string boundary_end;
-    // if boundary is found
-    if (needle != std::string::npos)
+    
+    size_t total_write = 0;
+    while (size > BUFFER_SIZE)
     {
-        boundary = "\r\n--" + temp.substr(needle + 9, temp.find_first_of("\r\n", needle + 9) - needle - 9);
-        boundary_end = boundary + "--";
-        needle = temp.find(boundary);
-        _raw_bytes_read -= needle;
-        _raw_buffer = &_raw_buffer[needle];
-        temp =_raw_buffer;
+        if (!Utils::writeFile(filepath, (void *)&body[start], BUFFER_SIZE))
+            return HttpResponse::errorResponse(HTTP_INTERNAL_SERVER_ERROR, "Failed to save file"); // also remove file!
+        total_write += BUFFER_SIZE;
+        size -= BUFFER_SIZE;
+        start += BUFFER_SIZE;
     }
-    size_t total_bytes_read = _raw_bytes_read - 2; // -2 for the extra \r\n
-    needle = temp.find("\r\n\r\n");
-    // needle is the starting index of the file
-    needle += 4;
-    _raw_bytes_read -= needle;
-    //start of the file
-    // save also file info
-    if (boundary != "")
-        _file_info = temp.substr(0, needle);
+    if (Utils::writeFile(filepath, (void *)&body[start], size))
+        return HttpResponse::messageResponse(HTTP_CREATED, "Upload Successful", "File uploaded successfully!");
     else
-        total_bytes_read = _raw_bytes_read;
-    size_t total_bytes_write = 0;
-    // if the end boundary is already in the raw_buffer
-    size_t bytes_write;
-    bytes_write = _raw_bytes_read;
-    if (boundary != "" && check_boundary(&_raw_buffer[needle], boundary_end.c_str(), _raw_bytes_read))
-            bytes_write = check_boundary(&_raw_buffer[needle], boundary_end.c_str(), _raw_bytes_read);
-    // chrome send the body later, dont write the raw_buffer
-    if (body == "")
-        bytes_write = 0;
-    if (Utils::writeFile(filepath, &_raw_buffer[needle], bytes_write)) {
-        total_bytes_write += bytes_write;
-        char buffer[BUFFER_SIZE];
-        int bytes_read = 0;
-        time_t begin = time(NULL);
-        //std::cout << "begin = " << begin << "\n";
-        // if there are things left in fd, continue to read the body and write to file
-        while (total_bytes_read < request.getContentLength()) {
-            //timeout?
-            bytes_read = read(client_fd, buffer, BUFFER_SIZE);
-            if (bytes_read < 0)
-            {
-                std::cerr << "read failed\n";
-                continue ;
-            }
-            if (bytes_read == 0)
-                continue ;
-            time_t now = time(NULL);
-            //sleep(1);
-            //std::cout << "now = " << now << "\n";
-            if (now - begin > UPLOAD_TIMEOUT) // default 5 second
-            {
-                std::remove(filepath.c_str());
-                // if you use HTTP_REQUEST_TIMEOUT 408 the browser will just send it again and again?
-                return HttpResponse::errorResponse(HTTP_INTERNAL_SERVER_ERROR, "Timeout");
-            }
-            //get rid of the end boundary
-            total_bytes_read += bytes_read;
-            bytes_write = bytes_read;
-            if (boundary != "" && check_boundary(buffer, boundary_end.c_str(), bytes_read))
-                bytes_write = check_boundary(buffer, boundary_end.c_str(), bytes_read);
-            if (!Utils::writeFile(filepath, buffer, bytes_write))
-            {
-                std::remove(filepath.c_str());
-                return HttpResponse::errorResponse(HTTP_INTERNAL_SERVER_ERROR, "Failed to save file");
-            }
-            total_bytes_write += bytes_write;
-            
-/*             // open it to handle individual file size limit
-            if (total_bytes_read > config.max_body_size)
-            {
-                // delete the file!
-                std::remove(filepath.c_str());
-                return HttpResponse::errorResponse(HTTP_PAYLOAD_TOO_LARGE, "File is too big");
-            } */
-
-        }
-        // std::cout << errno << " = errno after read\n";
-        // std::cout << bytes_read << " = bytes_read\n";
-        //std::cout << total_bytes_write << " = total_bytes_write\n";
-        if (total_bytes_write == 0 || total_bytes_read != request.getContentLength())
-        {
-            std::remove(filepath.c_str());
-            //std::cout << total_bytes_read << " = total_bytes_read\n" << request.getContentLength() << " = request.getContentLength()\n";
-            return HttpResponse::errorResponse(HTTP_BAD_REQUEST, "Error");
-        }
-
-        //std::cout << total_bytes_read << " = " << request.getContentLength() << "\n";
-        return HttpResponse::messageResponse(HTTP_CREATED, "Upload Successful", "File uploaded successfully!");//response;
-    } else {
         return HttpResponse::errorResponse(HTTP_INTERNAL_SERVER_ERROR, "Failed to save file");
-    }
 }
 
 HttpResponse HttpHandler::handleJsonApi(const HttpRequest& request) {
@@ -572,11 +526,12 @@ void HttpHandler::handleRead(int client_fd) {
     while ((bytes_read = read(client_fd, buffer, sizeof(buffer) - 1)) > 0) {
         buffer[bytes_read] = '\0';
         _client_buffers[client_fd] += buffer;
-        _raw_buffer = buffer;
-        _raw_bytes_read = bytes_read;
+        //std::cout << buffer;
+        //std::cout << bytes_read << " = bytes_read\n";
         // Try to parse request
-        if (_client_requests[client_fd].parseRequest(_client_buffers[client_fd])) {
+        if (_client_requests[client_fd].parseRequest(_client_buffers[client_fd], buffer, bytes_read)) {
             ClientConnection* client = _server_manager->getClient(client_fd);
+            //std::cout << "test\n";
             if (client) {
                 processRequest(client_fd, client->server_port);
             } else {
@@ -588,7 +543,7 @@ void HttpHandler::handleRead(int client_fd) {
     if (bytes_read < 0)
     {
         // the fd is hanging, just try again, don't close connection yet
-        std::cerr << "handleRead failed, " << strerror(errno) << ", will keep trying until time out" << "\n";
+        std::cout << "handleRead failed, " << strerror(errno) << ", will keep trying until time out" << "\n";
         //closeConnection(client_fd);
     }
     if (bytes_read == 0) {
