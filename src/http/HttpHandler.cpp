@@ -199,8 +199,14 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
 
             // Parse username from request body
             std::string username = "demo_user"; // default
-            std::string body = request.getBody();
-            
+            std::string body;// body in string, not in binary
+            const std::vector<char> &body_vec = request.getBody();
+            int i = 0;
+            while (body_vec[i])
+            {
+                body += body_vec[i];
+                i++;
+            }
             // Simple JSON parsing to extract username
             size_t username_pos = body.find("\"username\"");
             if (username_pos != std::string::npos) {
@@ -479,15 +485,22 @@ HttpResponse HttpHandler::handleUpload(const HttpRequest& request, const ServerC
     while (size > BUFFER_SIZE)
     {
         if (!Utils::writeFile(filepath, (void *)&body[start], BUFFER_SIZE))
+        {
+            std::remove(filepath.c_str());
             return HttpResponse::errorResponse(HTTP_INTERNAL_SERVER_ERROR, "Failed to save file"); // also remove file!
+        }
         total_write += BUFFER_SIZE;
         size -= BUFFER_SIZE;
         start += BUFFER_SIZE;
     }
+    // write the leftover
     if (Utils::writeFile(filepath, (void *)&body[start], size))
         return HttpResponse::messageResponse(HTTP_CREATED, "Upload Successful", "File uploaded successfully!");
     else
+    {
+        std::remove(filepath.c_str());
         return HttpResponse::errorResponse(HTTP_INTERNAL_SERVER_ERROR, "Failed to save file");
+    }
 }
 
 HttpResponse HttpHandler::handleJsonApi(const HttpRequest& request) {
