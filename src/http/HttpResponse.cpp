@@ -66,13 +66,13 @@ void HttpResponse::setDefaultHeaders() {
     char buffer[30];
     std::strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S", std::localtime(&time));
     _headers["Date"] = buffer;
-    _headers["Connection"] = "close";
+    _headers["Connection"] = "keep-alive";
     
     // SECURITY FIX: Added security headers for browser protection
     //_headers["X-Content-Type-Options"] = "nosniff";
     //_headers["X-Frame-Options"] = "DENY";
     //_headers["X-XSS-Protection"] = "1; mode=block";
-    _headers["Referrer-Policy"] = "no-referrer";
+    //_headers["Referrer-Policy"] = "no-referrer";
 }
 
 void HttpResponse::setContentType(const std::string& content_type) {

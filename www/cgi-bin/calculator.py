@@ -2,24 +2,25 @@
 
 import os
 import sys
-from urllib.parse import parse_qs
+import re
 
 # Parse query string
 query = os.environ.get('QUERY_STRING', '')
-params = parse_qs(query)
+matches = re.findall(r'(num1|num2|op)=([^=]+?)(?=num1=|num2=|op=|$)', query)
+params = dict(matches)
 
 # Safely get parameters with error handling
 try:
-    num1 = float(params.get('num1', ['0'])[0])
+    num1 = int(params['num1'])#float(params.get('num1', ['0'])[0])
 except (ValueError, IndexError):
     num1 = 0.0
 
 try:
-    num2 = float(params.get('num2', ['0'])[0])
+    num2 = int(params['num2'])#float(params.get('num2', ['0'])[0])
 except (ValueError, IndexError):
     num2 = 0.0
 
-op = params.get('op', ['add'])[0] if 'op' in params else 'add'
+op = params['op'] if 'op' in params else 'add'
 
 # Perform calculation
 result = 0

@@ -1,7 +1,7 @@
 #include "../../includes/http/HttpHandler.hpp"
 #include "../../includes/server/ServerManager.hpp"
 
-HttpHandler::~HttpHandler() {}
+HttpHandler::~HttpHandler() {_is_child = false;}
 
 HttpHandler::HttpHandler(HttpHandler const &other) : _server_manager(other._server_manager), _epoll_fd(other._epoll_fd) {
     *this = other;
@@ -307,9 +307,53 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
         }
         // CGI handling
         else if (uri.find("/cgi-bin/") == 0) {
-            CgiHandler cgi;
-            std::string script_path = config->root + uri;
-            response = cgi.executeCgi(request, script_path);
+            pid_t pid = fork();
+            if (pid == -1) {
+                std::cerr << "fork failed\n";
+                response = HttpResponse::errorResponse(HTTP_INTERNAL_SERVER_ERROR);
+            }
+            else if (pid == 0) {
+                // Child process
+                _is_child = true;
+                CgiHandler cgi;
+                std::string script_path = config->root + uri;
+                response = cgi.executeCgi(request, script_path);
+                _response_buffers[client_fd] = response.getResponseString();
+                _response_offsets[client_fd] = 0;
+                handleWrite(client_fd);
+                _server_manager->requestShutdown();
+                return ;
+                //std::exit(0);
+            }
+            else {
+                // Parent process - continue
+                // Reset for next request
+                struct epoll_event ev;
+                ev.events = EPOLLIN | EPOLLET;
+                ev.data.fd = client_fd;
+                if (epoll_ctl(_epoll_fd, EPOLL_CTL_MOD, client_fd, &ev) == -1) {
+                    std::cerr << "epoll_ctl failed\n";
+                    close(client_fd);
+                    return;
+                }
+            
+                // Reset client tracking data
+                _client_buffers[client_fd] = "";
+                _client_requests[client_fd] = HttpRequest();
+                _client_responses[client_fd] = HttpResponse();
+                _response_buffers[client_fd] = "";
+                _response_offsets[client_fd] = 0;
+                
+                // Register client in ServerManager
+                ClientConnection* client = _server_manager->getClient(client_fd);
+                if (client) {
+                    client->fd = client_fd;
+                    //client->server_port = server_port;
+                    client->state = STATE_READING_HEADERS;
+                    client->last_activity = time(NULL);
+                }
+                return ;
+            }
         }
         // chunked request
 /*         else if (request.isChunked() && request.getMethod() == METHOD_POST) {
@@ -351,6 +395,9 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
     if (request.getMethod() == METHOD_HEAD) {
             response.removeBody();
     }
+
+    if (_client_requests[client_fd].getHeader("connection") == "close")
+        response.setHeader("Connection", "close");
     
     // Prepare response for sending
     _response_buffers[client_fd] = response.getResponseString();
@@ -547,9 +594,9 @@ void HttpHandler::handleRead(int client_fd) {
             //std::cout << "test\n";
             if (client) {
                 processRequest(client_fd, client->server_port);
-            } else {
-                closeConnection(client_fd);
-            }
+            }// else {
+            //     closeConnection(client_fd);
+            // }
             return;
         }
     }
@@ -572,7 +619,7 @@ void HttpHandler::handleWrite(int client_fd) {
     //std::cout<<"$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"<<std::endl;
     //std::cout<<buffer<<std::endl;
     if (offset >= buffer.length()) {
-        closeConnection(client_fd);
+        //closeConnection(client_fd);
         return;
     }
     ssize_t bytes_sent = write(client_fd, buffer.c_str() + offset, buffer.length() - offset);
@@ -580,11 +627,43 @@ void HttpHandler::handleWrite(int client_fd) {
         offset += bytes_sent;
         if (offset >= buffer.length()) {
             std::cout << "✓ Response sent successfully to fd " << client_fd << std::endl;
-            closeConnection(client_fd);
+            if (_client_requests[client_fd].getHeader("connection") == "close") {
+                closeConnection(client_fd);
+                return;
+            }
+            else
+            // Reset for next request
+            {
+                struct epoll_event ev;
+                ev.events = EPOLLIN | EPOLLET;
+                ev.data.fd = client_fd;
+                if (epoll_ctl(_epoll_fd, EPOLL_CTL_MOD, client_fd, &ev) == -1) {
+                    std::cerr << "epoll_ctl failed\n";
+                    close(client_fd);
+                    return;
+                }
+            
+                // Reset client tracking data
+                _client_buffers[client_fd] = "";
+                _client_requests[client_fd] = HttpRequest();
+                _client_responses[client_fd] = HttpResponse();
+                _response_buffers[client_fd] = "";
+                _response_offsets[client_fd] = 0;
+                
+                // Register client in ServerManager
+                ClientConnection* client = _server_manager->getClient(client_fd);
+                if (client) {
+                    client->fd = client_fd;
+                    //client->server_port = server_port;
+                    client->state = STATE_READING_HEADERS;
+                    client->last_activity = time(NULL);
+                }
+            }
+            //closeConnection(client_fd);
         }
     } else if (bytes_sent == -1) {
         std::cerr << "write failed\n";
-        closeConnection(client_fd);
+        //closeConnection(client_fd);
     }
 }
 
@@ -646,3 +725,5 @@ void HttpHandler::closeConnection(int client_fd) {
 
     std::cout << "Connection closed (fd: " << client_fd << ")" << std::endl;
 }
+
+bool HttpHandler::IsChild() const { return _is_child; }

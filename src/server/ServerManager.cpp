@@ -193,6 +193,7 @@ void ServerManager::run() {
         for (int i = 0; i < nfds; i++) {
             int fd = _events[i].data.fd;
             
+            //std::cout << fd << " = fd\n";
             // Check if it's a server socket
             if (isServerSocket(fd)) {
                 const ServerSocket* ss = findServerSocket(fd);
@@ -223,8 +224,8 @@ void ServerManager::run() {
             _last_cleanup = now;
         }
     }
-
-    std::cout << "\n🛑 Server shutting down..." << std::endl;
+    if (!_http_handler->IsChild())
+        std::cout << "\n🛑 Server shutting down..." << std::endl;
 }
 
 void ServerManager::cleanupTimeouts() {
@@ -287,7 +288,7 @@ void ServerManager::closeClient(int client_fd) {
     _clients.erase(client_fd);
 }
 
-ClientConnection* ServerManager::getClient(int client_fd) {
+ClientConnection* ServerManager::getClient(int client_fd) { //TODO: check session management
     if (_clients.find(client_fd) == _clients.end()) {
         // Create new client entry
         _clients[client_fd] = ClientConnection();
@@ -318,13 +319,14 @@ void ServerManager::shutdown() {
         _epoll_fd = -1;
     }
     
+    if (!_http_handler->IsChild())
+        std::cout << "✓ Server shutdown complete" << std::endl;
+    
     // Delete HTTP handler
     if (_http_handler) {
         delete _http_handler;
         _http_handler = NULL;
     }
-    
-    std::cout << "✓ Server shutdown complete" << std::endl;
 }
 
 void ServerManager::requestShutdown() {

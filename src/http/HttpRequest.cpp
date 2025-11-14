@@ -221,6 +221,7 @@ void HttpRequest::parseRequestLine(const std::string& line) {
             return ;
         }
     }
+    // (cat '/home/vagarcia/Desktop/webserv/www/uploads/backups/chunked-request copy.txt' ; sleep 5 ; cat '/home/vagarcia/Desktop/webserv/www/uploads/backups/end.txt' | nc localhost 8080
     // to avoid throwing error too early if the header is only partly sent, eg. (printf "GE" ; sleep 30 ; printf "T / HTTP/1.0\r\n\r\n") | nc localhost 8080
 /*     else
         _status = HTTP_BAD_REQUEST; */

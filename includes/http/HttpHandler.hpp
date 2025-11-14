@@ -20,6 +20,7 @@ private:
 
     ServerManager* _server_manager;
     int _epoll_fd;
+    bool _is_child;
     std::string _file_info;
     
     // Client request/response tracking
@@ -46,6 +47,7 @@ public:
     void handleWrite(int fd);
     void acceptConnection(int server_fd, int server_port);
     void closeConnection(int client_fd);
+    bool IsChild() const;
 };
 
 #endif

@@ -150,7 +150,8 @@ HttpResponse CgiHandler::executeCgi(const HttpRequest& request, const std::strin
         if (bytes_read < 0)
         {
             std::cerr << "read failed\n";
-            break ;
+            continue ;
+            //break ;
         }
         buffer[bytes_read] = '\0';
         output += std::string(buffer, bytes_read);
