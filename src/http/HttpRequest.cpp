@@ -24,8 +24,6 @@ bool HttpRequest::parseRequest(const std::string& data, char *buffer, ssize_t by
         //std::cout << line << std::endl;
         if (header_size > MAX_HEADER_SIZE || line.size() > MAX_FIELD_SIZE)
             _status = HTTP_REQUEST_HEADER_FIELDS_TOO_LARGE;
-        //if (_status) // save some resources
-        //    return true;
 
         // why \r? it's already skipped in splitIntoLines()
         if (line.empty() || line == "\r") {
@@ -47,6 +45,8 @@ bool HttpRequest::parseRequest(const std::string& data, char *buffer, ssize_t by
             parseHeader(line);
         }
         header_size += line.size();
+        if (_status) // save some resources
+            return true;
     }
 
 #ifdef BONUS
@@ -186,14 +186,13 @@ bool HttpRequest::parseRequest(const std::string& data, char *buffer, ssize_t by
 //parsing first line
 void HttpRequest::parseRequestLine(const std::string& line) {
     // Manual parsing without istringstream
-    //std::cout << line << std::endl;
     std::vector<std::string> tokens = Utils::split(line, ' ');
+    
     if (tokens.size() == 3) {
         // these are case-sensitive
         _method = stringToMethod(tokens[0]);
         _uri = tokens[1];
         _version = tokens[2];
-        
         // SECURITY FIX: Validate HTTP version
         if (!Utils::isValidHttpVersion(_version)) {
             _status = HTTP_HTTP_VERSION_NOT_SUPPORTED;  // 505 instead of 400
@@ -221,6 +220,8 @@ void HttpRequest::parseRequestLine(const std::string& line) {
             return ;
         }
     }
+    if (tokens.size() > 3)
+        _status = HTTP_BAD_REQUEST;
     // (cat '/home/vagarcia/Desktop/webserv/www/uploads/backups/chunked-request copy.txt' ; sleep 5 ; cat '/home/vagarcia/Desktop/webserv/www/uploads/backups/end.txt' | nc localhost 8080
     // to avoid throwing error too early if the header is only partly sent, eg. (printf "GE" ; sleep 30 ; printf "T / HTTP/1.0\r\n\r\n") | nc localhost 8080
 /*     else
@@ -443,10 +444,11 @@ std::vector<std::string> HttpRequest::splitIntoLines(const std::string& content)
     //The HTTP and MIME specs specify that header lines must end with \r\n
     //https://stackoverflow.com/questions/6324167/do-browsers-send-r-n-or-n-or-does-it-depend-on-the-browser
     for (size_t i = 0; i < content.length(); ++i) {
-        if (content[i] == '\n') {
+        if (content[i] == '\r' && content[i + 1] == '\n') {
             lines.push_back(line);
             line.clear();
-        } else if (content[i] != '\r') {  // Skip carriage return
+            i++;
+        } else {
             line += content[i];
         }
     }
