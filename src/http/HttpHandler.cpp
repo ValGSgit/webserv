@@ -165,6 +165,13 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
     else if (request.getStatus()) {
         response = HttpResponse::errorResponse(request.getStatus());
     }
+    // HTTP/1.1 RFC 7230: POST/PUT/PATCH require Content-Length or Transfer-Encoding
+    // Check this BEFORE method allowed validation to return correct error code
+    else if ((request.getMethod() == METHOD_POST || request.getMethod() == METHOD_PUT) && 
+             request.getHeader("content-length").empty() && 
+             request.getHeader("transfer-encoding").empty()) {
+        response = HttpResponse::errorResponse(HTTP_LENGTH_REQUIRED);
+    }
     // Handle OPTIONS method (should be checked BEFORE method allowed check)
     else if (request.getMethod() == METHOD_OPTIONS) {
         // OPTIONS returns allowed methods for the URI

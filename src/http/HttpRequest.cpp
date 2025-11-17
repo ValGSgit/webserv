@@ -22,21 +22,23 @@ bool HttpRequest::parseRequest(const std::string& data, char *buffer, ssize_t by
             break ;
         const std::string& line = lines[i];
         //std::cout << line << std::endl;
-        if (header_size > MAX_HEADER_SIZE || line.size() > MAX_FIELD_SIZE)
-            _status = HTTP_REQUEST_HEADER_FIELDS_TOO_LARGE;
-
-        // why \r? it's already skipped in splitIntoLines()
-        if (line.empty() || line == "\r") {
-            _headers_complete = true;
-            //body_start = i + 1;
-            break;
-        }
         
-        //parsing the first line
+        //parsing the first line - check URI length BEFORE generic header size check
         if (first_line) {
+            // Check for overly long request line (URI too long)
+            // The first line contains METHOD URI VERSION, so a long line usually means long URI
+            if (line.size() > MAX_URI + 20) {  // Add buffer for "METHOD  HTTP/1.1"
+                _status = HTTP_URI_TOO_LONG;
+                return true;
+            }
             parseRequestLine(line);
             first_line = false;
         } else {
+            // For headers (not request line), check field size
+            if (line.size() > MAX_FIELD_SIZE) {
+                _status = HTTP_REQUEST_HEADER_FIELDS_TOO_LARGE;
+                return true;
+            }
             header_count++;
             if (header_count > MAX_HEADERS) {
                 _status = HTTP_REQUEST_HEADER_FIELDS_TOO_LARGE;
@@ -44,7 +46,21 @@ bool HttpRequest::parseRequest(const std::string& data, char *buffer, ssize_t by
             }
             parseHeader(line);
         }
+        
+        // Check total header size
         header_size += line.size();
+        if (header_size > MAX_HEADER_SIZE) {
+            _status = HTTP_REQUEST_HEADER_FIELDS_TOO_LARGE;
+            return true;
+        }
+        
+        // why \r? it's already skipped in splitIntoLines()
+        if (line.empty() || line == "\r") {
+            _headers_complete = true;
+            //body_start = i + 1;
+            break;
+        }
+        
         if (_status) // save some resources
             return true;
     }
@@ -171,7 +187,12 @@ bool HttpRequest::parseRequest(const std::string& data, char *buffer, ssize_t by
     
     // If headers are complete but body is expected and not yet complete, wait for more data
     // Only return true when the FULL request is ready to be processed
+    // EXCEPTION: If there's already an error status, process immediately to send error response
     if (_headers_complete && !_chunked) {
+        // If we have an error status, process immediately (don't wait for body)
+        if (_status != 0) {
+            return true;
+        }
         // If we expect a body (Content-Length > 0) but haven't received it all yet, return false
         if (_content_length > 0 && !_body_complete) {
             return false;  // Keep reading, request not complete yet
@@ -277,16 +298,25 @@ void HttpRequest::parseHeader(const std::string& line) {
                 _status = HTTP_BAD_REQUEST;
             return;
         }
-        // expectation is not supported
-        if (key_lower == "expect")
-        {
+        // Handle Expect header
+        // HTTP/1.1 requires us to handle "Expect: 100-continue"
+        // We don't set error here - let the handler decide if request is acceptable
+        // Only reject if the expectation is NOT "100-continue"
+        if (key_lower == "expect" && value != "100-continue") {
             _status = HTTP_EXPECTATION_FAILED;
-            return ;
+            return;
         }
     }
 }
 
 void HttpRequest::parseUri(const std::string& uri) {
+    // SECURITY: Detect path traversal attempts
+    // Check for ../ or ..\ sequences which indicate directory traversal
+    if (uri.find("../") != std::string::npos || uri.find("..\\") != std::string::npos) {
+        _status = HTTP_BAD_REQUEST;  // RFC 7231: malformed syntax
+        return;
+    }
+    
     // Remove fragment first (fragments are client-side only, never sent to server in valid HTTP)
     // But some clients might send them, so we handle them
     std::string uri_without_fragment = uri;
