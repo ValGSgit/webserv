@@ -6,7 +6,9 @@ ServerManager::ServerManager() : _epoll_fd(-1), _running(false), _last_cleanup(0
 }
 
 ServerManager::~ServerManager() {
-    shutdown();
+    if (_epoll_fd != -1 || !_server_sockets.empty() || !_clients.empty()) {
+        shutdown();
+    }
 }
 
 bool ServerManager::initialize(const std::string& config_file) {
@@ -319,7 +321,7 @@ void ServerManager::shutdown() {
         _epoll_fd = -1;
     }
     
-    if (!_http_handler->IsChild())
+    if (_http_handler && !_http_handler->IsChild())
         std::cout << "✓ Server shutdown complete" << std::endl;
     
     // Delete HTTP handler
