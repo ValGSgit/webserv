@@ -177,7 +177,7 @@ void ServerManager::run() {
     std::cout << "📡 Press Ctrl+C to stop server" << std::endl;
     
     while (_running) {
-        int nfds = epoll_wait(_epoll_fd, _events, MAX_CONNECTIONS, 0);
+        int nfds = epoll_wait(_epoll_fd, _events, MAX_CONNECTIONS, 1000);
         
         if (nfds == -1) {
             if (errno == EINTR) continue; //This errno is okay since its not after a read/write op
