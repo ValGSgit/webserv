@@ -208,12 +208,12 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
             std::string username = "demo_user"; // default
             std::string body;// body in string, not in binary
             const std::vector<char> &body_vec = request.getBody();
-            int i = 0;
-            while (body_vec[i])
-            {
-                body += body_vec[i];
-                i++;
+            
+            // Safely convert vector to string - check size first
+            if (!body_vec.empty()) {
+                body.assign(body_vec.begin(), body_vec.end());
             }
+            
             // Simple JSON parsing to extract username
             size_t username_pos = body.find("\"username\"");
             if (username_pos != std::string::npos) {
@@ -306,6 +306,15 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
             response.setStatus(HTTP_OK);
             response.setContentType("application/json");
             response.setBody("{\"active_sessions\": " + Utils::toString(active_sessions) + "}");
+        }
+        else if (uri == "/api/session/clear" && request.getMethod() == METHOD_POST) {
+            // Clear all sessions (for testing purposes)
+            SessionManager* sm = _server_manager->getSessionManager();
+            sm->destroyAllSessions();
+
+            response.setStatus(HTTP_OK);
+            response.setContentType("application/json");
+            response.setBody("{\"success\": true, \"message\": \"All sessions cleared\"}");
         }
 #endif
         // API test endpoint

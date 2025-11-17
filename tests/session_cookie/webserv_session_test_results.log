@@ -1,0 +1,7 @@
+[Mon Nov 17 05:52:26 PM CET 2025] Session Creation - PASS - Session created with ID: 
+[Mon Nov 17 05:52:27 PM CET 2025] Cookie Storage - PASS - Cookie stored: 1763398346935914_1270255976_1856173043_0_383311
+[Mon Nov 17 05:52:28 PM CET 2025] Authenticated Request - PASS - Profile retrieved: 
+[Mon Nov 17 05:52:29 PM CET 2025] Session Statistics - PASS - Active sessions: 
+[Mon Nov 17 05:52:30 PM CET 2025] Multiple Sessions - FAIL - Session IDs are identical
+[Mon Nov 17 05:52:31 PM CET 2025] Invalid Session Handling - PASS - Invalid session rejected properly
+[Mon Nov 17 05:52:32 PM CET 2025] Unauthenticated Request - PASS - Request without cookie rejected

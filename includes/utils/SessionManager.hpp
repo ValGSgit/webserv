@@ -3,6 +3,9 @@
 
 #include "../webserv.hpp"
 
+
+//Test with curl -v -X POST -H "Content-Length: 0" http://localhost:8080/api/session/login 2>&1 | grep -E "(< HTTP|< Set-Cookie)"
+
 struct SessionData {
 	std::string session_id;
 	time_t created_at;
@@ -25,10 +28,11 @@ class SessionManager {
 		SessionManager();
 		~SessionManager();
 
-		std::string createSession();
-		SessionData* getSession(const std::string& session_id);
-		void destroySession(const std::string& session_id);
-		void cleanExpiredSessions();
+	std::string createSession();
+	SessionData* getSession(const std::string& session_id);
+	void destroySession(const std::string& session_id);
+	void destroyAllSessions();
+	void cleanExpiredSessions();
 		void setSessionTimeout(int seconds);
 		size_t getActiveSessionCount() const;
 		
