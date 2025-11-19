@@ -463,7 +463,7 @@ class ComprehensiveTester:
             actual_len = 10
             wrong_len = 50
             # Skip these tests - they cause connection hangs
-            self.results.add_skip(
+            self.result.add_skip(
                 f"Content-Length mismatch #{i+1}",
                 category,
                 "Causes connection issues, not required by subject"
