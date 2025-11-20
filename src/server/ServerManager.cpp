@@ -181,20 +181,12 @@ void ServerManager::run() {
         int nfds = epoll_wait(_epoll_fd, _events, MAX_CONNECTIONS, 1000);
         
         if (nfds == -1) {
-            if (errno == EINTR) continue; //This errno is okay since its not after a read/write op
-            std::cerr << "Errno was " << errno << "\n";
+            if (errno == EINTR) continue; // Signal interrupt, this errno check is acceptable (not after read/write)
             break;
         }
         
-        //printServerStatus(); //Uncomment if you want to see server status on each loop
-        // if (_clients.size() > 0) {
-        //     printAllClients();
-        // }
-        // Uncomment that if statement to see all clients data.
         for (int i = 0; i < nfds; i++) {
             int fd = _events[i].data.fd;
-            
-            //std::cout << fd << " = fd\n";
             // Check if it's a server socket
             if (isServerSocket(fd)) {
                 const ServerSocket* ss = findServerSocket(fd);

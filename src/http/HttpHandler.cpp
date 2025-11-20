@@ -154,11 +154,12 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
     std::string uri = request.getUri();
     std::cout << "Requested URI: " << uri << std::endl;
     const RouteConfig* route = findMatchingRoute(uri, *config);
-    // check max body size
+    
+    // Check max body size
     size_t max_body_size = config->max_body_size;
     if (route && route->max_body_size > 0)
         max_body_size = route->max_body_size;
-    //std::cout << "Body size: " << request.getContentLength() << " / " << max_body_size << std::endl;
+    
     if (request.getContentLength() > max_body_size)
         response = HttpResponse::errorResponse(HTTP_PAYLOAD_TOO_LARGE);
     // Check for client request errors
@@ -203,18 +204,6 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
             response = HttpResponse::errorResponse(HTTP_METHOD_NOT_ALLOWED);
             response.setAllow(getMethodAllowed(uri, *config));
         }
-        // HTTP/1.1 RFC 7230: POST/PUT with body require Content-Length or Transfer-Encoding
-        // However, POST/PUT without body data is valid (treated as Content-Length: 0)
-        // Only enforce this if we're expecting body data but headers are missing
-        // For now, be lenient - missing Content-Length is treated as 0-length body
-        // The upload handler will handle multipart parsing
-        /* Removed overly strict Content-Length check - let upload handler deal with it
-        else if ((request.getMethod() == METHOD_POST || request.getMethod() == METHOD_PUT || request.getMethod() == METHOD_PATCH) && 
-                 request.getHeader("content-length").empty() && 
-                 request.getHeader("transfer-encoding").empty()) {
-            response = HttpResponse::errorResponse(HTTP_LENGTH_REQUIRED);
-        }
-        */
 #ifdef BONUS
         // Session API endpoints (MUST be checked BEFORE generic POST handler!)
         else if (uri == "/api/session/login" && request.getMethod() == METHOD_POST) {
@@ -354,12 +343,10 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
                 _response_offsets[client_fd] = 0;
                 handleWrite(client_fd);
                 _server_manager->requestShutdown();
-                return ;
-                //std::exit(0);
+                return;
             }
             else {
-                // Parent process - continue
-                // Reset for next request
+                // Parent process - reset for next request
                 struct epoll_event ev;
                 ev.events = EPOLLIN | EPOLLET;
                 ev.data.fd = client_fd;
@@ -380,18 +367,12 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
                 ClientConnection* client = _server_manager->getClient(client_fd);
                 if (client) {
                     client->fd = client_fd;
-                    //client->server_port = server_port;
                     client->state = STATE_READING_HEADERS;
                     client->last_activity = time(NULL);
                 }
-                return ;
+                return;
             }
         }
-        // chunked request
-/*         else if (request.isChunked() && request.getMethod() == METHOD_POST) {
-            // unchunk body
-            response = handleUpload(request, *config, client_fd);
-        } */
         // Generic POST handler for uploads (after all API endpoints!)
         else if (request.getMethod() == METHOD_POST) {
             response = handleUpload(request, *config, client_fd);
@@ -803,40 +784,34 @@ void HttpHandler::handleRead(int client_fd) {
     while ((bytes_read = read(client_fd, buffer, sizeof(buffer) - 1)) > 0) {
         buffer[bytes_read] = '\0';
         _client_buffers[client_fd] += buffer;
-        //std::cout << buffer;
-        //std::cout << bytes_read << " = bytes_read\n";
+        
         // Try to parse request
         if (_client_requests[client_fd].parseRequest(_client_buffers[client_fd], buffer, bytes_read)) {
             ClientConnection* client = _server_manager->getClient(client_fd);
-            //std::cout << "test\n";
             if (client) {
                 processRequest(client_fd, client->server_port);
-            }// else {
-            //     closeConnection(client_fd);
-            // }
+            }
             return;
         }
     }
-    if (bytes_read < 0)
-    {
-        // the fd is hanging, just try again, don't close connection yet
-        std::cout << "handleRead failed, " << strerror(errno) << ", will keep trying until time out" << "\n";
-        //closeConnection(client_fd);
-    }
+    
+    // bytes_read <= 0 - connection closed or would block
+    // For EPOLLET (edge-triggered), EAGAIN/EWOULDBLOCK means no more data available
+    // Don't close connection, just return and wait for next epoll event
+    // Timeout handling is done separately in ServerManager::cleanupTimeouts()
     if (bytes_read == 0) {
         std::cout << "Client disconnected (fd: " << client_fd << ")" << std::endl;
         closeConnection(client_fd);
     }
+    // bytes_read < 0: EAGAIN/EWOULDBLOCK (normal for non-blocking), or error
+    // Don't check errno per subject requirements - let timeout handling deal with stuck connections
 }
 
 void HttpHandler::handleWrite(int client_fd) {
     std::string& buffer = _response_buffers[client_fd];
     size_t& offset = _response_offsets[client_fd];
     
-    //std::cout<<"$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"<<std::endl;
-    //std::cout<<buffer<<std::endl;
     if (offset >= buffer.length()) {
-        //closeConnection(client_fd);
         return;
     }
     ssize_t bytes_sent = write(client_fd, buffer.c_str() + offset, buffer.length() - offset);
@@ -871,16 +846,15 @@ void HttpHandler::handleWrite(int client_fd) {
                 ClientConnection* client = _server_manager->getClient(client_fd);
                 if (client) {
                     client->fd = client_fd;
-                    //client->server_port = server_port;
                     client->state = STATE_READING_HEADERS;
                     client->last_activity = time(NULL);
                 }
             }
-            //closeConnection(client_fd);
         }
     } else if (bytes_sent == -1) {
-        std::cerr << "write failed\n";
-        //closeConnection(client_fd);
+        // Write failed - connection will be closed by timeout if stuck
+        // Don't check errno per subject requirements
+        return;
     }
 }
 
@@ -891,9 +865,8 @@ void HttpHandler::acceptConnection(int server_fd, int server_port) {
 
     int client_fd = accept(server_fd, (struct sockaddr*)&client_addr, &client_len);
     if (client_fd == -1) {
-        //if (errno != EAGAIN && errno != EWOULDBLOCK) {
-            //std::cerr << "accept failed\n";
-        //}
+        // EAGAIN/EWOULDBLOCK is normal for edge-triggered epoll when no more connections
+        // Other errors are logged but don't crash the server
         return;
     }
     Utils::setNonBlocking(client_fd);

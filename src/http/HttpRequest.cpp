@@ -9,14 +9,11 @@ HttpRequest::HttpRequest()
 HttpRequest::~HttpRequest() {}
 
 bool HttpRequest::parseRequest(const std::string& data, char *buffer, ssize_t bytes_read) {
-    // Manual parsing without stringstream/getline
-    //std::cout << data << std::endl;
     std::vector<std::string> lines = splitIntoLines(data);
     bool first_line = true;
-    //size_t body_start = 0;
     size_t header_size = 0;
     size_t header_count = 0;
-    //std::cout << "####################------------------------------" << std::endl;
+    
     for (size_t i = 0; i < lines.size(); ++i) {
         if (_headers_complete)
             break ;
@@ -178,12 +175,6 @@ bool HttpRequest::parseRequest(const std::string& data, char *buffer, ssize_t by
     
     // POST with Content-Length: 0 is valid (empty body)
     if (_headers_complete && _method == METHOD_POST && _content_length == 0 && !_chunked) {
-        // Don't set error here - let HttpHandler decide if Content-Length is required
-        // based on whether the method is even allowed for this route
-        // if content-length not found
-        // if (_headers.find("content-length") == _headers.end()) {
-        //     _status = HTTP_LENGTH_REQUIRED;
-        // }
         _body_complete = true;
     }
     
@@ -245,10 +236,7 @@ void HttpRequest::parseRequestLine(const std::string& line) {
     }
     if (tokens.size() > 3)
         _status = HTTP_BAD_REQUEST;
-    // (cat '/home/vagarcia/Desktop/webserv/www/uploads/backups/chunked-request copy.txt' ; sleep 5 ; cat '/home/vagarcia/Desktop/webserv/www/uploads/backups/end.txt' | nc localhost 8080
-    // to avoid throwing error too early if the header is only partly sent, eg. (printf "GE" ; sleep 30 ; printf "T / HTTP/1.0\r\n\r\n") | nc localhost 8080
-/*     else
-        _status = HTTP_BAD_REQUEST; */
+    // For incomplete first line, don't set error immediately - wait for more data
 }
 
 void HttpRequest::parseHeader(const std::string& line) {
