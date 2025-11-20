@@ -199,13 +199,18 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
             response = HttpResponse::errorResponse(HTTP_METHOD_NOT_ALLOWED);
             response.setAllow(getMethodAllowed(uri, *config));
         }
-        // HTTP/1.1 RFC 7230: POST/PUT require Content-Length or Transfer-Encoding
-        // Check this AFTER method validation - only if method is allowed
+        // HTTP/1.1 RFC 7230: POST/PUT with body require Content-Length or Transfer-Encoding
+        // However, POST/PUT without body data is valid (treated as Content-Length: 0)
+        // Only enforce this if we're expecting body data but headers are missing
+        // For now, be lenient - missing Content-Length is treated as 0-length body
+        // The upload handler will handle multipart parsing
+        /* Removed overly strict Content-Length check - let upload handler deal with it
         else if ((request.getMethod() == METHOD_POST || request.getMethod() == METHOD_PUT || request.getMethod() == METHOD_PATCH) && 
                  request.getHeader("content-length").empty() && 
                  request.getHeader("transfer-encoding").empty()) {
             response = HttpResponse::errorResponse(HTTP_LENGTH_REQUIRED);
         }
+        */
 #ifdef BONUS
         // Session API endpoints (MUST be checked BEFORE generic POST handler!)
         else if (uri == "/api/session/login" && request.getMethod() == METHOD_POST) {
@@ -496,6 +501,12 @@ HttpResponse HttpHandler::handleUpload(const HttpRequest& request, const ServerC
     (void) client_fd;
     std::cout << "Handling file upload" << std::endl;
     const std::vector<char>& body = request.getBody();
+    
+    // Handle empty POST (no body) - return 200 OK
+    if (body.empty()) {
+        return HttpResponse::messageResponse(HTTP_OK, "Upload Ready", "Upload endpoint ready");
+    }
+    
     // default upload path
     std::string upload_dir = config.root + "/uploads/";
     // Find upload path from config
@@ -563,6 +574,17 @@ HttpResponse HttpHandler::handleUpload(const HttpRequest& request, const ServerC
     // if file already exist, add suffix
     if (Utils::fileExists(filepath))
         filepath = filepath + "_copy_" + Utils::toString(static_cast<int>(time(NULL)));
+    
+    // If no data to write (empty file or just boundary markers), create empty file
+    if (size == 0) {
+        std::ofstream file(filepath.c_str());
+        if (file.is_open()) {
+            file.close();
+            return HttpResponse::messageResponse(HTTP_CREATED, "Upload Successful", "Empty file uploaded successfully!");
+        } else {
+            return HttpResponse::errorResponse(HTTP_INTERNAL_SERVER_ERROR, "Failed to create file");
+        }
+    }
     
     size_t total_write = 0;
     while (size > BUFFER_SIZE)

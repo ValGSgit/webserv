@@ -520,16 +520,6 @@ class ComprehensiveTester:
                 f"PUT {path} HTTP/1.1\r\nHost: localhost\r\n\r\n",
                 411, allow_alternatives=[405, 501])  # 411 is correct!
         
-        # 408 Request Timeout - SKIP these tests
-        # Incomplete requests cause connection hangs, not timeouts
-        # Server waits for more data, doesn't timeout immediately
-        for i in range(5):
-            self.results.add_skip(
-                f"Incomplete request #{i}",
-                category,
-                "Server waits for data, doesn't timeout in 1s"
-            )
-        
         # 411 Length Required (10 tests)
         methods_needing_length = ["POST", "PATCH"]  # PUT already tested above
         for method in methods_needing_length:
