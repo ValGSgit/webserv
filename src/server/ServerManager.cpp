@@ -109,7 +109,6 @@ bool ServerManager::createServerSocket(const ServerConfig& config) {
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = INADDR_ANY;
     addr.sin_port = htons(port);
-    
     if (bind(server_fd, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
         std::cerr << "bind failed\n";
         close(server_fd);

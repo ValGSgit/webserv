@@ -9,6 +9,7 @@
 volatile sig_atomic_t g_running = 1;
 ServerManager* g_server_manager = NULL;
 
+
 void signalHandler(int signal) {
     if (signal == SIGINT || signal == SIGTERM) {
         std::cout << "\n🛑 Signal received, shutting down server gracefully..." << std::endl;

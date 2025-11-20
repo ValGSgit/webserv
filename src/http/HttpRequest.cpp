@@ -348,6 +348,7 @@ HttpMethod HttpRequest::stringToMethod(const std::string& method_str) {
     if (method_str == "TRACE") return METHOD_TRACE;
     if (method_str == "CONNECT") return METHOD_CONNECT;
     if (method_str == "PATCH") return METHOD_PATCH;
+    if (method_str == "STATUS") return METHOD_STATUS;
     return METHOD_UNKNOWN;
 }
 
@@ -433,6 +434,7 @@ std::string HttpRequest::methodToString() const {
         case METHOD_HEAD: return "HEAD";
         case METHOD_DELETE: return "DELETE";
         case METHOD_OPTIONS: return "OPTIONS";
+        case METHOD_STATUS: return "STATUS";
         default: return "UNKNOWN";
     }
 }

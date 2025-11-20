@@ -172,6 +172,10 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
         response.setAllow(getMethodAllowed(uri, *config));
         response.setContentLength(0);
     }
+    // Handle STATUS method - returns server status information
+    else if (request.getMethod() == METHOD_STATUS) {
+        response = handleStatus(server_port);
+    }
     // Handle known but unsupported methods (TRACE, CONNECT, PATCH)
     else if (request.getMethod() == METHOD_TRACE || 
              request.getMethod() == METHOD_CONNECT || 
@@ -634,6 +638,161 @@ HttpResponse HttpHandler::handleJsonApi(const HttpRequest& request) {
     json_body += "\n  }\n}";
     response.setBody(json_body);
         
+    return response;
+}
+
+HttpResponse HttpHandler::handleStatus(int server_port) {
+    std::cout << "Handling STATUS request" << std::endl;
+    
+    HttpResponse response;
+    response.setStatus(HTTP_OK);
+    response.setContentType("text/plain");
+    
+    const ServerConfig* config = _server_manager->findServerConfig(server_port);
+    
+    // Build status information
+    std::string status_body;
+    status_body += "╔══════════════════════════════════════════════════════════════╗\n";
+    status_body += "║                  WEBSERV STATUS REPORT                       ║\n";
+    status_body += "╚══════════════════════════════════════════════════════════════╝\n\n";
+    
+    // Server time
+    time_t now = time(NULL);
+    char time_str[100];
+    strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", localtime(&now));
+    status_body += "Server Time: " + std::string(time_str) + "\n\n";
+    
+    // Port information
+    status_body += "═══ PORT INFORMATION ═══\n";
+    status_body += "Port: " + Utils::toString(server_port) + "\n";
+    if (config) {
+        status_body += "Server Name: " + config->server_name + "\n";
+        status_body += "Root Directory: " + config->root + "\n";
+        status_body += "Index File: " + config->index + "\n";
+        status_body += "Autoindex: " + std::string(config->autoindex ? "enabled" : "disabled") + "\n";
+        status_body += "Max Body Size: " + Utils::toString(config->max_body_size) + " bytes\n";
+    }
+    status_body += "\n";
+    
+    // Active connections
+    status_body += "═══ ACTIVE CONNECTIONS ═══\n";
+    int total_clients = 0;
+    int reading_headers = 0;
+    int reading_body = 0;
+    int processing = 0;
+    int writing = 0;
+    int done = 0;
+    int error = 0;
+    
+    // Count connections on this port
+    std::vector<int> port_clients;
+    std::map<int, std::string> client_info;
+    
+    for (std::map<int, HttpRequest>::iterator it = _client_requests.begin();
+         it != _client_requests.end(); ++it) {
+        ClientConnection* client = _server_manager->getClient(it->first);
+        if (client && client->server_port == server_port) {
+            port_clients.push_back(it->first);
+            total_clients++;
+            
+            switch (client->state) {
+                case STATE_READING_HEADERS: reading_headers++; break;
+                case STATE_READING_BODY: reading_body++; break;
+                case STATE_PROCESSING: processing++; break;
+                case STATE_WRITING_RESPONSE: writing++; break;
+                case STATE_DONE: done++; break;
+                case STATE_ERROR: error++; break;
+            }
+            
+            // Build client info string
+            std::string info = "  Client fd=" + Utils::toString(it->first);
+            info += " | State=";
+            switch (client->state) {
+                case STATE_READING_HEADERS: info += "READING_HEADERS"; break;
+                case STATE_READING_BODY: info += "READING_BODY"; break;
+                case STATE_PROCESSING: info += "PROCESSING"; break;
+                case STATE_WRITING_RESPONSE: info += "WRITING"; break;
+                case STATE_DONE: info += "DONE"; break;
+                case STATE_ERROR: info += "ERROR"; break;
+            }
+            info += " | Last Activity: " + Utils::toString(static_cast<int>(now - client->last_activity)) + "s ago\n";
+            
+            if (_client_requests[it->first].isHeadersComplete()) {
+                info += "    Method: " + _client_requests[it->first].methodToString();
+                info += " | URI: " + _client_requests[it->first].getUri() + "\n";
+            }
+            
+            client_info[it->first] = info;
+        }
+    }
+    
+    status_body += "Total Connections: " + Utils::toString(total_clients) + "\n";
+    status_body += "  Reading Headers: " + Utils::toString(reading_headers) + "\n";
+    status_body += "  Reading Body: " + Utils::toString(reading_body) + "\n";
+    status_body += "  Processing: " + Utils::toString(processing) + "\n";
+    status_body += "  Writing Response: " + Utils::toString(writing) + "\n";
+    status_body += "  Done: " + Utils::toString(done) + "\n";
+    status_body += "  Error: " + Utils::toString(error) + "\n\n";
+    
+    // Client details
+    if (!port_clients.empty()) {
+        status_body += "═══ CLIENT DETAILS ═══\n";
+        for (size_t i = 0; i < port_clients.size(); ++i) {
+            status_body += client_info[port_clients[i]];
+        }
+        status_body += "\n";
+    }
+    
+    // Routes configured
+    if (config && !config->routes.empty()) {
+        status_body += "═══ CONFIGURED ROUTES ═══\n";
+        for (std::map<std::string, RouteConfig>::const_iterator it = config->routes.begin();
+             it != config->routes.end(); ++it) {
+            status_body += "  Route: " + it->first + "\n";
+            status_body += "    Allowed Methods: ";
+            for (size_t i = 0; i < it->second.allowed_methods.size(); ++i) {
+                if (i > 0) status_body += ", ";
+                status_body += it->second.allowed_methods[i];
+            }
+            status_body += "\n";
+            if (!it->second.root_directory.empty())
+                status_body += "    Root: " + it->second.root_directory + "\n";
+            if (!it->second.redirect_url.empty())
+                status_body += "    Redirect: " + it->second.redirect_url + 
+                              " (" + Utils::toString(it->second.redirect_code) + ")\n";
+            if (it->second.directory_listing)
+                status_body += "    Directory Listing: enabled\n";
+            if (!it->second.cgi_extensions.empty()) {
+                status_body += "    CGI Extensions: ";
+                for (size_t i = 0; i < it->second.cgi_extensions.size(); ++i) {
+                    if (i > 0) status_body += ", ";
+                    status_body += it->second.cgi_extensions[i];
+                }
+                status_body += "\n";
+            }
+        }
+        status_body += "\n";
+    }
+    
+#ifdef BONUS
+    // Session information
+    SessionManager* sm = _server_manager->getSessionManager();
+    if (sm) {
+        status_body += "═══ SESSION INFORMATION ═══\n";
+        status_body += "Active Sessions: " + Utils::toString(sm->getActiveSessionCount()) + "\n\n";
+    }
+#endif
+    
+    // Memory usage
+    status_body += "═══ MEMORY USAGE ═══\n";
+    status_body += "Request Buffers: " + Utils::toString(_client_buffers.size()) + "\n";
+    status_body += "Response Buffers: " + Utils::toString(_response_buffers.size()) + "\n\n";
+    
+    status_body += "╚══════════════════════════════════════════════════════════════╝\n";
+    status_body += "End of Status Report\n";
+    
+    response.setBody(status_body);
+    
     return response;
 }
 

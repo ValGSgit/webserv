@@ -46,6 +46,7 @@ enum HttpMethod {
     METHOD_TRACE,
     METHOD_CONNECT,
     METHOD_PATCH,
+    METHOD_STATUS,
     METHOD_UNKNOWN
 };
 
