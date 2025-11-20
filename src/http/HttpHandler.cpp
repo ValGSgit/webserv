@@ -165,19 +165,19 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
     else if (request.getStatus()) {
         response = HttpResponse::errorResponse(request.getStatus());
     }
-    // HTTP/1.1 RFC 7230: POST/PUT/PATCH require Content-Length or Transfer-Encoding
-    // Check this BEFORE method allowed validation to return correct error code
-    else if ((request.getMethod() == METHOD_POST || request.getMethod() == METHOD_PUT) && 
-             request.getHeader("content-length").empty() && 
-             request.getHeader("transfer-encoding").empty()) {
-        response = HttpResponse::errorResponse(HTTP_LENGTH_REQUIRED);
-    }
     // Handle OPTIONS method (should be checked BEFORE method allowed check)
     else if (request.getMethod() == METHOD_OPTIONS) {
         // OPTIONS returns allowed methods for the URI
         response.setStatus(HTTP_OK);
         response.setAllow(getMethodAllowed(uri, *config));
         response.setContentLength(0);
+    }
+    // Handle known but unsupported methods (TRACE, CONNECT, PATCH)
+    else if (request.getMethod() == METHOD_TRACE || 
+             request.getMethod() == METHOD_CONNECT || 
+             request.getMethod() == METHOD_PATCH) {
+        response = HttpResponse::errorResponse(HTTP_METHOD_NOT_ALLOWED);
+        response.setAllow(getMethodAllowed(uri, *config));
     }
     // Check for configured redirects in routes FIRST
     else {
@@ -194,10 +194,17 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
             
             response = HttpResponse::redirectResponse(redirect_location, route->redirect_code);
         }
-        // Check if method is allowed
+        // Check if method is allowed BEFORE checking Content-Length
         else if (!methodAllowed(uri, request.methodToString(), *config)) {
             response = HttpResponse::errorResponse(HTTP_METHOD_NOT_ALLOWED);
             response.setAllow(getMethodAllowed(uri, *config));
+        }
+        // HTTP/1.1 RFC 7230: POST/PUT require Content-Length or Transfer-Encoding
+        // Check this AFTER method validation - only if method is allowed
+        else if ((request.getMethod() == METHOD_POST || request.getMethod() == METHOD_PUT || request.getMethod() == METHOD_PATCH) && 
+                 request.getHeader("content-length").empty() && 
+                 request.getHeader("transfer-encoding").empty()) {
+            response = HttpResponse::errorResponse(HTTP_LENGTH_REQUIRED);
         }
 #ifdef BONUS
         // Session API endpoints (MUST be checked BEFORE generic POST handler!)
@@ -461,12 +468,25 @@ HttpResponse HttpHandler::handleDelete(const HttpRequest& request, const ServerC
     (void)config;
     (void)client_fd;
     std::string file_path = config.root + request.getUri();
+    
+    // Check if path exists
+    if (!Utils::fileExists(file_path))
+        return HttpResponse::errorResponse(HTTP_NOT_FOUND, "File not found!");
+    
+    // Check if it's a directory - directories cannot be deleted via HTTP DELETE
+    if (Utils::isDirectory(file_path))
+        return HttpResponse::errorResponse(HTTP_FORBIDDEN, "Cannot delete a directory");
+    
+    // Try to open file to verify we can delete it
     int fd = open(file_path.c_str(), O_WRONLY, 0644);
     if (fd == -1)
-        return HttpResponse::errorResponse(HTTP_NOT_FOUND, "File not found!"); // why is 204 not working???
+        return HttpResponse::errorResponse(HTTP_FORBIDDEN, "Cannot access file!");
     close(fd);
-    std::remove(file_path.c_str());
-    // or 202 HTTP_ACCEPTED?
+    
+    // Delete the file
+    if (std::remove(file_path.c_str()) != 0)
+        return HttpResponse::errorResponse(HTTP_INTERNAL_SERVER_ERROR, "Failed to delete file");
+    
     return HttpResponse::messageResponse(HTTP_OK, "File deleted!");
 }
 

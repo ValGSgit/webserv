@@ -178,10 +178,12 @@ bool HttpRequest::parseRequest(const std::string& data, char *buffer, ssize_t by
     
     // POST with Content-Length: 0 is valid (empty body)
     if (_headers_complete && _method == METHOD_POST && _content_length == 0 && !_chunked) {
+        // Don't set error here - let HttpHandler decide if Content-Length is required
+        // based on whether the method is even allowed for this route
         // if content-length not found
-        if (_headers.find("content-length") == _headers.end()) {
-            _status = HTTP_LENGTH_REQUIRED;
-        }
+        // if (_headers.find("content-length") == _headers.end()) {
+        //     _status = HTTP_LENGTH_REQUIRED;
+        // }
         _body_complete = true;
     }
     
@@ -223,7 +225,7 @@ void HttpRequest::parseRequestLine(const std::string& line) {
         if (_uri.size() > MAX_URI) // need to include domain name?
             _status = HTTP_URI_TOO_LONG;
         else if (_method == METHOD_UNKNOWN)
-            _status = HTTP_NOT_IMPLEMENTED;
+            _status = HTTP_METHOD_NOT_ALLOWED;  // 405 for invalid methods
         else
             parseUri(_uri);
         // check only two space in between
@@ -343,6 +345,9 @@ HttpMethod HttpRequest::stringToMethod(const std::string& method_str) {
     if (method_str == "HEAD") return METHOD_HEAD;
     if (method_str == "DELETE") return METHOD_DELETE;
     if (method_str == "OPTIONS") return METHOD_OPTIONS;
+    if (method_str == "TRACE") return METHOD_TRACE;
+    if (method_str == "CONNECT") return METHOD_CONNECT;
+    if (method_str == "PATCH") return METHOD_PATCH;
     return METHOD_UNKNOWN;
 }
 
