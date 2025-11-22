@@ -143,6 +143,7 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
     
     const ServerConfig* config = _server_manager->findServerConfig(server_port);
     if (!config) {
+        std::cerr << "Error: No server configuration found for port " << server_port << std::endl;
         response = HttpResponse::errorResponse(HTTP_INTERNAL_SERVER_ERROR);
         _response_buffers[client_fd] = response.getResponseString();
         _response_offsets[client_fd] = 0;
@@ -155,9 +156,17 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
     std::cout << "Requested URI: " << uri << std::endl;
     const RouteConfig* route = findMatchingRoute(uri, *config);
     
+    if (!route) {
+        std::cerr << "Warning: No matching route found for URI: " << uri << std::endl;
+        response = HttpResponse::errorResponse(HTTP_NOT_FOUND);
+        _response_buffers[client_fd] = response.getResponseString();
+        _response_offsets[client_fd] = 0;
+        return;
+    }
+    
     // Check max body size
     size_t max_body_size = config->max_body_size;
-    if (route && route->max_body_size > 0)
+    if (route->max_body_size > 0)
         max_body_size = route->max_body_size;
     
     if (request.getContentLength() > max_body_size)
@@ -328,12 +337,16 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
         }
         // CGI handling
         else if (uri.find("/cgi-bin/") == 0) {
-            pid_t pid = fork();
-            if (pid == -1) {
-                std::cerr << "fork failed\n";
-                response = HttpResponse::errorResponse(HTTP_INTERNAL_SERVER_ERROR);
-            }
-            else if (pid == 0) {
+            // Ensure route is valid before forking
+            if (!route) {
+                response = HttpResponse::errorResponse(HTTP_NOT_FOUND);
+            } else {
+                pid_t pid = fork();
+                if (pid == -1) {
+                    std::cerr << "fork failed\n";
+                    response = HttpResponse::errorResponse(HTTP_INTERNAL_SERVER_ERROR);
+                }
+                else if (pid == 0) {
                 // Child process
                 _is_child = true;
                 CgiHandler cgi;
@@ -372,14 +385,23 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
                 }
                 return;
             }
+            }
         }
         // Generic POST handler for uploads (after all API endpoints!)
         else if (request.getMethod() == METHOD_POST) {
-            response = handleUpload(request, *config, client_fd);
+            if (route) {
+                response = handleUpload(request, *config, client_fd);
+            } else {
+                response = HttpResponse::errorResponse(HTTP_NOT_FOUND);
+            }
         }
         // Generic DELETE handler
         else if (request.getMethod() == METHOD_DELETE) {
-            response = handleDelete(request, *config, client_fd);
+            if (route) {
+                response = handleDelete(request, *config, client_fd);
+            } else {
+                response = HttpResponse::errorResponse(HTTP_NOT_FOUND);
+            }
         }
         // Root index
         else if (uri == "/") {
@@ -392,15 +414,30 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
             response = HttpResponse::fileResponse(filepath);
         } else {
             // Try to serve as file or directory
-            std::string filepath = config->root + uri;
-            if (Utils::fileExists(filepath)) {
-                if (Utils::isDirectory(filepath)) {
-                    response = HttpResponse::directoryListingResponse(filepath, uri);
-                } else {
-                    response = HttpResponse::fileResponse(filepath);
-                }
-            } else {
+            if (!route) {
                 response = HttpResponse::errorResponse(HTTP_NOT_FOUND);
+            } else {
+                std::string filepath = route->root_directory + uri;
+                if (Utils::fileExists(filepath)) {
+                    if (Utils::isDirectory(filepath)) {
+                        // Check if directory listing is enabled for this route
+                        if (route->directory_listing) {
+                            response = HttpResponse::directoryListingResponse(filepath, uri);
+                        } else {
+                            // Try index file
+                            std::string index_path = Utils::joinPath(filepath, route->index_file);
+                            if (Utils::fileExists(index_path) && !Utils::isDirectory(index_path)) {
+                                response = HttpResponse::fileResponse(index_path);
+                            } else {
+                                response = HttpResponse::errorResponse(HTTP_FORBIDDEN);
+                            }
+                        }
+                    } else {
+                        response = HttpResponse::fileResponse(filepath);
+                    }
+                } else {
+                    response = HttpResponse::errorResponse(HTTP_NOT_FOUND);
+                }
             }
         }
     }
@@ -790,6 +827,9 @@ void HttpHandler::handleRead(int client_fd) {
             ClientConnection* client = _server_manager->getClient(client_fd);
             if (client) {
                 processRequest(client_fd, client->server_port);
+            } else {
+                std::cerr << "Error: Client connection data not found for fd " << client_fd << std::endl;
+                closeConnection(client_fd);
             }
             return;
         }
@@ -869,6 +909,14 @@ void HttpHandler::acceptConnection(int server_fd, int server_port) {
         // Other errors are logged but don't crash the server
         return;
     }
+    
+    // Validate file descriptor
+    if (client_fd < 0 || client_fd >= MAX_CONNECTIONS) {
+        std::cerr << "Invalid client file descriptor: " << client_fd << std::endl;
+        close(client_fd);
+        return;
+    }
+    
     Utils::setNonBlocking(client_fd);
         
     struct epoll_event ev;
@@ -900,6 +948,11 @@ void HttpHandler::acceptConnection(int server_fd, int server_port) {
 }
 
 void HttpHandler::closeConnection(int client_fd) {
+    // Validate file descriptor before operations
+    if (client_fd < 0) {
+        return;
+    }
+    
     epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, client_fd, NULL);
     close(client_fd);
 

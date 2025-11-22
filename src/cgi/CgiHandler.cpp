@@ -79,11 +79,16 @@ HttpResponse CgiHandler::executeCgi(const HttpRequest& request, const std::strin
     close(stdout_pipe[1]);
     
     // Write request body to CGI stdin
+    // NOTE: Per subject requirements, chunked requests are already unchunked
+    // by HttpRequest parser - CGI receives plain body and EOF marks end
     const std::vector<char>& body = request.getBody();
     if (!body.empty()) {
-        write(stdin_pipe[1], &body[0], body.size());
+        ssize_t written = write(stdin_pipe[1], &body[0], body.size());
+        if (written < 0 || static_cast<size_t>(written) != body.size()) {
+            std::cerr << "Warning: Failed to write complete body to CGI\\n";
+        }
     }
-    close(stdin_pipe[1]);
+    close(stdin_pipe[1]); // Close stdin pipe to send EOF to CGI
     
     // Read CGI output using epoll for timeout handling
     std::string output;
@@ -133,7 +138,8 @@ HttpResponse CgiHandler::executeCgi(const HttpRequest& request, const std::strin
         int nfds = epoll_wait(epoll_fd, events, 1, timeout_ms);
         
         if (nfds == -1) {
-            if (errno == EINTR) continue;  // Interrupted by signal, retry
+            // Per subject: no errno check after I/O operations
+            // epoll_wait failure - break and handle cleanup
             std::cerr << "epoll_wait failed\n";
             break;
         } else if (nfds == 0) {
@@ -145,13 +151,16 @@ HttpResponse CgiHandler::executeCgi(const HttpRequest& request, const std::strin
         
         // Data available to read
         bytes_read = read(stdout_pipe[0], buffer, sizeof(buffer) - 1);
-        if (bytes_read == 0)
-            break;  // EOF or error
-        if (bytes_read < 0)
-        {
+        if (bytes_read == 0) {
+            // EOF reached - CGI script finished
+            break;
+        }
+        if (bytes_read < 0) {
+            // Read error - no errno check per subject
+            // For non-blocking reads, this could be EAGAIN/EWOULDBLOCK
+            // but we can't check errno, so just break
             std::cerr << "read failed\n";
-            continue ;
-            //break ;
+            break;
         }
         buffer[bytes_read] = '\0';
         output += std::string(buffer, bytes_read);

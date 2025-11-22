@@ -108,7 +108,7 @@ bool ServerManager::createServerSocket(const ServerConfig& config) {
     memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = INADDR_ANY;
-    addr.sin_port = htons(port);
+    addr.sin_port = htons(port); // Host to network byte order
     if (bind(server_fd, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
         std::cerr << "bind failed\n";
         close(server_fd);
@@ -171,6 +171,11 @@ void ServerManager::run() {
         return;
     }
     
+    if (_epoll_fd < 0) {
+        logError("Epoll file descriptor is invalid");
+        return;
+    }
+    
     _running = true;
     _last_cleanup = time(NULL);
     
@@ -182,11 +187,25 @@ void ServerManager::run() {
         
         if (nfds == -1) {
             if (errno == EINTR) continue; // Signal interrupt, this errno check is acceptable (not after read/write)
-            break;
+            logError("epoll_wait failed, attempting to continue");
+            continue; // Try to continue instead of breaking
+        }
+        
+        // Validate nfds to prevent out-of-bounds access
+        if (nfds > MAX_CONNECTIONS) {
+            logError("epoll_wait returned invalid event count");
+            nfds = MAX_CONNECTIONS;
         }
         
         for (int i = 0; i < nfds; i++) {
             int fd = _events[i].data.fd;
+            
+            // Validate file descriptor
+            if (fd < 0) {
+                std::cerr << "Warning: Invalid fd in epoll event: " << fd << std::endl;
+                continue;
+            }
+            
             // Check if it's a server socket
             if (isServerSocket(fd)) {
                 const ServerSocket* ss = findServerSocket(fd);
@@ -293,16 +312,27 @@ ClientConnection* ServerManager::getClient(int client_fd) { //TODO: check sessio
 void ServerManager::shutdown() {
     _running = false;
     
-    // Close all client connections
+    std::cout << "\n🛑 Shutting down server..." << std::endl;
+    
+    // Close all client connections first
+    std::vector<int> client_fds;
     for (std::map<int, ClientConnection>::iterator it = _clients.begin(); 
          it != _clients.end(); ++it) {
-        close(it->first);
+        client_fds.push_back(it->first);
+    }
+    
+    for (size_t i = 0; i < client_fds.size(); ++i) {
+        if (client_fds[i] >= 0) {
+            close(client_fds[i]);
+        }
     }
     _clients.clear();
     
     // Close all server sockets
     for (size_t i = 0; i < _server_sockets.size(); ++i) {
-        close(_server_sockets[i].fd);
+        if (_server_sockets[i].fd >= 0) {
+            close(_server_sockets[i].fd);
+        }
     }
     _server_sockets.clear();
     
