@@ -158,7 +158,7 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
     
     if (!route) {
         std::cerr << "Warning: No matching route found for URI: " << uri << std::endl;
-        response = HttpResponse::errorResponse(HTTP_NOT_FOUND);
+        response = HttpResponse::errorResponseWithConfig(HTTP_NOT_FOUND, config);
         _response_buffers[client_fd] = response.getResponseString();
         _response_offsets[client_fd] = 0;
         return;
@@ -170,10 +170,10 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
         max_body_size = route->max_body_size;
     
     if (request.getContentLength() > max_body_size)
-        response = HttpResponse::errorResponse(HTTP_PAYLOAD_TOO_LARGE);
+        response = HttpResponse::errorResponseWithConfig(HTTP_PAYLOAD_TOO_LARGE, config);
     // Check for client request errors
     else if (request.getStatus()) {
-        response = HttpResponse::errorResponse(request.getStatus());
+        response = HttpResponse::errorResponseWithConfig(request.getStatus(), config);
     }
     // Handle OPTIONS method (should be checked BEFORE method allowed check)
     else if (request.getMethod() == METHOD_OPTIONS) {
@@ -190,7 +190,7 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
     else if (request.getMethod() == METHOD_TRACE || 
              request.getMethod() == METHOD_CONNECT || 
              request.getMethod() == METHOD_PATCH) {
-        response = HttpResponse::errorResponse(HTTP_METHOD_NOT_ALLOWED);
+        response = HttpResponse::errorResponseWithConfig(HTTP_METHOD_NOT_ALLOWED, config);
         response.setAllow(getMethodAllowed(uri, *config));
     }
     // Check for configured redirects in routes FIRST
@@ -210,7 +210,7 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
         }
         // Check if method is allowed BEFORE checking Content-Length
         else if (!methodAllowed(uri, request.methodToString(), *config)) {
-            response = HttpResponse::errorResponse(HTTP_METHOD_NOT_ALLOWED);
+            response = HttpResponse::errorResponseWithConfig(HTTP_METHOD_NOT_ALLOWED, config);
             response.setAllow(getMethodAllowed(uri, *config));
         }
 #ifdef BONUS
@@ -339,12 +339,12 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
         else if (uri.find("/cgi-bin/") == 0) {
             // Ensure route is valid before forking
             if (!route) {
-                response = HttpResponse::errorResponse(HTTP_NOT_FOUND);
+                response = HttpResponse::errorResponseWithConfig(HTTP_NOT_FOUND, config);
             } else {
                 pid_t pid = fork();
                 if (pid == -1) {
                     std::cerr << "fork failed\n";
-                    response = HttpResponse::errorResponse(HTTP_INTERNAL_SERVER_ERROR);
+                    response = HttpResponse::errorResponseWithConfig(HTTP_INTERNAL_SERVER_ERROR, config);
                 }
                 else if (pid == 0) {
                 // Child process
@@ -392,7 +392,7 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
             if (route) {
                 response = handleUpload(request, *config, client_fd);
             } else {
-                response = HttpResponse::errorResponse(HTTP_NOT_FOUND);
+                response = HttpResponse::errorResponseWithConfig(HTTP_NOT_FOUND, config);
             }
         }
         // Generic DELETE handler
@@ -400,7 +400,7 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
             if (route) {
                 response = handleDelete(request, *config, client_fd);
             } else {
-                response = HttpResponse::errorResponse(HTTP_NOT_FOUND);
+                response = HttpResponse::errorResponseWithConfig(HTTP_NOT_FOUND, config);
             }
         }
         // Root index
@@ -415,7 +415,7 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
         } else {
             // Try to serve as file or directory
             if (!route) {
-                response = HttpResponse::errorResponse(HTTP_NOT_FOUND);
+                response = HttpResponse::errorResponseWithConfig(HTTP_NOT_FOUND, config);
             } else {
                 std::string filepath = route->root_directory + uri;
                 if (Utils::fileExists(filepath)) {
@@ -429,14 +429,14 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
                             if (Utils::fileExists(index_path) && !Utils::isDirectory(index_path)) {
                                 response = HttpResponse::fileResponse(index_path);
                             } else {
-                                response = HttpResponse::errorResponse(HTTP_FORBIDDEN);
+                                response = HttpResponse::errorResponseWithConfig(HTTP_FORBIDDEN, config);
                             }
                         }
                     } else {
                         response = HttpResponse::fileResponse(filepath);
                     }
                 } else {
-                    response = HttpResponse::errorResponse(HTTP_NOT_FOUND);
+                    response = HttpResponse::errorResponseWithConfig(HTTP_NOT_FOUND, config);
                 }
             }
         }

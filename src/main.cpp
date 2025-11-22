@@ -18,6 +18,12 @@ void signalHandler(int signal) {
         if (g_server_manager) {
             g_server_manager->requestShutdown();
         }
+    } else if (signal == SIGCHLD) {
+        // Reap zombie child processes (from CGI)
+        int status;
+        while (waitpid(-1, &status, WNOHANG) > 0) {
+            // Child reaped successfully
+        }
     }
 }
 
@@ -35,6 +41,7 @@ int main(int argc, char **argv) {
     signal(SIGINT, signalHandler);
     signal(SIGTERM, signalHandler);
     signal(SIGPIPE, SIG_IGN);
+    signal(SIGCHLD, signalHandler); // Prevent zombie CGI processes
 
     std::cout << "🌐 WebServ - HTTP Server with epoll" << std::endl;
     std::cout << "📝 Config file: " << config_file << std::endl;

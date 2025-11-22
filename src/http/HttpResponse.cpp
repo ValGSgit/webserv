@@ -184,6 +184,23 @@ HttpResponse HttpResponse::errorResponse(int status, const std::string& message)
     return response;
 }
 
+HttpResponse HttpResponse::errorResponseWithConfig(int status, const ServerConfig* config, const std::string& message) {
+    // Try to use custom error page from config
+    if (config && !config->error_pages.empty()) {
+        std::map<int, std::string>::const_iterator it = config->error_pages.find(status);
+        if (it != config->error_pages.end()) {
+            // Custom error page configured
+            std::string error_page_path = config->root + it->second;
+            if (Utils::fileExists(error_page_path) && Utils::isReadable(error_page_path)) {
+                return fileResponse(error_page_path);
+            }
+        }
+    }
+    
+    // Fall back to default error response
+    return errorResponse(status, message);
+}
+
 HttpResponse HttpResponse::fileResponse(const std::string& filepath) {
     HttpResponse response;
     
