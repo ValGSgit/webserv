@@ -29,6 +29,7 @@ class HttpResponse {
         void setStatus(int status);
         void setHeader(const std::string& key, const std::string& value);
         void setBody(const std::string& body);
+        void removeBody();
         void appendBody(const std::string& data);
         
         int getStatus() const;
@@ -39,6 +40,7 @@ class HttpResponse {
         void setDefaultHeaders();
         void setContentType(const std::string& content_type);
         void setContentLength(size_t length);
+        void setAllow(const std::string& methods);
         void print() const;
 
 #ifdef BONUS
@@ -50,6 +52,7 @@ class HttpResponse {
 
         // Static response builders
         static HttpResponse errorResponse(int status, const std::string& message = "");
+        static HttpResponse errorResponseWithConfig(int status, const ServerConfig* config, const std::string& message = "");
         static HttpResponse messageResponse(int status, const std::string& title = "", const std::string& message = "");
         static HttpResponse fileResponse(const std::string& filepath);
         static HttpResponse directoryListingResponse(const std::string& path, const std::string& uri);

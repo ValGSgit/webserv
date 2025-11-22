@@ -9,6 +9,7 @@
 volatile sig_atomic_t g_running = 1;
 ServerManager* g_server_manager = NULL;
 
+
 void signalHandler(int signal) {
     if (signal == SIGINT || signal == SIGTERM) {
         std::cout << "\n🛑 Signal received, shutting down server gracefully..." << std::endl;
@@ -17,12 +18,22 @@ void signalHandler(int signal) {
         if (g_server_manager) {
             g_server_manager->requestShutdown();
         }
+    } else if (signal == SIGCHLD) {
+        // Reap zombie child processes (from CGI)
+        int status;
+        while (waitpid(-1, &status, WNOHANG) > 0) {
+            // Child reaped successfully
+        }
     }
 }
 
 int main(int argc, char **argv) {
-    if (argc != 2) {
-        std::cerr << "Usage: " << argv[0] << " <config_file>" << std::endl;
+    // Use default config if not provided
+    std::string config_file = (argc > 1) ? argv[1] : "webserv.conf";
+    
+    if (argc > 2) {
+        std::cerr << "Usage: " << argv[0] << " [config_file]" << std::endl;
+        std::cerr << "  If no config file is provided, webserv.conf will be used by default" << std::endl;
         return 1;
     }
 
@@ -30,14 +41,15 @@ int main(int argc, char **argv) {
     signal(SIGINT, signalHandler);
     signal(SIGTERM, signalHandler);
     signal(SIGPIPE, SIG_IGN);
+    signal(SIGCHLD, signalHandler); // Prevent zombie CGI processes
 
     std::cout << "🌐 WebServ - HTTP Server with epoll" << std::endl;
-    std::cout << "📝 Config file: " << argv[1] << std::endl;
+    std::cout << "📝 Config file: " << config_file << std::endl;
     
     ServerManager manager;
     g_server_manager = &manager;
     
-    if (!manager.initialize(argv[1])) {
+    if (!manager.initialize(config_file)) {
         std::cerr << "❌ Failed to initialize server" << std::endl;
         return 1;
     }

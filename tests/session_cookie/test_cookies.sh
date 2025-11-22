@@ -23,6 +23,11 @@ TESTS_TOTAL=0
 # Clear previous test data
 rm -f "$COOKIE_FILE" "$TEST_RESULTS"
 
+# Pre-test cleanup: Clear all sessions to ensure clean state
+echo "Cleaning up any existing sessions..."
+curl -s -X POST -H "Content-Length: 0" "$SERVER_URL/api/session/clear" > /dev/null 2>&1
+sleep 0.5
+
 # Helper function to print test results
 print_test_result() {
     local test_name="$1"
@@ -50,7 +55,7 @@ echo ""
 
 # Test 1: Basic Cookie Setting
 echo -e "${YELLOW}Test 1: Set-Cookie Header Response${NC}"
-RESPONSE=$(curl -s -i -X POST "$SERVER_URL/api/session/login" | grep -i "Set-Cookie")
+RESPONSE=$(curl -s -i -X POST -H "Content-Length: 0" "$SERVER_URL/api/session/login" | grep -i "Set-Cookie")
 
 if echo "$RESPONSE" | grep -qi "Set-Cookie"; then
     print_test_result "Set-Cookie Header" "PASS" "Server sends Set-Cookie header"
@@ -62,7 +67,10 @@ sleep 1
 
 # Test 2: Cookie Storage and Retrieval
 echo -e "\n${YELLOW}Test 2: Cookie Storage${NC}"
-curl -s -c "$COOKIE_FILE" -X POST "$SERVER_URL/api/session/login" > /dev/null
+# Clear sessions to prevent 409 conflict
+curl -s -X POST -H "Content-Length: 0" "$SERVER_URL/api/session/clear" > /dev/null 2>&1
+sleep 0.3
+curl -s -c "$COOKIE_FILE" -X POST -H "Content-Length: 0" "$SERVER_URL/api/session/login" > /dev/null
 
 if [ -f "$COOKIE_FILE" ] && [ -s "$COOKIE_FILE" ]; then
     COOKIE_COUNT=$(grep -v "^#" "$COOKIE_FILE" | grep -v "^$" | wc -l)
@@ -87,11 +95,11 @@ sleep 1
 
 # Test 4: Multiple Cookies
 echo -e "\n${YELLOW}Test 4: Multiple Cookie Handling${NC}"
-RESPONSE=$(curl -s -i \
-    -H "Cookie: session_id=test123; user_pref=dark_mode; lang=en" \
-    "$SERVER_URL/" | head -n 20)
+RESPONSE=$(curl -s -w "\n%{http_code}" \
+    -H "Cookie: SESSIONID=test123; user_pref=dark_mode; lang=en" \
+    "$SERVER_URL/")
 
-HTTP_CODE=$(echo "$RESPONSE" | grep "HTTP" | awk '{print $2}')
+HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
 
 if [ "$HTTP_CODE" = "200" ]; then
     print_test_result "Multiple Cookies" "PASS" "Server handles multiple cookies"
@@ -103,7 +111,10 @@ sleep 1
 
 # Test 5: Cookie Path Attribute
 echo -e "\n${YELLOW}Test 5: Cookie Path Attribute${NC}"
-RESPONSE=$(curl -s -i -X POST "$SERVER_URL/api/session/login")
+# Clear sessions to get a fresh login
+curl -s -X POST -H "Content-Length: 0" "$SERVER_URL/api/session/clear" > /dev/null 2>&1
+sleep 0.3
+RESPONSE=$(curl -s -i -X POST -H "Content-Length: 0" "$SERVER_URL/api/session/login")
 COOKIE_HEADER=$(echo "$RESPONSE" | grep -i "Set-Cookie")
 
 if echo "$COOKIE_HEADER" | grep -q "Path="; then
@@ -149,7 +160,7 @@ sleep 1
 
 # Test 8: Cookie Expiry on Logout
 echo -e "\n${YELLOW}Test 8: Cookie Deletion on Logout${NC}"
-RESPONSE=$(curl -s -i -X POST -b "$COOKIE_FILE" "$SERVER_URL/api/session/logout")
+RESPONSE=$(curl -s -i -X POST -H "Content-Length: 0" -b "$COOKIE_FILE" "$SERVER_URL/api/session/logout")
 SET_COOKIE=$(echo "$RESPONSE" | grep -i "Set-Cookie")
 
 if echo "$SET_COOKIE" | grep -qi "expires.*1970\|Max-Age=0"; then
@@ -162,7 +173,10 @@ sleep 1
 
 # Test 9: Cookie Persistence Test
 echo -e "\n${YELLOW}Test 9: Cookie Persistence Across Requests${NC}"
-curl -s -c "$COOKIE_FILE" -X POST "$SERVER_URL/api/session/login" > /dev/null
+# Clear sessions and create a new one
+curl -s -X POST -H "Content-Length: 0" "$SERVER_URL/api/session/clear" > /dev/null 2>&1
+sleep 0.3
+curl -s -c "$COOKIE_FILE" -X POST -H "Content-Length: 0" "$SERVER_URL/api/session/login" > /dev/null
 SUCCESS_COUNT=0
 
 for i in {1..3}; do
@@ -248,23 +262,30 @@ sleep 1
 
 # Test 14: Cookie Domain Scope
 echo -e "\n${YELLOW}Test 14: Cookie Domain Attribute${NC}"
-RESPONSE=$(curl -s -i -X POST "$SERVER_URL/api/session/login")
+# Clear sessions to get a fresh login
+curl -s -X POST -H "Content-Length: 0" "$SERVER_URL/api/session/clear" > /dev/null 2>&1
+sleep 0.3
+RESPONSE=$(curl -s -i -X POST -H "Content-Length: 0" "$SERVER_URL/api/session/login")
 COOKIE_HEADER=$(echo "$RESPONSE" | grep -i "Set-Cookie")
 
-# Check if domain is set or defaults appropriately
-if echo "$COOKIE_HEADER" | grep -q "session_id="; then
-    print_test_result "Cookie Domain" "PASS" "Cookie domain handling verified"
+# Check if cookie is set correctly (domain is optional, but SESSIONID must be present)
+if echo "$COOKIE_HEADER" | grep -q "SESSIONID=" && echo "$COOKIE_HEADER" | grep -q "Path=/"; then
+    print_test_result "Cookie Domain" "PASS" "Cookie properly formatted with Path"
 else
-    print_test_result "Cookie Domain" "FAIL" "Cookie domain issue"
+    print_test_result "Cookie Domain" "FAIL" "Cookie missing required attributes"
 fi
 
 sleep 1
 
 # Test 15: Concurrent Cookie Operations
 echo -e "\n${YELLOW}Test 15: Concurrent Cookie Operations${NC}"
+# Clear sessions first
+curl -s -X POST -H "Content-Length: 0" "$SERVER_URL/api/session/clear" > /dev/null 2>&1
+sleep 0.3
 PIDS=()
 for i in {1..5}; do
-    curl -s -c "/tmp/cookie_$i.txt" -X POST "$SERVER_URL/api/session/login" > /dev/null &
+    # Use different usernames to avoid conflicts
+    curl -s -c "/tmp/cookie_$i.txt" -X POST -H "Content-Type: application/json" -d "{\"username\":\"user$i\"}" "$SERVER_URL/api/session/login" > /dev/null &
     PIDS+=($!)
 done
 
@@ -275,7 +296,7 @@ done
 
 COOKIE_COUNT=0
 for i in {1..5}; do
-    if [ -f "/tmp/cookie_$i.txt" ] && grep -q "session_id" "/tmp/cookie_$i.txt"; then
+    if [ -f "/tmp/cookie_$i.txt" ] && grep -q "SESSIONID" "/tmp/cookie_$i.txt"; then
         COOKIE_COUNT=$((COOKIE_COUNT + 1))
     fi
     rm -f "/tmp/cookie_$i.txt"
