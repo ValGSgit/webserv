@@ -59,7 +59,7 @@ run_curl "CGI POST" -X POST -d "username=testuser&password=secret" "http://${HOS
 # File upload
 print_header "5. File Upload"
 echo "test content" > /tmp/webserv_test_upload.txt
-run_curl "Upload file" -X POST -F "file=@/tmp/webserv_test_upload.txt" "http://${HOST}:${PORT}/upload"
+run_curl "Upload file" -X POST -F "file=@/tmp/webserv_test_upload.txt" "http://${HOST}:${PORT}/uploads"
 rm -f /tmp/webserv_test_upload.txt
 
 # Various headers

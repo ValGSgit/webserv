@@ -11,7 +11,8 @@ class HttpRequest {
         std::string _uri;
         std::string _version;
         std::map<std::string, std::string> _headers;
-        std::string _body;
+        std::vector<char> _body;
+        //std::string _body;
         std::string _query_string;
         std::map<std::string, std::string> _params;
 #ifdef BONUS
@@ -19,6 +20,7 @@ class HttpRequest {
 #endif
         bool _headers_complete;
         bool _body_complete;
+        bool _in_body;
         size_t _content_length;
         bool _chunked;
 
@@ -36,7 +38,7 @@ class HttpRequest {
         HttpRequest();
         ~HttpRequest();
 
-        bool parseRequest(const std::string& data);
+        bool parseRequest(const std::string& data, char *buffer, ssize_t bytes_read);
         void reset();
 
         // Getters
@@ -44,7 +46,8 @@ class HttpRequest {
         const std::string& getUri() const;
         const std::string& getVersion() const;
         const std::map<std::string, std::string>& getHeaders() const;
-        const std::string& getBody() const;
+        const std::vector<char>& getBody() const;
+        //const std::string& getBody() const;
         const std::string& getQueryString() const;
         const std::map<std::string, std::string>& getParams() const;
         bool isHeadersComplete() const;

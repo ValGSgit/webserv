@@ -1,12 +1,16 @@
 #include "../../includes/server/ServerManager.hpp"
 #include "../../includes/utils/Utils.hpp"
 
+extern ServerManager* g_server_manager;
+
 ServerManager::ServerManager() : _epoll_fd(-1), _running(false), _last_cleanup(0), _http_handler(NULL) {
     _server_sockets.reserve(10);
 }
 
 ServerManager::~ServerManager() {
-    shutdown();
+    if (_epoll_fd != -1 || !_server_sockets.empty() || !_clients.empty()) {
+        shutdown();
+    }
 }
 
 bool ServerManager::initialize(const std::string& config_file) {
@@ -54,7 +58,7 @@ bool ServerManager::initialize(const std::string& config_file) {
 bool ServerManager::setupEpoll() {
     _epoll_fd = epoll_create1(0);
     if (_epoll_fd == -1) {
-        perror("epoll_create1");
+        std::cerr << "epoll_create1 failed\n";
         return false;
     }
     return true;
@@ -86,14 +90,14 @@ bool ServerManager::createServerSocket(const ServerConfig& config) {
     // Create socket
     int server_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (server_fd == -1) {
-        perror("socket");
+                std::cerr << "socket failed\n";
         return false;
     }
     
     // Set socket options
     int opt = 1;
     if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) {
-        perror("setsockopt");
+        std::cerr << "setsockopt failed\n";
         close(server_fd);
         return false;
     }
@@ -106,17 +110,16 @@ bool ServerManager::createServerSocket(const ServerConfig& config) {
     memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = INADDR_ANY;
-    addr.sin_port = htons(port);
-    
+    addr.sin_port = htons(port); // Host to network byte order
     if (bind(server_fd, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
-        perror("bind");
+        std::cerr << "bind failed\n";
         close(server_fd);
         return false;
     }
     
     // Listen
     if (listen(server_fd, SOMAXCONN) == -1) {
-        perror("listen");
+        std::cerr << "listen failed\n";
         close(server_fd);
         return false;
     }
@@ -143,7 +146,7 @@ void ServerManager::addToEpoll(int fd, uint32_t events) {
     ev.data.fd = fd;
     
     if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, fd, &ev) == -1) {
-        perror("epoll_ctl: add");
+        std::cerr << "epoll_ctl:add failed\n";
     }
 }
 
@@ -154,19 +157,24 @@ void ServerManager::modifyEpoll(int fd, uint32_t events) {
     ev.data.fd = fd;
     
     if (epoll_ctl(_epoll_fd, EPOLL_CTL_MOD, fd, &ev) == -1) {
-        perror("epoll_ctl: mod");
+        std::cerr << "epoll_ctl:mod failed\n";
     }
 }
 
 void ServerManager::removeFromEpoll(int fd) {
     if (epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, fd, NULL) == -1) {
-        perror("epoll_ctl: del");
+        std::cerr << "epoll_ctl:del failed\n";
     }
 }
 
 void ServerManager::run() {
     if (!_http_handler) {
         logError("HTTP handler not initialized");
+        return;
+    }
+    
+    if (_epoll_fd < 0) {
+        logError("Epoll file descriptor is invalid");
         return;
     }
     
@@ -177,21 +185,31 @@ void ServerManager::run() {
     std::cout << "📡 Press Ctrl+C to stop server" << std::endl;
     
     while (_running) {
-        int nfds = epoll_wait(_epoll_fd, _events, MAX_CONNECTIONS, 1000);
-        
-        if (nfds == -1) {
-            if (errno == EINTR) continue;
-            perror("epoll_wait");
+        if (g_running == 0) {
+            g_server_manager->requestShutdown();
             break;
         }
+        int nfds = epoll_wait(_epoll_fd, _events, MAX_CONNECTIONS, 1000);
+        if (nfds == -1) {
+            if (errno == EINTR) continue; // Signal interrupt, this errno check is acceptable (not after read/write)
+            logError("epoll_wait failed, attempting to continue");
+            continue; // Try to continue instead of breaking
+        }
         
-        //printServerStatus(); //Uncomment if you want to see server status on each loop
-        // if (_clients.size() > 0) {
-        //     printAllClients();
-        // }
-        // Uncomment that if statement to see all clients data.
+        // Validate nfds to prevent out-of-bounds access
+        if (nfds > MAX_CONNECTIONS) {
+            logError("epoll_wait returned invalid event count");
+            nfds = MAX_CONNECTIONS;
+        }
+        
         for (int i = 0; i < nfds; i++) {
             int fd = _events[i].data.fd;
+            
+            // Validate file descriptor
+            if (fd < 0) {
+                std::cerr << "Warning: Invalid fd in epoll event: " << fd << std::endl;
+                continue;
+            }
             
             // Check if it's a server socket
             if (isServerSocket(fd)) {
@@ -223,8 +241,6 @@ void ServerManager::run() {
             _last_cleanup = now;
         }
     }
-
-    std::cout << "\n🛑 Server shutting down..." << std::endl;
 }
 
 void ServerManager::cleanupTimeouts() {
@@ -240,6 +256,16 @@ void ServerManager::cleanupTimeouts() {
     
     for (size_t i = 0; i < to_close.size(); ++i) {
         std::cout << "⏱ Timeout: closing client fd " << to_close[i] << std::endl;
+        
+        // Send 408 Request Timeout response before closing
+        std::string timeout_response = "HTTP/1.1 408 Request Timeout\r\n"
+                                       "Content-Type: text/html\r\n"
+                                       "Connection: close\r\n"
+                                       "Content-Length: 50\r\n"
+                                       "\r\n"
+                                       "<html><body><h1>408 Request Timeout</h1></body></html>";
+        send(to_close[i], timeout_response.c_str(), timeout_response.length(), 0);
+        
         if (_http_handler) {
             _http_handler->closeConnection(to_close[i]);
         }
@@ -277,7 +303,7 @@ void ServerManager::closeClient(int client_fd) {
     _clients.erase(client_fd);
 }
 
-ClientConnection* ServerManager::getClient(int client_fd) {
+ClientConnection* ServerManager::getClient(int client_fd) { //TODO: check session management
     if (_clients.find(client_fd) == _clients.end()) {
         // Create new client entry
         _clients[client_fd] = ClientConnection();
@@ -289,16 +315,28 @@ ClientConnection* ServerManager::getClient(int client_fd) {
 void ServerManager::shutdown() {
     _running = false;
     
-    // Close all client connections
+    if (_http_handler && _http_handler->IsChild() == false)
+        std::cout << "\n🛑 Shutting down server..." << std::endl;
+    
+    // Close all client connections first
+    std::vector<int> client_fds;
     for (std::map<int, ClientConnection>::iterator it = _clients.begin(); 
          it != _clients.end(); ++it) {
-        close(it->first);
+        client_fds.push_back(it->first);
+    }
+    
+    for (size_t i = 0; i < client_fds.size(); ++i) {
+        if (client_fds[i] >= 0) {
+            close(client_fds[i]);
+        }
     }
     _clients.clear();
     
     // Close all server sockets
     for (size_t i = 0; i < _server_sockets.size(); ++i) {
-        close(_server_sockets[i].fd);
+        if (_server_sockets[i].fd >= 0) {
+            close(_server_sockets[i].fd);
+        }
     }
     _server_sockets.clear();
     
@@ -308,13 +346,14 @@ void ServerManager::shutdown() {
         _epoll_fd = -1;
     }
     
+    if (_http_handler && !_http_handler->IsChild())
+        std::cout << "✓ Server shutdown complete" << std::endl;
+    
     // Delete HTTP handler
     if (_http_handler) {
         delete _http_handler;
         _http_handler = NULL;
     }
-    
-    std::cout << "✓ Server shutdown complete" << std::endl;
 }
 
 void ServerManager::requestShutdown() {

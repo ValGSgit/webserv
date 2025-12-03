@@ -20,8 +20,7 @@ private:
 
     ServerManager* _server_manager;
     int _epoll_fd;
-    char *_raw_buffer;
-    size_t _raw_bytes_read;
+    bool _is_child;
     std::string _file_info;
     
     // Client request/response tracking
@@ -35,7 +34,9 @@ private:
     HttpResponse handleUpload(const HttpRequest& request, const ServerConfig& config, int client_fd);
     HttpResponse handleDelete(const HttpRequest& request, const ServerConfig& config, int client_fd);
     HttpResponse handleJsonApi(const HttpRequest& request);
+    HttpResponse handleStatus(int server_port);
     const ServerConfig* findServerForClient(int client_fd);
+    std::string getMethodAllowed(const std::string& uri, const ServerConfig& config);
     bool methodAllowed(const std::string& uri, const std::string& method, const ServerConfig& config);
     const RouteConfig* findMatchingRoute(const std::string& uri, const ServerConfig& config);
     
@@ -47,6 +48,7 @@ public:
     void handleWrite(int fd);
     void acceptConnection(int server_fd, int server_port);
     void closeConnection(int client_fd);
+    bool IsChild() const;
 };
 
 #endif

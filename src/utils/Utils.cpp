@@ -163,7 +163,8 @@ std::string Utils::readFile(const std::string& filepath) {
     while ((bytes_read = read(fd, buffer, BUFFER_SIZE)) > 0) {
         content.append(buffer, bytes_read);
     }
-    
+    if (bytes_read < 0)
+        std::cerr << "read failed\n";
     close(fd);
     return content;
 }
@@ -175,6 +176,11 @@ bool Utils::writeFile(const std::string& filepath, void *buffer, int bytes) {//c
     
     ssize_t bytes_written = write(fd, buffer, bytes);//content.c_str(), content.length());
     close(fd);
+    if (bytes_written == -1)
+    {
+        std::cerr << "writeFile failed\n";
+        return false;
+    }
     //std::cout << "bytes_written = " << bytes_written << std::endl;
     return bytes_written == bytes;//static_cast<ssize_t>(content.length());
 }
@@ -294,21 +300,40 @@ std::string Utils::getMimeType(const std::string& filepath) {
 
 std::string Utils::getStatusMessage(int status_code) {
     switch (status_code) {
+        // 2xx Success
         case 200: return "OK";
         case 201: return "Created";
         case 204: return "No Content";
+        
+        // 3xx Redirection
         case 301: return "Moved Permanently";
         case 302: return "Found";
+        case 307: return "Temporary Redirect";
+        case 308: return "Permanent Redirect";
+        
+        // 4xx Client Errors
         case 400: return "Bad Request";
+        case 401: return "Unauthorized";
         case 403: return "Forbidden";
         case 404: return "Not Found";
         case 405: return "Method Not Allowed";
         case 408: return "Request Timeout";
+        case 409: return "Conflict";
+        case 411: return "Length Required";
         case 413: return "Payload Too Large";
+        case 414: return "URI Too Long";
+        case 415: return "Unsupported Media Type";
+        case 417: return "Expectation Failed";
+        case 431: return "Request Header Fields Too Large";
+        
+        // 5xx Server Errors
         case 500: return "Internal Server Error";
         case 501: return "Not Implemented";
         case 502: return "Bad Gateway";
         case 503: return "Service Unavailable";
+        case 504: return "Gateway Timeout";
+        case 505: return "HTTP Version Not Supported";
+        
         default: return "Unknown";
     }
 }
@@ -1195,13 +1220,14 @@ bool Utils::isAllowedUploadExtension(const std::string& filename) {
         ".mp3", ".mp4", ".avi", ".mov", ".wav", ".css", ".json",
         NULL
     };
-    
+
     std::string ext = getFileExtension(filename);
     ext = toLowerCase(ext);
     
+    //std::cout << "ext = " << ext << "\n";
     // Empty extension is not allowed
     if (ext.empty()) {
-        return false;
+        return true;
     }
     
     for (int i = 0; allowed[i] != NULL; ++i) {
@@ -1220,9 +1246,9 @@ std::string Utils::httpMethodToString(HttpMethod method) {
         case METHOD_GET: return "GET";
         case METHOD_POST: return "POST";
         case METHOD_PUT: return "PUT";
+        case METHOD_HEAD: return "HEAD";
         case METHOD_DELETE: return "DELETE";
-        case METHOD_UNKNOWN: return "UNKNOWN";
-        default: return "INVALID";
+        default: return "UNKNOWN";
     }
 }
 
@@ -1234,7 +1260,7 @@ std::string Utils::connectionStateToString(ConnectionState state) {
         case STATE_WRITING_RESPONSE: return "WRITING_RESPONSE";
         case STATE_DONE: return "DONE";
         case STATE_ERROR: return "ERROR";
-        default: return "INVALID";
+        default: return "UNKNOWN";
     }
 }
 

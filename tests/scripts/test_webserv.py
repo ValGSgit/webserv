@@ -367,7 +367,7 @@ class HTTPTester:
         body = ''.join(body_parts)
         
         request = (
-            "POST /upload HTTP/1.1\r\n"
+            "POST /uploads HTTP/1.1\r\n"
             f"Host: localhost\r\n"
             f"Content-Type: multipart/form-data; boundary={boundary}\r\n"
             f"Content-Length: {len(body)}\r\n"
@@ -406,7 +406,7 @@ class HTTPTester:
         body = ''.join(body_parts)
         
         request = (
-            "POST /upload HTTP/1.1\r\n"
+            "POST /uploads HTTP/1.1\r\n"
             f"Host: localhost\r\n"
             f"Content-Type: multipart/form-data; boundary={boundary}\r\n"
             f"Content-Length: {len(body)}\r\n"

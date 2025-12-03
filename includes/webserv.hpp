@@ -33,14 +33,20 @@
 #define BUFFER_SIZE 8192
 #define MAX_CONNECTIONS 1024
 #define CONNECTION_TIMEOUT 60
-#define CGI_TIMEOUT 30
+#define CGI_TIMEOUT 10
 
 // HTTP Methods
 enum HttpMethod {
     METHOD_GET,
     METHOD_POST,
     METHOD_PUT,
+    METHOD_HEAD,
     METHOD_DELETE,
+    METHOD_OPTIONS,
+    METHOD_TRACE,
+    METHOD_CONNECT,
+    METHOD_PATCH,
+    METHOD_STATUS,
     METHOD_UNKNOWN
 };
 
@@ -104,5 +110,7 @@ struct ClientConnection {
     ClientConnection() : fd(-1), server_port(0), state(STATE_READING_HEADERS), 
                         last_activity(0), bytes_sent(0), keep_alive(false) {}
 };
+
+extern volatile sig_atomic_t g_running;
 
 #endif

@@ -9,9 +9,21 @@ bool ConfigParser::parseConfig(const std::string& config_file) {
     _config_file = config_file;
     _servers.clear(); // Clear any existing servers
     
+    // Validate config file exists and is readable
+    if (!Utils::fileExists(config_file)) {
+        std::cerr << "Error: Configuration file '" << config_file << "' does not exist" << std::endl;
+        return false;
+    }
+    
+    if (!Utils::isReadable(config_file)) {
+        std::cerr << "Error: Configuration file '" << config_file << "' is not readable" << std::endl;
+        return false;
+    }
+    
     // Read entire file using allowed functions
     std::string content = Utils::readFile(config_file);
     if (content.empty()) {
+        std::cerr << "Error: Configuration file '" << config_file << "' is empty or could not be read" << std::endl;
         return false;
     }
 
@@ -92,6 +104,9 @@ size_t ConfigParser::parseServerBlock(const std::vector<std::string>& lines, siz
                     return start_index; // Return original index to indicate failure
                 }
                 server.routes[location] = route;
+                if (route.max_body_size == 0) {
+                    route.max_body_size = server.max_body_size; // Inherit from server if not set
+                }
                 continue;
             }
         }
@@ -209,6 +224,7 @@ size_t ConfigParser::parseLocationBlock(const std::vector<std::string>& lines, s
     size_t i = start_index;
     size_t max_iterations = lines.size(); // Safety limit
     size_t iterations = 0;
+    route.max_body_size = 0; // 0 means inherit from server by default
 
     while (i < lines.size() && brace_count > 0 && iterations < max_iterations) {
         iterations++;
@@ -451,7 +467,7 @@ bool ConfigParser::isValidMethod(const std::string& method) {
     }
     
     return (upper == "GET" || upper == "POST" || upper == "DELETE" || 
-            upper == "PUT" || upper == "HEAD");
+            upper == "PUT" || upper == "HEAD" || upper == "OPTIONS");
 }
 
 // Apply inheritance from server config to all routes and normalize paths
