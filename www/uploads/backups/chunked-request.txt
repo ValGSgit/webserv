@@ -1,0 +1,17 @@
+POST /api/upload-data HTTP/1.1
+Host: api.example.com
+User-Agent: MyChunkedClient/1.0
+Content-Type: application/json
+Transfer-Encoding: chunked
+Connection: keep-alive
+
+21
+{ "session": "abc123", "step": 1,
+9
+"data": [
+36
+  {"id": 1, "value": "first"}, {"id": 2, "value": "sec
+24
+ond"}, {"id": 3, "value": "third"} ]
+0
+
