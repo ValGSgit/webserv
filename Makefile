@@ -27,24 +27,6 @@ BONUS_SRCS = $(addprefix $(SRCDIR)/, $(BONUS_FILES))
 OBJS = $(SRCS:$(SRCDIR)/%.cpp=$(OBJDIR)/%.o)
 BONUS_OBJS = $(BONUS_SRCS:$(SRCDIR)/%.cpp=$(OBJDIR)/%.o)
 
-VALGRIND_FLAGS = --leak-check=full \
-                 --show-leak-kinds=all \
-                 --track-origins=yes \
-                 --track-fds=yes \
-                 --trace-children=yes \
-                 --show-reachable=yes \
-                 --error-limit=no \
-                 --keep-debuginfo=yes \
-                 --read-var-info=yes \
-                 --verbose
-
-# Extra flags for extreme checking
-VALGRIND_EXTREME_FLAGS = $(VALGRIND_FLAGS) \
-                         --expensive-definedness-checks=yes \
-                         --read-inline-info=yes \
-                         --malloc-fill=0x42 \
-                         --free-fill=0x69
-
 # Include flags
 INCLUDES = -I$(INCDIR)
 
@@ -54,18 +36,26 @@ BONUS_FLAG = .bonus
 all: $(NAME)
 
 bonus: CXXFLAGS += -D BONUS
-bonus: $(BONUS_FLAG)
+bonus: fclean $(BONUS_FLAG)
 
 $(BONUS_FLAG): $(OBJS) $(BONUS_OBJS)
 	$(CXX) $(CXXFLAGS) $(OBJS) $(BONUS_OBJS) -o $(NAME)
 	@touch $(BONUS_FLAG)
 	@echo "Bonus features compiled (Session & Cookie Management)"
 
+# Valgrind rule with suppression file
 vg: $(NAME)
-	valgrind $(VALGRIND_FLAGS) ./$(NAME) webserv.conf > valgrind_log.txt
-
-vg_extreme: $(NAME)
-	valgrind $(VALGRIND_EXTREME_FLAGS) ./$(NAME) webserv.conf > valgrind_extreme_log.txt
+	@echo "Starting WebServ with Valgrind..."
+	@echo "Log file: valgrind_$(shell date +%Y%m%d_%H%M%S).log"
+	@echo "Press Ctrl+C to stop the server"
+	@valgrind --leak-check=full \
+	         --show-leak-kinds=all \
+	         --track-origins=yes \
+	         --track-fds=yes \
+	         --trace-children=yes \
+	         --suppressions=valgrind.supp \
+	         ./$(NAME) webserv.conf
+#--log-file=valgrind_$(shell date +%Y%m%d_%H%M%S).log \
 
 %.d:
 
@@ -98,6 +88,41 @@ $(OBJDIR)/testmain.o: $(SRCDIR)/testmain.cpp
 	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
+# Testing targets
+run_tests: $(NAME)
+	@echo "Starting comprehensive test suite..."
+	@./run_tests.sh
+
+test_full: run_tests
+
+test_edge_cases: $(NAME)
+	@echo "========================================"
+	@echo "Running comprehensive edge case tests..."
+	@echo "Make sure the server is running first!"
+	@echo "========================================"
+	@./tests/comprehensive_edge_cases.sh
+
+test_security: $(NAME)
+	@echo "Starting server and running security tests..."
+	@./webserv webserv.conf > server_test.log 2>&1 & \
+	SERVER_PID=$$!; \
+	sleep 3; \
+	python3 tests/security/run_all_security_tests.py; \
+	TEST_EXIT=$$?; \
+	kill $$SERVER_PID 2>/dev/null || true; \
+	exit $$TEST_EXIT
+
+test_sessions: $(NAME)
+	@echo "Starting server and running session/cookie tests..."
+	@./webserv webserv.conf > server_test.log 2>&1 & \
+	SERVER_PID=$$!; \
+	sleep 3; \
+	bash tests/session_cookie/run_all_tests.sh; \
+	TEST_EXIT=$$?; \
+	kill $$SERVER_PID 2>/dev/null || true; \
+	exit $$TEST_EXIT
+
+
 #
-.PHONY: all clean fclean re test test_config test_config_parser bonus
+.PHONY: all clean fclean re test test_config test_config_parser bonus run_tests test_full test_edge_cases test_security test_sessions security_audit vg
 

@@ -20,6 +20,12 @@ void HttpResponse::setBody(const std::string& body) {
     setContentLength(_body.length());
 }
 
+void HttpResponse::removeBody() {
+    // For HEAD requests: Keep Content-Length but clear body
+    // Content-Length was already set when body was added
+    _body = "";
+}
+
 void HttpResponse::appendBody(const std::string& data) {
     _body += data;
     setContentLength(_body.length());
@@ -60,13 +66,13 @@ void HttpResponse::setDefaultHeaders() {
     char buffer[30];
     std::strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S", std::localtime(&time));
     _headers["Date"] = buffer;
-    _headers["Connection"] = "close";
+    _headers["Connection"] = "keep-alive";
     
     // SECURITY FIX: Added security headers for browser protection
-    _headers["X-Content-Type-Options"] = "nosniff";
-    _headers["X-Frame-Options"] = "DENY";
-    _headers["X-XSS-Protection"] = "1; mode=block";
-    _headers["Referrer-Policy"] = "no-referrer";
+    // _headers["X-Content-Type-Options"] = "nosniff";
+    // _headers["X-Frame-Options"] = "DENY";
+    // _headers["X-XSS-Protection"] = "1; mode=block";
+    // _headers["Referrer-Policy"] = "no-referrer";
 }
 
 void HttpResponse::setContentType(const std::string& content_type) {
@@ -75,6 +81,10 @@ void HttpResponse::setContentType(const std::string& content_type) {
 
 void HttpResponse::setContentLength(size_t length) {
     _headers["Content-Length"] = Utils::toString(length);
+}
+
+void HttpResponse::setAllow(const std::string& methods) {
+    _headers["Allow"] = methods;
 }
 
 #ifdef BONUS
@@ -174,6 +184,24 @@ HttpResponse HttpResponse::errorResponse(int status, const std::string& message)
     return response;
 }
 
+HttpResponse HttpResponse::errorResponseWithConfig(int status, const ServerConfig* config, const std::string& message) {
+    // Try to use custom error page from config
+    if (config && !config->error_pages.empty()) {
+        std::map<int, std::string>::const_iterator it = config->error_pages.find(status);
+        if (it != config->error_pages.end()) {
+            // Custom error page configured
+            std::string error_page_path = config->root + it->second;
+            if (Utils::fileExists(error_page_path) && Utils::isReadable(error_page_path)) {
+                HttpResponse response = fileResponse(error_page_path);
+                response.setStatus(status);
+                return response;
+            }
+        }
+    }
+    // Fall back to default error response
+    return errorResponse(status, message);
+}
+
 HttpResponse HttpResponse::fileResponse(const std::string& filepath) {
     HttpResponse response;
     
@@ -227,7 +255,7 @@ HttpResponse HttpResponse::redirectResponse(const std::string& location, int sta
     HttpResponse response;
     response.setStatus(status_code);
     response.setHeader("Location", location);
-    response.setBody("");
+    response.setBody("<!DOCTYPE html><html><head><title>Redirect</title></head><body><h1>Redirecting...</h1></body></html>");
     return response;
 }
 

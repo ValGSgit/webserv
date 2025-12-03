@@ -120,6 +120,7 @@ def test_chunked_encoding():
         request = (
             b"POST /upload HTTP/1.1\r\n"
             b"Host: localhost\r\n"
+            b"Connection: keep-alive\r\n"
             b"Transfer-Encoding: chunked\r\n"
             b"\r\n"
             b"5\r\n"

@@ -24,7 +24,7 @@ HttpResponse CgiHandler::executeCgi(const HttpRequest& request, const std::strin
     // Create pipes for communication
     int stdin_pipe[2], stdout_pipe[2];
     if (pipe(stdin_pipe) == -1 || pipe(stdout_pipe) == -1) {
-        perror("pipe");
+        std::cerr << "pipe failed\n";;
         return HttpResponse::errorResponse(HTTP_INTERNAL_SERVER_ERROR);
     }
     
@@ -48,7 +48,7 @@ HttpResponse CgiHandler::executeCgi(const HttpRequest& request, const std::strin
     // Fork process
     pid_t pid = fork();
     if (pid == -1) {
-        perror("fork");
+        std::cerr << "fork failed\n";
         close(stdin_pipe[0]); close(stdin_pipe[1]);
         close(stdout_pipe[0]); close(stdout_pipe[1]);
         return HttpResponse::errorResponse(HTTP_INTERNAL_SERVER_ERROR);
@@ -71,19 +71,24 @@ HttpResponse CgiHandler::executeCgi(const HttpRequest& request, const std::strin
         execve(cgi_executable.c_str(), const_cast<char* const*>(args), &env_array[0]);
         
         // If we get here, exec failed
-        perror("execve");
-        exit(1);
+        std::cerr << "execve failed\n";
+        std::exit(1);
     }
 
     close(stdin_pipe[0]); 
     close(stdout_pipe[1]);
     
     // Write request body to CGI stdin
-    const std::string& body = request.getBody();
+    // NOTE: Per subject requirements, chunked requests are already unchunked
+    // by HttpRequest parser - CGI receives plain body and EOF marks end
+    const std::vector<char>& body = request.getBody();
     if (!body.empty()) {
-        write(stdin_pipe[1], body.c_str(), body.length());
+        ssize_t written = write(stdin_pipe[1], &body[0], body.size());
+        if (written < 0 || static_cast<size_t>(written) != body.size()) {
+            std::cerr << "Warning: Failed to write complete body to CGI\\n";
+        }
     }
-    close(stdin_pipe[1]);
+    close(stdin_pipe[1]); // Close stdin pipe to send EOF to CGI
     
     // Read CGI output using epoll for timeout handling
     std::string output;
@@ -93,7 +98,7 @@ HttpResponse CgiHandler::executeCgi(const HttpRequest& request, const std::strin
     // Create epoll instance for CGI pipe
     int epoll_fd = epoll_create1(0);
     if (epoll_fd == -1) {
-        perror("epoll_create1");
+        std::cerr << "epoll_create1 failed\n";
         close(stdout_pipe[0]);
         kill(pid, SIGTERM);
         waitpid(pid, NULL, 0);
@@ -107,7 +112,7 @@ HttpResponse CgiHandler::executeCgi(const HttpRequest& request, const std::strin
     ev.data.fd = stdout_pipe[0];
     
     if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, stdout_pipe[0], &ev) == -1) {
-        perror("epoll_ctl");
+        std::cerr << "epoll_ctl failed1\n";
         close(epoll_fd);
         close(stdout_pipe[0]);
         kill(pid, SIGTERM);
@@ -133,8 +138,9 @@ HttpResponse CgiHandler::executeCgi(const HttpRequest& request, const std::strin
         int nfds = epoll_wait(epoll_fd, events, 1, timeout_ms);
         
         if (nfds == -1) {
-            if (errno == EINTR) continue;  // Interrupted by signal, retry
-            perror("epoll_wait");
+            // Per subject: no errno check after I/O operations
+            // epoll_wait failure - break and handle cleanup
+            std::cerr << "epoll_wait failed\n";
             break;
         } else if (nfds == 0) {
             // Timeout
@@ -145,8 +151,17 @@ HttpResponse CgiHandler::executeCgi(const HttpRequest& request, const std::strin
         
         // Data available to read
         bytes_read = read(stdout_pipe[0], buffer, sizeof(buffer) - 1);
-        if (bytes_read <= 0) break;  // EOF or error
-        
+        if (bytes_read == 0) {
+            // EOF reached - CGI script finished
+            break;
+        }
+        if (bytes_read < 0) {
+            // Read error - no errno check per subject
+            // For non-blocking reads, this could be EAGAIN/EWOULDBLOCK
+            // but we can't check errno, so just break
+            std::cerr << "read failed\n";
+            break;
+        }
         buffer[bytes_read] = '\0';
         output += std::string(buffer, bytes_read);
     }
@@ -195,7 +210,7 @@ void CgiHandler::setupEnvironment(const HttpRequest& request, const std::string&
     if (!content_length.empty()) {
         _env["CONTENT_LENGTH"] = Utils::sanitizeForShell(content_length);
     } else {
-        _env["CONTENT_LENGTH"] = Utils::toString(request.getBody().length());
+        _env["CONTENT_LENGTH"] = Utils::toString(request.getBody().size());
     }
     
     // HTTP headers (convert to HTTP_HEADER_NAME format)

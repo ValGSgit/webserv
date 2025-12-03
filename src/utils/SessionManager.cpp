@@ -1,6 +1,8 @@
 #include "../../includes/utils/SessionManager.hpp"
 #include <sstream>
 #include <cstdlib>
+#include <sys/time.h>
+#include <unistd.h>
 
 /**
  * Constructor - Initializes SessionManager with 1 hour default timeout
@@ -23,7 +25,15 @@ SessionManager::~SessionManager() {
  */
 std::string SessionManager::generateSessionId() {
 	std::ostringstream oss;
-	oss << time(NULL) << "_" << rand() << "_" << rand();
+	// Use time with microsecond precision, random numbers, and session count for better uniqueness
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	
+	// Re-seed for better randomness on each call
+	srand(time(NULL) ^ (tv.tv_usec * _sessions.size()));
+	
+	// Combine multiple sources of randomness
+	oss << tv.tv_sec << tv.tv_usec << "_" << rand() << "_" << rand() << "_" << _sessions.size() << "_" << getpid();
 	return oss.str();
 }
 
@@ -89,6 +99,14 @@ void SessionManager::destroySession(const std::string& session_id) {
 }
 
 /**
+ * Destroys all sessions (useful for testing/cleanup)
+ */
+void SessionManager::destroyAllSessions() {
+	_sessions.clear();
+	_username_to_session.clear();
+}
+
+/**
  * Iterates through all sessions and removes expired ones
  * Should be called periodically by the server
  */
@@ -135,12 +153,23 @@ std::string SessionManager::getSessionByUsername(const std::string& username) {
 	if (it != _username_to_session.end()) {
 		std::string session_id = it->second;
 		
-		// Verify the session is still valid
-		SessionData* session = getSession(session_id);
-		if (session && session->expires_at > time(NULL)) {
+		// Verify the session is still valid WITHOUT updating last_accessed
+		std::map<std::string, SessionData>::iterator session_it = _sessions.find(session_id);
+		if (session_it != _sessions.end()) {
+			SessionData& session = session_it->second;
+			time_t now = time(NULL);
+			
+			// Check if session has expired
+			if (now - session.last_accessed > _session_timeout) {
+				// Session expired, clean up both mappings
+				_username_to_session.erase(it);
+				_sessions.erase(session_it);
+				return ""; // No active session
+			}
+			
 			return session_id; // Active session found
 		} else {
-			// Session expired, clean up mapping
+			// Session doesn't exist, clean up mapping
 			_username_to_session.erase(it);
 		}
 	}

@@ -3,29 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CGI Demo - WebServ</title>
+    <title>CGI Interactive Demos - WebServ</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
         }
         
-        .container { max-width: 1000px; margin: 0 auto; }
-        
-        .card {
-            background: white;
-            border-radius: 15px;
-            padding: 40px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            margin-bottom: 20px;
+        .container { 
+            max-width: 1600px; 
+            margin: 0 auto; 
         }
         
-        h1 { color: #1f2937; margin-bottom: 20px; }
-        h2 { color: #374151; margin-bottom: 15px; margin-top: 30px; }
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
         
         .back-link {
             display: inline-block;
@@ -33,95 +42,254 @@
             text-decoration: none;
             margin-bottom: 20px;
             font-weight: 600;
+            font-size: 1.1em;
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 8px;
+            transition: background 0.3s;
         }
         
-        .cgi-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin: 20px 0;
+        .back-link:hover {
+            background: rgba(255,255,255,0.3);
         }
         
-        .cgi-card {
-            background: #f3f4f6;
-            padding: 20px;
+        /* Tab Navigation */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .tab-button {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid transparent;
+            padding: 15px 25px;
             border-radius: 10px;
-            border-left: 4px solid #2563eb;
+            font-weight: 600;
+            font-size: 1em;
             cursor: pointer;
             transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
         
-        .cgi-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-            background: #e5e7eb;
+        .tab-button:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
         }
         
-        .cgi-icon {
-            font-size: 2em;
-            margin-bottom: 10px;
+        .tab-button.active {
+            background: white;
+            color: #667eea;
+            border-color: white;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
         }
         
-        .cgi-title {
-            font-weight: 700;
-            font-size: 1.2em;
-            margin-bottom: 5px;
+        .tab-icon {
+            font-size: 1.5em;
+        }
+        
+        /* Tab Content */
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .demo-container {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        
+        .demo-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #f0f0f0;
+        }
+        
+        .demo-icon {
+            font-size: 3em;
+            margin-right: 20px;
+        }
+        
+        .demo-title {
+            flex: 1;
+        }
+        
+        .demo-title h2 {
             color: #1f2937;
+            margin-bottom: 5px;
+            font-size: 2em;
         }
         
-        .cgi-desc {
+        .demo-title .language {
+            color: #6366f1;
+            font-size: 1em;
+            font-weight: 600;
+        }
+        
+        .demo-description {
             color: #666;
-            font-size: 0.9em;
+            margin-bottom: 30px;
+            line-height: 1.6;
+            font-size: 1.1em;
         }
         
-        .test-form {
+        .demo-layout {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 30px;
+            min-height: 650px;
+        }
+        
+        .demo-controls {
             background: #f9fafb;
-            padding: 20px;
+            padding: 25px;
             border-radius: 10px;
-            margin: 20px 0;
+            border: 2px solid #e5e7eb;
+            height: fit-content;
         }
         
-        input, textarea {
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        .input-group label {
+            display: block;
+            color: #374151;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+        
+        .input-group input,
+        .input-group textarea,
+        .input-group select {
             width: 100%;
             padding: 12px;
             border: 2px solid #e5e7eb;
             border-radius: 8px;
-            margin-bottom: 15px;
             font-size: 1em;
+            transition: border-color 0.3s;
+            font-family: inherit;
         }
         
-        button {
-            background: #2563eb;
+        .input-group input:focus,
+        .input-group textarea:focus,
+        .input-group select:focus {
+            outline: none;
+            border-color: #6366f1;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
-            padding: 12px 25px;
+            padding: 15px 30px;
             border-radius: 8px;
             font-weight: 600;
             cursor: pointer;
-            transition: background 0.3s;
+            font-size: 1.05em;
+            width: 100%;
+            transition: all 0.3s;
+            margin-top: 10px;
         }
         
-        button:hover {
-            background: #1e40af;
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
         }
         
-        .output {
-            background: #1f2937;
-            color: #10b981;
-            padding: 20px;
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .output-frame-big {
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
             border-radius: 10px;
-            font-family: 'Courier New', monospace;
-            overflow-x: auto;
-            white-space: pre-wrap;
-            margin-top: 20px;
-            display: none;
+            overflow: visible;
+            height: 100%;
+            min-height: 1200px;
+        }
+        .output-frame-big iframe {
+            width: 100%;
+            height: 100%;
+            min-height: 1200px;
+            border: none;
+            display: block;
         }
         
-        .label {
-            font-weight: 600;
-            margin-bottom: 5px;
+        .output-frame {
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            overflow: hidden;
+            height: 100%;
+            min-height: 650px;
+        }
+        
+        .output-frame iframe {
+            width: 100%;
+            height: 100%;
+            min-height: 650px;
+            border: none;
             display: block;
-            color: #374151;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        
+        .status-ready {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .status-loading {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .info-box {
+            background: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+            font-size: 0.9em;
+            color: #1e40af;
+        }
+        
+        @media (max-width: 1024px) {
+            .demo-layout {
+                grid-template-columns: 1fr;
+            }
+            
+            .output-frame {
+                min-height: 500px;
+            }
         }
     </style>
 </head>
@@ -129,148 +297,377 @@
     <div class="container">
         <a href="/" class="back-link">← Back to Home</a>
         
-        <div class="card">
-            <h1>⚡ CGI Capabilities Demo</h1>
-            <p>Test Common Gateway Interface scripts with multiple interpreters</p>
-            
-            <div class="cgi-grid">
-                <div class="cgi-card" onclick="window.open('/cgi-bin/test.py', '_blank')">
-                    <div class="cgi-icon">🐍</div>
-                    <div class="cgi-title">Python CGI</div>
-                    <div class="cgi-desc">test.py - Environment variables & query strings</div>
+        <div class="header">
+            <h1>🚀 CGI Interactive Demos</h1>
+            <p>Explore powerful server-side scripting with Python, Perl, Ruby, PHP & Bash</p>
+        </div>
+        
+        <!-- Tab Navigation -->
+        <div class="tabs">
+            <button class="tab-button active" onclick="showTab('python')">
+                <span class="tab-icon">🐍</span>
+                <span>Python Calculator</span>
+            </button>
+            <button class="tab-button" onclick="showTab('bash')">
+                <span class="tab-icon">💻</span>
+                <span>Bash Dashboard</span>
+            </button>
+            <button class="tab-button" onclick="showTab('perl')">
+                <span class="tab-icon">🐪</span>
+                <span>Perl Text Processor</span>
+            </button>
+            <button class="tab-button" onclick="showTab('ruby')">
+                <span class="tab-icon">💎</span>
+                <span>Ruby 3D Engine</span>
+            </button>
+            <button class="tab-button" onclick="showTab('php')">
+                <span class="tab-icon">🐘</span>
+                <span>PHP Visualizer</span>
+            </button>
+            <button class="tab-button" onclick="showTab('env')">
+                <span class="tab-icon">🌐</span>
+                <span>Environment</span>
+            </button>
+        </div>
+        
+        <!-- Python Tab -->
+        <div class="tab-content active" id="python-tab">
+            <div class="demo-container">
+                <div class="demo-header">
+                    <div class="demo-icon">🐍</div>
+                    <div class="demo-title">
+                        <h2>Scientific Calculator</h2>
+                        <span class="language">Python 3 CGI</span>
+                    </div>
+                    <span class="status-badge status-ready">Ready</span>
                 </div>
-                
-                <div class="cgi-card" onclick="window.open('/cgi-bin/info.php', '_blank')">
-                    <div class="cgi-icon">🐘</div>
-                    <div class="cgi-title">PHP Info</div>
-                    <div class="cgi-desc">info.php - PHP configuration & environment</div>
+                <div class="demo-description">
+                    Perform advanced mathematical operations with real-time visual feedback
                 </div>
-                
-                <div class="cgi-card" onclick="window.open('/cgi-bin/test.pl', '_blank')">
-                    <div class="cgi-icon">🐪</div>
-                    <div class="cgi-title">Perl CGI</div>
-                    <div class="cgi-desc">test.pl - Perl script execution</div>
-                </div>
-                
-                <div class="cgi-card" onclick="window.open('/cgi-bin/test.rb', '_blank')">
-                    <div class="cgi-icon">💎</div>
-                    <div class="cgi-title">Ruby CGI</div>
-                    <div class="cgi-desc">test.rb - Ruby script handling</div>
-                </div>
-                
-                <div class="cgi-card" onclick="window.open('/cgi-bin/test.sh', '_blank')">
-                    <div class="cgi-icon">🐚</div>
-                    <div class="cgi-title">Shell Script</div>
-                    <div class="cgi-desc">test.sh - Bash script execution</div>
-                </div>
-                
-                <div class="cgi-card" onclick="window.open('/cgi-bin/advanced.py', '_blank')">
-                    <div class="cgi-icon">🚀</div>
-                    <div class="cgi-title">Advanced Python</div>
-                    <div class="cgi-desc">advanced.py - Complex CGI features</div>
+                <div class="demo-layout">
+                    <div class="demo-controls">
+                        <div class="input-group">
+                            <label>First Number:</label>
+                            <input type="number" id="py-num1" value="42" step="any">
+                        </div>
+                        <div class="input-group">
+                            <label>Second Number:</label>
+                            <input type="number" id="py-num2" value="8" step="any">
+                        </div>
+                        <div class="input-group">
+                            <label>Operation:</label>
+                            <select id="py-op">
+                                <option value="add">➕ Addition</option>
+                                <option value="subtract">➖ Subtraction</option>
+                                <option value="multiply">✖️ Multiplication</option>
+                                <option value="divide">➗ Division</option>
+                                <option value="power">🔺 Power</option>
+                            </select>
+                        </div>
+                        <button class="btn" onclick="runPython()">Calculate</button>
+                        <div class="info-box">
+                            <strong>Features:</strong><br>
+                            • Real-time calculation<br>
+                            • Error handling<br>
+                            • Beautiful UI
+                        </div>
+                    </div>
+                    <div class="output-frame">
+                        <iframe id="py-output"></iframe>
+                    </div>
                 </div>
             </div>
         </div>
         
-        <div class="card">
-            <h2>📝 Test GET Request</h2>
-            <p>Send query parameters to a CGI script</p>
-            
-            <div class="test-form">
-                <label class="label">Name:</label>
-                <input type="text" id="getName" value="John" placeholder="Enter your name">
-                
-                <label class="label">Age:</label>
-                <input type="number" id="getAge" value="30" placeholder="Enter your age">
-                
-                <label class="label">City:</label>
-                <input type="text" id="getCity" value="Madrid" placeholder="Enter your city">
-                
-                <button onclick="testGet()">Send GET Request</button>
+        <!-- Bash Tab -->
+        <div class="tab-content" id="bash-tab">
+            <div class="demo-container">
+                <div class="demo-header">
+                    <div class="demo-icon">💻</div>
+                    <div class="demo-title">
+                        <h2>System Dashboard</h2>
+                        <span class="language">Bash Shell Script</span>
+                    </div>
+                    <span class="status-badge status-ready">Ready</span>
+                </div>
+                <div class="demo-description">
+                    Generate beautiful system information dashboards with server-side Bash scripting
+                </div>
+                <div class="demo-layout">
+                    <div class="demo-controls">
+                        <div class="input-group">
+                            <label>Dashboard Type:</label>
+                            <select id="sh-type">
+                                <option value="system">💻 System Overview</option>
+                                <option value="time">⏰ Date & Time</option>
+                                <option value="network">🌐 Network Info</option>
+                                <option value="user">👤 User Info</option>
+                            </select>
+                        </div>
+                        <button class="btn" onclick="runShell()">Generate Dashboard</button>
+                        <div class="info-box">
+                            <strong>Features:</strong><br>
+                            • Live system stats<br>
+                            • Environment variables<br>
+                            • Process information
+                        </div>
+                    </div>
+                    <div class="output-frame">
+                        <iframe id="sh-output"></iframe>
+                    </div>
+                </div>
             </div>
-            
-            <div id="getOutput" class="output"></div>
         </div>
         
-        <div class="card">
-            <h2>📮 Test POST Request</h2>
-            <p>Send form data via POST method</p>
-            
-            <div class="test-form">
-                <label class="label">Message:</label>
-                <textarea id="postMessage" rows="4" placeholder="Enter your message">Hello from WebServ CGI!</textarea>
-                
-                <label class="label">Email:</label>
-                <input type="email" id="postEmail" value="test@example.com" placeholder="Enter email">
-                
-                <button onclick="testPost()">Send POST Request</button>
+        <!-- Perl Tab -->
+        <div class="tab-content" id="perl-tab">
+            <div class="demo-container">
+                <div class="demo-header">
+                    <div class="demo-icon">🐪</div>
+                    <div class="demo-title">
+                        <h2>Text Processor</h2>
+                        <span class="language">Perl CGI</span>
+                    </div>
+                    <span class="status-badge status-ready">Ready</span>
+                </div>
+                <div class="demo-description">
+                    Advanced text manipulation and analysis with visual statistics
+                </div>
+                <div class="demo-layout">
+                    <div class="demo-controls">
+                        <div class="input-group">
+                            <label>Enter Text:</label>
+                            <textarea id="perl-text" rows="6">The quick brown fox jumps over the lazy dog</textarea>
+                        </div>
+                        <div class="input-group">
+                            <label>Operation:</label>
+                            <select id="perl-op">
+                                <option value="analyze">📊 Analyze Text</option>
+                                <option value="reverse">🔄 Reverse Text</option>
+                                <option value="uppercase">🔠 UPPERCASE</option>
+                                <option value="titlecase">📝 Title Case</option>
+                            </select>
+                        </div>
+                        <button class="btn" onclick="runPerl()">Process Text</button>
+                        <div class="info-box">
+                            <strong>Features:</strong><br>
+                            • Character counting<br>
+                            • Word frequency<br>
+                            • Text transformations
+                        </div>
+                    </div>
+                    <div class="output-frame">
+                        <iframe id="perl-output"></iframe>
+                    </div>
+                </div>
             </div>
-            
-            <div id="postOutput" class="output"></div>
         </div>
         
-        <div class="card">
-            <h2>📊 CGI Features</h2>
-            <ul style="line-height: 2; color: #374151;">
-                <li>✅ Multiple interpreters: Python, PHP, Perl, Ruby, Shell</li>
-                <li>✅ GET and POST methods supported</li>
-                <li>✅ Query string parsing</li>
-                <li>✅ POST data via STDIN</li>
-                <li>✅ Environment variables (REQUEST_METHOD, QUERY_STRING, etc.)</li>
-                <li>✅ Content-Type handling</li>
-                <li>✅ Dynamic content generation</li>
-                <li>✅ Timeout protection (30 seconds)</li>
-            </ul>
+        <!-- Ruby Tab -->
+        <div class="tab-content" id="ruby-tab">
+            <div class="demo-container">
+                <div class="demo-header">
+                    <div class="demo-icon">💎</div>
+                    <div class="demo-title">
+                        <h2>3D Wireframe Engine</h2>
+                        <span class="language">Ruby CGI</span>
+                    </div>
+                    <span class="status-badge status-ready">Ready</span>
+                </div>
+                <div class="demo-description">
+                    Interactive 3D wireframe rendering with real-time rotation and shape morphing
+                </div>
+                <div class="demo-layout">
+                    <div class="demo-controls">
+                        <div class="input-group">
+                            <label>3D Shape:</label>
+                            <select id="ruby-shape">
+                                <option value="cube">📦 Cube (8 vertices)</option>
+                                <option value="pyramid">🔺 Pyramid (5 vertices)</option>
+                                <option value="octahedron">💠 Octahedron (6 vertices)</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Rotation X: <span id="ruby-x-val">45°</span></label>
+                            <input type="range" id="ruby-angle-x" min="0" max="360" value="45" step="15">
+                        </div>
+                        <div class="input-group">
+                            <label>Rotation Y: <span id="ruby-y-val">30°</span></label>
+                            <input type="range" id="ruby-angle-y" min="0" max="360" value="30" step="15">
+                        </div>
+                        <button class="btn" onclick="runRuby()">Render 3D</button>
+                        <div class="info-box">
+                            <strong>Features:</strong><br>
+                            • Real-time 3D rotation<br>
+                            • Multiple shapes<br>
+                            • SVG rendering
+                        </div>
+                    </div>
+                    <div class="output-frame-big">
+                        <iframe id="ruby-output"></iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- PHP Tab -->
+        <div class="tab-content" id="php-tab">
+            <div class="demo-container">
+                <div class="demo-header">
+                    <div class="demo-icon">🐘</div>
+                    <div class="demo-title">
+                        <h2>Data Visualizer</h2>
+                        <span class="language">PHP CGI</span>
+                    </div>
+                    <span class="status-badge status-loading" id="php-status">Requires php-cli</span>
+                </div>
+                <div class="demo-description">
+                    Create visual charts and graphs from your data using PHP
+                    <br><small style="color: #f59e0b;">⚠️ Install with: <code>sudo apt install php-cli</code></small>
+                </div>
+                <div class="demo-layout">
+                    <div class="demo-controls">
+                        <div class="input-group">
+                            <label>Data Values (comma-separated):</label>
+                            <input type="text" id="php-data" value="23,45,67,34,89,56">
+                        </div>
+                        <div class="input-group">
+                            <label>Labels (comma-separated):</label>
+                            <input type="text" id="php-labels" value="Jan,Feb,Mar,Apr,May,Jun">
+                        </div>
+                        <div class="input-group">
+                            <label>Chart Type:</label>
+                            <select id="php-type">
+                                <option value="bar">📊 Bar Chart</option>
+                                <option value="progress">📈 Progress Bars</option>
+                            </select>
+                        </div>
+                        <button class="btn" onclick="runPHP()">Visualize Data</button>
+                        <div class="info-box">
+                            <strong>Features:</strong><br>
+                            • Multiple chart types<br>
+                            • Statistics calculation<br>
+                            • Responsive design
+                        </div>
+                    </div>
+                    <div class="output-frame">
+                        <iframe id="php-output"></iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Environment Tab -->
+        <div class="tab-content" id="env-tab">
+            <div class="demo-container">
+                <div class="demo-header">
+                    <div class="demo-icon">🌐</div>
+                    <div class="demo-title">
+                        <h2>CGI Environment</h2>
+                        <span class="language">Python CGI</span>
+                    </div>
+                    <span class="status-badge status-ready">Ready</span>
+                </div>
+                <div class="demo-description">
+                    View all CGI environment variables and server information
+                </div>
+                <div class="demo-layout">
+                    <div class="demo-controls">
+                        <div class="input-group">
+                            <label>Additional Query:</label>
+                            <input type="text" id="env-query" placeholder="name=value" value="test=hello&demo=true">
+                        </div>
+                        <button class="btn" onclick="runEnv()">Show Environment</button>
+                        <div class="info-box">
+                            <strong>Displays:</strong><br>
+                            • HTTP headers<br>
+                            • Server variables<br>
+                            • Request information
+                        </div>
+                    </div>
+                    <div class="output-frame">
+                        <iframe id="env-output"></iframe>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     
     <script>
-        function testGet() {
-            const name = document.getElementById('getName').value;
-            const age = document.getElementById('getAge').value;
-            const city = document.getElementById('getCity').value;
+        // Tab Switching Function
+        function showTab(tabName) {
+            // Hide all tabs
+            const tabs = document.querySelectorAll('.tab-content');
+            tabs.forEach(tab => tab.classList.remove('active'));
             
-            const url = `/cgi-bin/test.py?name=${encodeURIComponent(name)}&age=${encodeURIComponent(age)}&city=${encodeURIComponent(city)}`;
+            // Deactivate all buttons
+            const buttons = document.querySelectorAll('.tab-button');
+            buttons.forEach(btn => btn.classList.remove('active'));
             
-            fetch(url)
-                .then(response => response.text())
-                .then(data => {
-                    const output = document.getElementById('getOutput');
-                    output.textContent = data;
-                    output.style.display = 'block';
-                })
-                .catch(error => {
-                    document.getElementById('getOutput').textContent = 'Error: ' + error;
-                    document.getElementById('getOutput').style.display = 'block';
-                });
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.add('active');
+            
+            // Activate button
+            event.target.closest('.tab-button').classList.add('active');
         }
         
-        function testPost() {
-            const message = document.getElementById('postMessage').value;
-            const email = document.getElementById('postEmail').value;
-            
-            const formData = new URLSearchParams();
-            formData.append('message', message);
-            formData.append('email', email);
-            
-            fetch('/cgi-bin/test.py', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                },
-                body: formData
-            })
-                .then(response => response.text())
-                .then(data => {
-                    const output = document.getElementById('postOutput');
-                    output.textContent = data;
-                    output.style.display = 'block';
-                })
-                .catch(error => {
-                    document.getElementById('postOutput').textContent = 'Error: ' + error;
-                    document.getElementById('postOutput').style.display = 'block';
-                });
+        // CGI Runner Functions
+        function runPython() {
+            const num1 = document.getElementById('py-num1').value;
+            const num2 = document.getElementById('py-num2').value;
+            const op = document.getElementById('py-op').value;
+            const url = `/cgi-bin/calculator.py?num1=${num1}&num2=${num2}&op=${op}`;
+            document.getElementById('py-output').src = url;
         }
+        
+        function runShell() {
+            const type = document.getElementById('sh-type').value;
+            const url = `/cgi-bin/sysinfo.sh?type=${type}`;
+            document.getElementById('sh-output').src = url;
+        }
+        
+        function runPerl() {
+            const text = encodeURIComponent(document.getElementById('perl-text').value);
+            const op = document.getElementById('perl-op').value;
+            const url = `/cgi-bin/textproc.pl?text=${text}&op=${op}`;
+            document.getElementById('perl-output').src = url;
+        }
+        
+        function runRuby() {
+            const shape = document.getElementById('ruby-shape').value;
+            const angleX = document.getElementById('ruby-angle-x').value;
+            const angleY = document.getElementById('ruby-angle-y').value;
+            const url = `/cgi-bin/colorgen.rb?ax=${angleX}&ay=${angleY}&az=0&shape=${shape}&auto=true`;
+            document.getElementById('ruby-output').src = url;
+        }
+        
+        // Update rotation value displays
+        document.getElementById('ruby-angle-x').addEventListener('input', function(e) {
+            document.getElementById('ruby-x-val').textContent = e.target.value + '°';
+        });
+        
+        document.getElementById('ruby-angle-y').addEventListener('input', function(e) {
+            document.getElementById('ruby-y-val').textContent = e.target.value + '°';
+        });
+        
+        function runPHP() {
+            const data = encodeURIComponent(document.getElementById('php-data').value);
+            const labels = encodeURIComponent(document.getElementById('php-labels').value);
+            const type = document.getElementById('php-type').value;
+            const url = `/cgi-bin/visualizer.php?data=${data}&labels=${labels}&type=${type}`;
+            document.getElementById('php-output').src = url;
+        }
+        
+        function runEnv() {
+            const query = document.getElementById('env-query').value;
+            const url = `/cgi-bin/environment.py?${query}`;
+            document.getElementById('env-output').src = url;
+        }
+        
+        // Auto-run Python calculator on load
+        window.onload = function() {
+            runPython();
+        };
     </script>
 </body>
 </html>

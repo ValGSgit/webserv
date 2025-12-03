@@ -247,7 +247,7 @@ class StressTester:
                 sock.connect((self.host, self.port))
                 
                 request_header = (
-                    f"POST /upload HTTP/1.1\r\n"
+                    f"POST /uploads HTTP/1.1\r\n"
                     f"Host: {self.host}\r\n"
                     f"Content-Type: application/octet-stream\r\n"
                     f"Content-Length: {len(payload)}\r\n"

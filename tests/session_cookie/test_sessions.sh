@@ -12,8 +12,8 @@ NC='\033[0m' # No Color
 
 # Configuration
 SERVER_URL="http://localhost:8080"
-COOKIE_FILE="/tmp/webserv_session_cookies.txt"
-TEST_RESULTS="/tmp/webserv_session_test_results.log"
+COOKIE_FILE="./webserv_session_cookies.txt"
+TEST_RESULTS="./webserv_session_test_results.log"
 
 # Counters
 TESTS_PASSED=0
@@ -22,6 +22,11 @@ TESTS_TOTAL=0
 
 # Clear previous test data
 rm -f "$COOKIE_FILE" "$TEST_RESULTS"
+
+# Pre-test cleanup: Clear all sessions to ensure clean state
+echo "Cleaning up any existing sessions..."
+curl -s -X POST -H "Content-Length: 0" "$SERVER_URL/api/session/clear" > /dev/null 2>&1
+sleep 0.5
 
 # Helper function to print test results
 print_test_result() {
@@ -51,6 +56,7 @@ echo ""
 # Test 1: Create Session (Login)
 echo -e "${YELLOW}Test 1: Session Creation${NC}"
 RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+    -H "Content-Length: 0" \
     -c "$COOKIE_FILE" \
     "$SERVER_URL/api/session/login")
 
@@ -68,8 +74,8 @@ sleep 1
 
 # Test 2: Verify Cookie is Set
 echo -e "\n${YELLOW}Test 2: Cookie Storage${NC}"
-if [ -f "$COOKIE_FILE" ] && grep -q "session_id" "$COOKIE_FILE"; then
-    COOKIE_VALUE=$(grep "session_id" "$COOKIE_FILE" | awk '{print $7}')
+if [ -f "$COOKIE_FILE" ] && grep -q "SESSIONID" "$COOKIE_FILE"; then
+    COOKIE_VALUE=$(grep "SESSIONID" "$COOKIE_FILE" | awk '{print $7}')
     print_test_result "Cookie Storage" "PASS" "Cookie stored: $COOKIE_VALUE"
 else
     print_test_result "Cookie Storage" "FAIL" "No session cookie found"
@@ -116,6 +122,8 @@ sleep 1
 echo -e "\n${YELLOW}Test 5: Multiple Concurrent Sessions${NC}"
 COOKIE_FILE2="/tmp/webserv_session_cookies2.txt"
 RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+    -H "Content-Type: application/json" \
+    -d '{"username":"test_user2"}' \
     -c "$COOKIE_FILE2" \
     "$SERVER_URL/api/session/login")
 
@@ -137,7 +145,7 @@ sleep 1
 # Test 6: Invalid Session ID
 echo -e "\n${YELLOW}Test 6: Invalid Session Handling${NC}"
 RESPONSE=$(curl -s -w "\n%{http_code}" \
-    -H "Cookie: session_id=invalid_session_12345" \
+    -H "Cookie: SESSIONID=invalid_session_12345" \
     "$SERVER_URL/api/session/profile")
 
 HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
@@ -193,6 +201,7 @@ sleep 1
 # Test 9: Logout (Session Destruction)
 echo -e "\n${YELLOW}Test 9: Session Logout${NC}"
 RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+    -H "Content-Length: 0" \
     -b "$COOKIE_FILE" \
     "$SERVER_URL/api/session/logout")
 
