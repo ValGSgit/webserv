@@ -3,16 +3,23 @@
 #include "../../includes/http/HttpResponse.hpp"
 #include "../../includes/http/HttpStatusCodes.hpp"
 #include "../../includes/utils/Utils.hpp"
+#include "../../includes/server/ServerManager.hpp"
+#include <algorithm>
+
+extern ServerManager* g_server_manager;
 
 CgiHandler::CgiHandler() : _timeout(CGI_TIMEOUT) {}
 
 CgiHandler::~CgiHandler() {}
 
-HttpResponse CgiHandler::executeCgi(const HttpRequest& request, const std::string& script_path) {
+HttpResponse CgiHandler::executeCgi(const HttpRequest& request, const std::string& script_path, const std::vector<std::string>& good_ext) {
     if (!Utils::fileExists(script_path) || !Utils::isReadable(script_path)) {
         return HttpResponse::errorResponse(HTTP_NOT_FOUND);
     }
     
+    if (!Utils::isExecutable(script_path)) {
+        return HttpResponse::errorResponse(HTTP_FORBIDDEN, "The requested script had no execute permissions");
+    }
     // Find CGI executable
     std::string extension = Utils::getFileExtension(script_path);
     std::string cgi_executable = findCgiExecutable(extension);
@@ -20,7 +27,10 @@ HttpResponse CgiHandler::executeCgi(const HttpRequest& request, const std::strin
     if (cgi_executable.empty()) {
         return HttpResponse::errorResponse(HTTP_NOT_IMPLEMENTED);
     }
-    
+
+    if (std::find(good_ext.begin(), good_ext.end(), extension) == good_ext.end()) {
+        return HttpResponse::errorResponse(HTTP_FORBIDDEN, "The file extension was not declared in the config :)");
+    }
     // Create pipes for communication
     int stdin_pipe[2], stdout_pipe[2];
     if (pipe(stdin_pipe) == -1 || pipe(stdout_pipe) == -1) {

@@ -22,7 +22,7 @@ class CgiHandler {
         CgiHandler();
         ~CgiHandler();
 
-        HttpResponse executeCgi(const HttpRequest& request, const std::string& script_path);
+        HttpResponse executeCgi(const HttpRequest& request, const std::string& script_path, const std::vector<std::string>& good_ext);
         void setTimeout(int seconds);
         static bool isCgiRequest(const std::string& uri);
 };

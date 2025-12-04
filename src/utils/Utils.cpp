@@ -138,6 +138,10 @@ bool Utils::isDirectory(const std::string& path) {
     return S_ISDIR(st.st_mode);
 }
 
+bool Utils::isExecutable(const std::string& filepath) {
+    return access(filepath.c_str(), X_OK) == 0;
+}
+
 bool Utils::isReadable(const std::string& filepath) {
     return access(filepath.c_str(), R_OK) == 0;
 }
