@@ -22,6 +22,7 @@ class Utils {
         static bool isDirectory(const std::string& path);
         static bool isReadable(const std::string& filepath);
         static bool isWritable(const std::string& filepath);
+        static bool    isExecutable(const std::string& filepath);
         static size_t getFileSize(const std::string& filepath);
         static std::string readFile(const std::string& filepath);
         static bool writeFile(const std::string& filepath, void *buffer, int bytes);//, const std::string& content);

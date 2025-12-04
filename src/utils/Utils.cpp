@@ -539,6 +539,10 @@ bool Utils::parseUri(const std::string& uri, UriComponents& components) {
     return true;
 }
 
+bool Utils::isExecutable(const std::string& filepath) {
+    return access(filepath.c_str(), X_OK) == 0;
+}
+
 bool Utils::parseAuthority(const std::string& authority, UriComponents& components) {
     if (authority.empty()) return true;
     

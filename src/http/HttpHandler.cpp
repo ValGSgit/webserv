@@ -351,7 +351,7 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
                 _is_child = true;
                 CgiHandler cgi;
                 std::string script_path = config->root + uri;
-                response = cgi.executeCgi(request, script_path);
+                response = cgi.executeCgi(request, script_path, route->cgi_extensions);
                 _response_buffers[client_fd] = response.getResponseString();
                 _response_offsets[client_fd] = 0;
                 handleWrite(client_fd);

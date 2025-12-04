@@ -30,6 +30,9 @@ int main(int argc, char **argv) {
         std::cerr << "Usage: " << argv[0] << " [config_file]" << std::endl;
         std::cerr << "  If no config file is provided, webserv.conf will be used by default" << std::endl;
         return 1;
+    } else if (!Utils::fileExists(config_file) || !Utils::isReadable(config_file)) {
+        std::cerr << "Config file didnt have permissions u silly!" << std::endl;
+        return 1;
     }
 
     // Setup signal handlers
