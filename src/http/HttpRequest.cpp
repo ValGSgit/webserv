@@ -18,7 +18,7 @@ bool HttpRequest::parseRequest(const std::string& data, char *buffer, ssize_t by
         if (_headers_complete)
             break ;
         const std::string& line = lines[i];
-        //std::cout << line << std::endl;
+        std::cout << line << std::endl;
         
         //parsing the first line - check URI length BEFORE generic header size check
         if (first_line) {
@@ -79,8 +79,10 @@ bool HttpRequest::parseRequest(const std::string& data, char *buffer, ssize_t by
     }
     
     // SECURITY FIX: If headers are complete but request line was malformed (empty URI), set bad request
+    // This catches cases where parseRequestLine failed to parse properly
     if (_headers_complete && _uri.empty()) {
-        _status = HTTP_BAD_REQUEST;
+        if (!_status) // Only set if no other error was already set
+            _status = HTTP_BAD_REQUEST;
         return true;
     }
 
@@ -202,6 +204,12 @@ void HttpRequest::parseRequestLine(const std::string& line) {
     // Manual parsing without istringstream
     std::vector<std::string> tokens = Utils::split(line, ' ');
     
+    // Check for too many tokens first (malformed request with extra spaces)
+    if (tokens.size() > 3) {
+        _status = HTTP_BAD_REQUEST;
+        return;
+    }
+    
     if (tokens.size() == 3) {
         // these are case-sensitive
         _method = stringToMethod(tokens[0]);
@@ -234,8 +242,6 @@ void HttpRequest::parseRequestLine(const std::string& line) {
             return ;
         }
     }
-    if (tokens.size() > 3)
-        _status = HTTP_BAD_REQUEST;
     // For incomplete first line, don't set error immediately - wait for more data
 }
 
@@ -377,6 +383,8 @@ void HttpRequest::parseCookies() {
 }
 #endif
 
+// UNUSED FUNCTION - Commented out for now
+/*
 void HttpRequest::reset() {
     _method = METHOD_UNKNOWN;
     _uri.clear();
@@ -393,6 +401,7 @@ void HttpRequest::reset() {
     _content_length = 0;
     _chunked = false;
 }
+*/
 
 // Getters
 HttpMethod HttpRequest::getMethod() const { return _method; }
@@ -427,6 +436,8 @@ std::string HttpRequest::methodToString() const {
     }
 }
 
+// UNUSED FUNCTION - Commented out for now
+/*
 void HttpRequest::print() const {
     std::cout << "Method: " << methodToString() << std::endl;
     std::cout << "URI: " << _uri << std::endl;
@@ -439,6 +450,7 @@ void HttpRequest::print() const {
     }
     std::cout << "Body length: " << _body.size() << std::endl;
 }
+*/
 
 #ifdef BONUS
 /**
@@ -462,6 +474,8 @@ const std::map<std::string, std::string>& HttpRequest::getCookies() const {
 }
 #endif
 
+// UNUSED FUNCTION - Commented out
+// std::vector<std::string> HttpRequest::splitIntoLines(const std::string& content) {
 std::vector<std::string> HttpRequest::splitIntoLines(const std::string& content) {
     std::vector<std::string> lines;
     std::string line;

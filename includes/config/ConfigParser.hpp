@@ -21,9 +21,9 @@ class ConfigParser {
         ConfigParser();
         ~ConfigParser();
 
-        bool parseConfig(const std::string& config_file);
+        bool parseConfig(const std::string& filename);
         const std::vector<ServerConfig>& getServers() const;
-        void printConfig() const;
+        // void printConfig() const;  // UNUSED - Commented out
 };
 
 #endif

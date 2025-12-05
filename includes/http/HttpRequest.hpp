@@ -39,7 +39,7 @@ class HttpRequest {
         ~HttpRequest();
 
         bool parseRequest(const std::string& data, char *buffer, ssize_t bytes_read);
-        void reset();
+        // void reset();  // UNUSED - Commented out
 
         // Getters
         HttpMethod getMethod() const;
@@ -58,7 +58,7 @@ class HttpRequest {
 
         std::string getHeader(const std::string& key) const;
         std::string methodToString() const;
-        void print() const;
+        // void print() const;  // UNUSED - Commented out
 
 #ifdef BONUS
         std::string getCookie(const std::string& name) const;

@@ -259,6 +259,8 @@ HttpResponse HttpResponse::redirectResponse(const std::string& location, int sta
     return response;
 }
 
+// UNUSED FUNCTION - Commented out for now
+/*
 void HttpResponse::print() const {
     std::cout << "╔══════════════════════════════════════════════════════╗" << std::endl;
     std::cout << "║            HTTP RESPONSE                             ║" << std::endl;
@@ -304,3 +306,4 @@ void HttpResponse::print() const {
     }
     std::cout << std::endl;
 }
+*/

@@ -41,7 +41,7 @@ class HttpResponse {
         void setContentType(const std::string& content_type);
         void setContentLength(size_t length);
         void setAllow(const std::string& methods);
-        void print() const;
+        // void print() const;  // UNUSED - Commented out
 
 #ifdef BONUS
         void setCookie(const std::string& name, const std::string& value,

@@ -147,10 +147,29 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
         response = HttpResponse::errorResponse(HTTP_INTERNAL_SERVER_ERROR);
         _response_buffers[client_fd] = response.getResponseString();
         _response_offsets[client_fd] = 0;
+        // Switch to write mode
+        struct epoll_event ev;
+        ev.events = EPOLLOUT | EPOLLET;
+        ev.data.fd = client_fd;
+        epoll_ctl(_epoll_fd, EPOLL_CTL_MOD, client_fd, &ev);
         return;
     }
 
     std::cout << "Processing " << request.methodToString() << " " << request.getUri() << std::endl;
+    
+    // Check for client request errors FIRST (before route matching)
+    // This ensures malformed requests get proper 400 errors instead of 404
+    if (request.getStatus()) {
+        response = HttpResponse::errorResponseWithConfig(request.getStatus(), config);
+        _response_buffers[client_fd] = response.getResponseString();
+        _response_offsets[client_fd] = 0;
+        // Switch to write mode
+        struct epoll_event ev;
+        ev.events = EPOLLOUT | EPOLLET;
+        ev.data.fd = client_fd;
+        epoll_ctl(_epoll_fd, EPOLL_CTL_MOD, client_fd, &ev);
+        return;
+    }
     
     std::string uri = request.getUri();
     std::cout << "Requested URI: " << uri << std::endl;
@@ -161,6 +180,11 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
         response = HttpResponse::errorResponseWithConfig(HTTP_NOT_FOUND, config);
         _response_buffers[client_fd] = response.getResponseString();
         _response_offsets[client_fd] = 0;
+        // Switch to write mode
+        struct epoll_event ev;
+        ev.events = EPOLLOUT | EPOLLET;
+        ev.data.fd = client_fd;
+        epoll_ctl(_epoll_fd, EPOLL_CTL_MOD, client_fd, &ev);
         return;
     }
     
@@ -171,10 +195,6 @@ void HttpHandler::processRequest(int client_fd, int server_port) {
     
     if (request.getContentLength() > max_body_size)
         response = HttpResponse::errorResponseWithConfig(HTTP_PAYLOAD_TOO_LARGE, config);
-    // Check for client request errors
-    else if (request.getStatus()) {
-        response = HttpResponse::errorResponseWithConfig(request.getStatus(), config);
-    }
     // Handle OPTIONS method (should be checked BEFORE method allowed check)
     else if (request.getMethod() == METHOD_OPTIONS) {
         // OPTIONS returns allowed methods for the URI

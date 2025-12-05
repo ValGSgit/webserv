@@ -524,6 +524,8 @@ void ConfigParser::applyInheritanceAndNormalize(ServerConfig& server) {
     }
 }
 
+// UNUSED FUNCTION - Commented out for now
+/*
 void ConfigParser::printConfig() const {
     for (size_t i = 0; i < _servers.size(); ++i) {
         const ServerConfig& server = _servers[i];
@@ -536,3 +538,4 @@ void ConfigParser::printConfig() const {
         std::cout << "  Routes: " << server.routes.size() << std::endl;
     }
 }
+*/

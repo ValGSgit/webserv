@@ -81,8 +81,7 @@ HttpResponse CgiHandler::executeCgi(const HttpRequest& request, const std::strin
         execve(cgi_executable.c_str(), const_cast<char* const*>(args), &env_array[0]);
         
         // If we get here, exec failed
-        std::cerr << "execve failed\n";
-        std::exit(1);
+        return HttpResponse::errorResponse(HTTP_INTERNAL_SERVER_ERROR, "Umm, akchually execve failed");
     }
 
     close(stdin_pipe[0]); 
